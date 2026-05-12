@@ -1,4 +1,4 @@
 interface:
-  display_name: "Long Story Analyze"
-  short_description: "Analyze long web-novel structure and hooks"
-  default_prompt: "Use $story-long-analyze to analyze this long web novel."
+  display_name: "长篇拆文"
+  short_description: "拆解长篇网文结构黄金三章爽点与节奏"
+  default_prompt: "使用 $story-long-analyze 分析这部长篇网文。"

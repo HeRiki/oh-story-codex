@@ -1,4 +1,4 @@
 interface:
-  display_name: "Story Cover"
-  short_description: "Design Chinese web-novel cover prompts"
-  default_prompt: "Use $story-cover to design a cover for my novel."
+  display_name: "网文封面"
+  short_description: "根据书名题材生成网文封面设计方案"
+  default_prompt: "使用 $story-cover 为我的小说设计一张封面。"

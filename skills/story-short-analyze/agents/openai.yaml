@@ -1,4 +1,4 @@
 interface:
-  display_name: "Short Story Analyze"
-  short_description: "Analyze short-story emotion and reversals"
-  default_prompt: "Use $story-short-analyze to analyze this short story."
+  display_name: "短篇拆文"
+  short_description: "拆解短篇结构情绪曲线反转机制与钩子"
+  default_prompt: "使用 $story-short-analyze 分析这篇短篇故事。"

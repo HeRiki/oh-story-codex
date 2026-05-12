@@ -1,4 +1,4 @@
 interface:
-  display_name: "Long Story Write"
-  short_description: "Plan and draft long-form web novels"
-  default_prompt: "Use $story-long-write to plan and write my long-form novel."
+  display_name: "长篇写作"
+  short_description: "辅助长篇开书大纲人物设定与日更续写"
+  default_prompt: "使用 $story-long-write 帮我规划并写一部长篇网文。"

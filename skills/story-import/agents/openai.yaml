@@ -1,4 +1,4 @@
 interface:
-  display_name: "Story Import"
-  short_description: "Import existing novels into project files"
-  default_prompt: "Use $story-import to convert my existing novel into a writing project."
+  display_name: "小说导入"
+  short_description: "把已有小说导入并反推为可续写项目结构"
+  default_prompt: "使用 $story-import 把我已有的小说整理成写作项目。"

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Short Story Write"
-  short_description: "Plan draft and polish short web stories"
-  default_prompt: "Use $story-short-write to draft a short web story."
+  display_name: "短篇写作"
+  short_description: "辅助短篇构思分节写作成稿与精修定稿"
+  default_prompt: "使用 $story-short-write 帮我写一篇短篇网文。"

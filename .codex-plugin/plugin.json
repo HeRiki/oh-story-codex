@@ -26,9 +26,9 @@
       "Research"
     ],
     "defaultPrompt": [
-      "Use $story to route my web-novel writing request.",
-      "Use $story-long-write to help me plan a new long-form novel.",
-      "Use $story-deslop to reduce AI-like phrasing in this draft."
+      "使用 $story 判断这次网文任务该走哪个流程。",
+      "使用 $story-long-write 帮我规划一部长篇网文。",
+      "使用 $story-deslop 帮我把这段草稿改得更自然。"
     ],
     "brandColor": "#7C3AED"
   }

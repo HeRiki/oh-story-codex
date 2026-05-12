@@ -1,4 +1,4 @@
 interface:
-  display_name: "Long Story Scan"
-  short_description: "Scan long-form web-novel market trends"
-  default_prompt: "Use $story-long-scan to scan current long-form web novel trends."
+  display_name: "长篇扫榜"
+  short_description: "分析长篇网文平台榜单题材趋势与机会"
+  default_prompt: "使用 $story-long-scan 扫描当前长篇网文市场趋势。"

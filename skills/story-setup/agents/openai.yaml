@@ -1,4 +1,4 @@
 interface:
-  display_name: "Story Setup"
-  short_description: "Initialize Codex web-novel projects"
-  default_prompt: "Use $story-setup to initialize my Codex writing project."
+  display_name: "写作项目初始化"
+  short_description: "初始化 Codex 网文写作项目结构与规则库"
+  default_prompt: "使用 $story-setup 初始化我的 Codex 写作项目。"
