@@ -2,6 +2,8 @@
 
 Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` 转换而来。它保留原包的扫榜、拆文、写作、审查、去 AI 味、导入和封面生成方法论，并把 skill metadata 转成 Codex 可识别格式。
 
+> 这是非官方 Codex 移植版，不代表原作者发布或维护的官方版本。
+
 ## 包含的 Skills
 
 | Skill | 用途 |
@@ -25,6 +27,14 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 本仓库本身就是一个 Codex 插件目录，入口在 `.codex-plugin/plugin.json`，技能目录在 `skills/`。作为本地技能使用时，可以把需要的单个 skill 目录复制到 `$CODEX_HOME/skills/`；作为插件使用时，保留当前目录结构并通过 Codex 插件机制加载。
 
 每个 `SKILL.md` 的 frontmatter 只保留 `name` 和 `description`，适配 Codex 的 skill 发现规则。`agents/openai.yaml` 提供 UI 元数据，不参与核心工作流。
+
+## 上游与许可
+
+- 上游项目：[`worldwonderer/oh-story-claudecode`](https://github.com/worldwonderer/oh-story-claudecode)
+- 上游许可证：MIT License
+- 本仓库保留原项目 `LICENSE`，并在此基础上进行 Codex 适配。
+
+如果发布到自己的 GitHub 仓库，请把仓库描述写成“非官方 Codex 移植版”或类似措辞，避免让使用者误以为这是原作者官方仓库。
 
 ## 转换说明
 
