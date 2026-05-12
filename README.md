@@ -28,6 +28,26 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 
 每个 `SKILL.md` 的 frontmatter 只保留 `name` 和 `description`，适配 Codex 的 skill 发现规则。`agents/openai.yaml` 提供 UI 元数据，不参与核心工作流。
 
+## 本地安装
+
+在 Windows + Git Bash 环境下，运行：
+
+```bash
+bash scripts/install-local-skills.sh
+```
+
+默认安装到 `C:/CodexData/skills`。如果已存在同名 skill，需要覆盖更新时运行：
+
+```bash
+bash scripts/install-local-skills.sh --force
+```
+
+安装后建议重启或新开一个 Codex 会话，让 skill 发现列表刷新。可用以下命令检查本包 13 个 skill 是否完整可读：
+
+```bash
+bash scripts/smoke-test-local-skills.sh /c/CodexData/skills
+```
+
 ## 上游与许可
 
 - 上游项目：[`worldwonderer/oh-story-claudecode`](https://github.com/worldwonderer/oh-story-claudecode)
@@ -63,6 +83,7 @@ Unofficial Codex port of worldwonderer/oh-story-claudecode
 ```bash
 bash scripts/static-check.sh
 bash scripts/check-shared-files.sh
+bash scripts/smoke-test-local-skills.sh
 ```
 
 也可以直接运行 Codex 官方 skill 校验脚本：
