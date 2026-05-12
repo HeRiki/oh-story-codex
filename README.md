@@ -36,13 +36,25 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 bash scripts/install-local-skills.sh
 ```
 
-默认安装到 `C:/CodexData/skills`。如果已存在同名 skill，需要覆盖更新时运行：
+安装目录解析顺序：
+
+1. `CODEX_SKILLS_DIR`
+2. `$CODEX_HOME/skills`
+3. `~/.codex/skills`
+
+如果已存在同名 skill，需要覆盖更新时运行：
 
 ```bash
 bash scripts/install-local-skills.sh --force
 ```
 
-安装后建议重启或新开一个 Codex 会话，让 skill 发现列表刷新。可用以下命令检查本包 13 个 skill 是否完整可读：
+本仓库维护者的本地 Codex 数据目录是 `C:/CodexData`，不是通用默认目录；如需复现这个个人环境，使用：
+
+```bash
+CODEX_SKILLS_DIR=/c/CodexData/skills bash scripts/install-local-skills.sh --force
+```
+
+安装后建议重启或新开一个 Codex 会话，让 skill 发现列表刷新。可用以下命令检查本包 13 个 skill 是否完整可读；通用情况下把参数换成实际安装目录：
 
 ```bash
 bash scripts/smoke-test-local-skills.sh /c/CodexData/skills

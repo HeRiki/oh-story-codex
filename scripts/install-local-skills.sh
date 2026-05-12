@@ -5,8 +5,19 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_DIR="$REPO_ROOT/skills"
-TARGET_DIR="${CODEX_SKILLS_DIR:-/c/CodexData/skills}"
 FORCE=false
+
+if [ -n "${CODEX_SKILLS_DIR:-}" ]; then
+  TARGET_DIR="$CODEX_SKILLS_DIR"
+elif [ -n "${CODEX_HOME:-}" ]; then
+  if command -v cygpath >/dev/null 2>&1; then
+    TARGET_DIR="$(cygpath -u "$CODEX_HOME")/skills"
+  else
+    TARGET_DIR="$CODEX_HOME/skills"
+  fi
+else
+  TARGET_DIR="$HOME/.codex/skills"
+fi
 
 if [ "${1:-}" = "--force" ]; then
   FORCE=true
