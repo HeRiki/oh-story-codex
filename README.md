@@ -67,6 +67,11 @@ bash scripts/smoke-test-local-skills.sh /c/CodexData/skills
 - 本仓库保留原项目 `LICENSE`，并在此基础上进行 Codex 适配。
 - 本项目完全基于原项目，并使用 Codex 自动完成迁移修改。
 
+## 贡献者与致谢
+
+- 原项目作者 / 上游核心贡献者：[`worldwonderer`](https://github.com/worldwonderer)
+- Codex 移植维护：`oh-story-codex contributors`
+
 ## 发布描述建议
 
 GitHub 仓库描述建议使用：
