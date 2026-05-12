@@ -36,6 +36,20 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 
 如果发布到自己的 GitHub 仓库，请把仓库描述写成“非官方 Codex 移植版”或类似措辞，避免让使用者误以为这是原作者官方仓库。
 
+## 发布描述建议
+
+GitHub 仓库描述建议使用：
+
+```text
+非官方 Codex 移植版：基于 worldwonderer/oh-story-claudecode 的中文网文写作技能包
+```
+
+英文描述可使用：
+
+```text
+Unofficial Codex port of worldwonderer/oh-story-claudecode
+```
+
 ## 转换说明
 
 - 移除了 Claude/OpenClaw 专属 frontmatter 字段，例如 `version`、`metadata.openclaw`。
