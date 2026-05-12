@@ -65,6 +65,7 @@ bash scripts/smoke-test-local-skills.sh /c/CodexData/skills
 - 上游项目：[`worldwonderer/oh-story-claudecode`](https://github.com/worldwonderer/oh-story-claudecode)
 - 上游许可证：MIT License
 - 本仓库保留原项目 `LICENSE`，并在此基础上进行 Codex 适配。
+- 本项目完全基于原项目，并使用 Codex 自动完成迁移修改。
 
 如果发布到自己的 GitHub 仓库，请把仓库描述写成“非官方 Codex 移植版”或类似措辞，避免让使用者误以为这是原作者官方仓库。
 
