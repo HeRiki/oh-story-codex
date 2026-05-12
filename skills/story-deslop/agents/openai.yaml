@@ -1,4 +1,4 @@
 interface:
-  display_name: "网文去 AI 味"
+  display_name: "Story Deslop"
   short_description: "检测并降低网文草稿中的 AI 写作痕迹"
-  default_prompt: "使用 $story-deslop 帮我把这段草稿改得更自然。"
+  default_prompt: "使用 $story-deslop 把这段草稿改得更自然。"

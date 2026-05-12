@@ -1,4 +1,4 @@
 interface:
-  display_name: "网文工具箱"
+  display_name: "Story Router"
   short_description: "根据中文网文写作需求路由到对应技能流程"
-  default_prompt: "使用 $story 帮我判断这次网文任务该走哪个流程。"
+  default_prompt: "使用 $story 判断这次网文任务该走哪个流程。"

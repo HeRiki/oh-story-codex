@@ -1,4 +1,4 @@
 interface:
-  display_name: "故事审查"
-  short_description: "从多视角审查章节质量节奏与一致性"
-  default_prompt: "使用 $story-review 帮我审查这一章的问题。"
+  display_name: "Story Review"
+  short_description: "从多视角审查章节质量、节奏与一致性"
+  default_prompt: "使用 $story-review 审查这一章的问题。"

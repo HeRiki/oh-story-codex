@@ -1,4 +1,4 @@
 interface:
-  display_name: "长篇写作"
-  short_description: "辅助长篇开书大纲人物设定与日更续写"
-  default_prompt: "使用 $story-long-write 帮我规划并写一部长篇网文。"
+  display_name: "Long Story Write"
+  short_description: "辅助长篇开书、大纲、人物设定与日更续写"
+  default_prompt: "使用 $story-long-write 规划并写一部长篇网文。"

@@ -1,4 +1,4 @@
 interface:
-  display_name: "浏览器 CDP"
+  display_name: "Browser CDP"
   short_description: "复用 Chrome 登录态进行页面采集与自动化操作"
   default_prompt: "使用 $browser-cdp 打开已登录页面并提取正文内容。"
