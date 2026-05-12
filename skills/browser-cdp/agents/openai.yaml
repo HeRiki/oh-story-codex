@@ -1,0 +1,4 @@
+interface:
+  display_name: "Browser CDP"
+  short_description: "Automate logged-in Chrome pages with CDP"
+  default_prompt: "Use $browser-cdp to open a logged-in page and extract text."

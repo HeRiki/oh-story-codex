@@ -1,0 +1,4 @@
+interface:
+  display_name: "Story Deslop"
+  short_description: "Reduce AI-like phrasing in story drafts"
+  default_prompt: "Use $story-deslop to make this draft read more naturally."

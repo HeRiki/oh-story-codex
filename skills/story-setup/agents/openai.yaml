@@ -1,0 +1,4 @@
+interface:
+  display_name: "Story Setup"
+  short_description: "Initialize Codex web-novel projects"
+  default_prompt: "Use $story-setup to initialize my Codex writing project."

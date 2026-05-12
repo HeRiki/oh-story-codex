@@ -1,0 +1,4 @@
+interface:
+  display_name: "Long Story Analyze"
+  short_description: "Analyze long web-novel structure and hooks"
+  default_prompt: "Use $story-long-analyze to analyze this long web novel."

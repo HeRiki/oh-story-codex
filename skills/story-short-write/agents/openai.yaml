@@ -1,0 +1,4 @@
+interface:
+  display_name: "Short Story Write"
+  short_description: "Plan draft and polish short web stories"
+  default_prompt: "Use $story-short-write to draft a short web story."

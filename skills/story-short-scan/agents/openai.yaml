@@ -1,0 +1,4 @@
+interface:
+  display_name: "Short Story Scan"
+  short_description: "Scan short-story market trends and hooks"
+  default_prompt: "Use $story-short-scan to scan short web story trends."

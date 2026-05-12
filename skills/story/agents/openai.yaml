@@ -1,0 +1,4 @@
+interface:
+  display_name: "Story Router"
+  short_description: "Route Chinese web-novel tasks to skills"
+  default_prompt: "Use $story to route my web-novel writing request."

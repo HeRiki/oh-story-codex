@@ -1,0 +1,4 @@
+interface:
+  display_name: "Long Story Scan"
+  short_description: "Scan long-form web-novel market trends"
+  default_prompt: "Use $story-long-scan to scan current long-form web novel trends."

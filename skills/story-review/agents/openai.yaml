@@ -1,0 +1,4 @@
+interface:
+  display_name: "Story Review"
+  short_description: "Review story quality from multiple angles"
+  default_prompt: "Use $story-review to review this chapter for story problems."

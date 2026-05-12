@@ -1,0 +1,4 @@
+interface:
+  display_name: "Story Cover"
+  short_description: "Design Chinese web-novel cover prompts"
+  default_prompt: "Use $story-cover to design a cover for my novel."

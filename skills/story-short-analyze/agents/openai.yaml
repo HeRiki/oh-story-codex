@@ -1,0 +1,4 @@
+interface:
+  display_name: "Short Story Analyze"
+  short_description: "Analyze short-story emotion and reversals"
+  default_prompt: "Use $story-short-analyze to analyze this short story."

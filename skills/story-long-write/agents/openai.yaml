@@ -1,0 +1,4 @@
+interface:
+  display_name: "Long Story Write"
+  short_description: "Plan and draft long-form web novels"
+  default_prompt: "Use $story-long-write to plan and write my long-form novel."
