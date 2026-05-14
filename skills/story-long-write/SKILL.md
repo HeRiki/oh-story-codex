@@ -71,6 +71,10 @@ description: |
 - 节奏感好 → 推荐：都市爽文、重生文、游戏文
 - 生活经验丰富 → 推荐：行业文、都市日常、种田文
 
+#### 协作提示：story-architect
+
+确认选题方向后，优先检查 `.codex/story-agents/story-architect.md` 是否存在。若存在，读取该文件作为题材定位、核心梗设计、对标分析的角色参考，并在本线程完成分析；只有用户明确要求多代理、并行分析或委派时，才使用 `spawn_agent` 辅助题材分析。
+
 ---
 
 ### Phase 2：核心设定
@@ -112,6 +116,10 @@ description: |
 完成核心设定后，创建以下 artifact（加载 [references/artifact-protocols.md](references/artifact-protocols.md) 中对应模板）：
 - **设定/关系.md**：角色关系映射（参考 character-relations.md「四种关系类型」）
 - **设定/题材定位.md**：题材核心梗三分法+对标分析（参考 genre-core-mechanics.md「核心梗解析」）。对标分析表保留 2-3 行摘要，详细数据见 `对标/` 目录
+
+#### 协作提示：story-architect + character-designer
+
+核心设定阶段，优先检查 `.codex/story-agents/story-architect.md` 和 `.codex/story-agents/character-designer.md` 是否存在。若存在，读取对应文件作为参考：`story-architect` 负责世界观、核心冲突和题材定位；`character-designer` 负责主角设定、角色关系和语言风格档案。默认在本线程整合输出，只有用户明确要求多代理、并行处理或委派时，才使用 `spawn_agent` 分派对应任务。
 
 ---
 
@@ -161,6 +169,10 @@ description: |
 - **追踪/伏笔.md** + **追踪/时间线.md**：伏笔状态表+故事时间线（参考 plot-core-methods.md「连续性追踪」）
 
 前 3 章细纲额外加载 [references/opening-design.md](references/opening-design.md)（黄金三章法则+六大标准）。
+
+#### 协作提示：story-architect
+
+大纲搭建阶段，优先检查 `.codex/story-agents/story-architect.md` 是否存在。若存在，读取该文件作为卷级结构、细纲、钩子、反转和情绪弧线设计参考，并在本线程完成大纲排布；只有用户明确要求多代理、并行处理或委派时，才使用 `spawn_agent` 辅助设计。
 
 ---
 
@@ -244,7 +256,7 @@ description: |
    - (7) `参考资料/{topic}.md`（如存在）— 历史研究资料（由 story-researcher 产出）
 3. **确认节奏**：本章是快节奏（冲突/打斗）还是慢节奏（铺垫/日常）
 3.5. **资料研究**（按需）：如果写作中遇到需要查证的外部事实（历史年代、地理方位、职业细节等），读取 `.codex/story-agents/story-researcher.md` 作为研究角色说明并输出到 `参考资料/` 目录；只有用户明确要求委派时才用 `spawn_agent`。研究完成后再继续写作。
-4. **写作**：直接写入 `正文/第XXX章_章名.md`
+4. **写作**：优先检查 `.codex/story-agents/narrative-writer.md` 是否存在。若存在，读取该文件作为正文写作角色参考，结合本章细纲、上一章正文、情绪目标和涉及角色完成写作；只有用户明确要求多代理、并行处理或委派时，才使用 `spawn_agent`。无论本线程写作还是委派写作，最终都必须写入 `正文/第XXX章_章名.md`
 5. **检查**：章尾是否有钩子、爽点是否到位、字数是否达标
 6. **禁用词扫描**：对照 `references/banned-words.md` 检查本章，一级词（高频AI腔）命中即替换；二级词（低频/语境相关）高频出现时替换，偶发可参考 `references/anti-ai-writing.md` 定性裁定
 7. **更新追踪**：写完后即时更新 `追踪/伏笔.md`（新增/回收伏笔）和 `追踪/时间线.md`（记录事件时序）
@@ -280,6 +292,14 @@ description: |
 ### Phase 5：质量检查
 
 对已写内容做检查，参考 [references/quality-checklist.md](references/quality-checklist.md) 中的通用检查和长篇专项清单。
+
+#### 协作提示：consistency-checker
+
+质量检查阶段，优先检查 `.codex/story-agents/consistency-checker.md` 是否存在。若存在，读取该文件作为一致性检查角色参考，重点检查事实冲突、伏笔断线、角色属性不一致并输出 S1-S4 分级报告；只有用户明确要求多代理、并行检查或委派时，才使用 `spawn_agent`。
+
+#### 协作提示：narrative-writer（去 AI 味审查）
+
+质量检查阶段，优先检查 `.codex/story-agents/narrative-writer.md` 是否存在。若存在，读取该文件作为文字质量审查和去 AI 味角色参考，对本次写作章节执行文字质量检查；只有用户明确要求多代理、并行检查或委派时，才使用 `spawn_agent`。
 
 检查后更新追踪文件：
 - 更新 `追踪/伏笔.md` 中的过期伏笔和回收状态
@@ -367,5 +387,5 @@ description: |
 
 ## 语言
 
-- 用户用中文就用中文回复，用英文就用英文回复
+- 跟随用户的语言回复，用户用什么语言就用什么语言回复
 - 中文回复遵循《中文文案排版指北》

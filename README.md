@@ -1,3 +1,5 @@
+**中文** | [English](README_EN.md)
+
 # oh-story-codex
 
 Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` 转换而来。它保留原包的扫榜、拆文、写作、审查、去 AI 味、导入和封面生成方法论，并把 skill metadata 转成 Codex 可识别格式。

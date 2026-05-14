@@ -54,6 +54,10 @@ description: |
 
 > 如果用户有参考小说，先用 `/story-short-analyze` 拆解，输出存入 `拆文库/{书名}/`（或用户指定的 对标/ 目录）。写作时参考其结构/情绪/反转设计。
 
+#### 协作提示：story-architect
+
+构思阶段，优先检查 `.codex/story-agents/story-architect.md` 是否存在。若存在，读取该文件作为短篇构思、情绪目标、题材方向和反转设计参考，并在本线程完成框架设计；只有用户明确要求多代理、并行构思或委派时，才使用 `spawn_agent`。
+
 帮用户确定短篇的核心框架：
 
 ```
@@ -99,6 +103,10 @@ description: |
 5. 反转信息差验证（公式见 writing-workflow.md）
 6. 伏笔回查清单（标准见 writing-workflow.md）
 
+#### 协作提示：character-designer
+
+设计任务完成后，优先检查 `.codex/story-agents/character-designer.md` 是否存在。若存在，读取该文件作为角色设定、关系设计和语言风格档案参考，并在本线程完成角色补强；只有用户明确要求多代理、并行处理或委派时，才使用 `spawn_agent`。
+
 ---
 
 ### Phase 3：逐场景写作
@@ -106,6 +114,10 @@ description: |
 > 术语说明：Phase 3 按「段」划分叙事结构（开头段/铺垫段/升级段/反转段/结尾段），每段包含若干「小节」（数字编号的 beat）。「场景」指写作时的具体画面。
 
 **写作心法：你不是在翻译大纲，你在构建场景。读者要和主角一起经历。**
+
+#### 协作提示：narrative-writer
+
+正文写作阶段，优先检查 `.codex/story-agents/narrative-writer.md` 是否存在。若存在，读取该文件作为正文写作角色参考，结合核心框架、小节大纲、情绪目标和涉及角色完成写作；只有用户明确要求多代理、并行写作或委派时，才使用 `spawn_agent`。
 
 ⚠️ **硬约束：每节 ≥ 800 字 / 50-65 行**。
 题材例外：爽文、打脸、系统流等高信息密度题材可降至 ≥ 500 字/节（见 genre-writing-formulas.md 各题材速查表），但不得低于 500 字。
@@ -234,6 +246,10 @@ description: |
 加载 `references/writing-workflow.md` 中的精修清单完成检查。
 重点：开头钩子、情绪曲线、反转铺垫、每句话价值、格式规范、AI 腔排查。
 
+#### 协作提示：narrative-writer（去 AI 味）+ consistency-checker
+
+精修阶段，优先检查 `.codex/story-agents/narrative-writer.md` 和 `.codex/story-agents/consistency-checker.md` 是否存在。若存在，读取对应文件作为参考：`narrative-writer` 负责去 AI 味和格式合规检查；`consistency-checker` 负责事实冲突、伏笔断线和角色属性一致性检查。默认在本线程整合完成，只有用户明确要求多代理、并行检查或委派时，才使用 `spawn_agent` 分派对应任务。
+
 **自检记录隔离规则**：
 - 所有自检记录（字数统计、禁用词扫描结果、格式检查清单）必须写入独立文件 `自检_{标题}.md`（标题取自 Phase 2 核心框架）
 - **绝对不能**将自检记录附加到正文文件末尾
@@ -294,5 +310,5 @@ description: |
 
 ## 语言
 
-- 用户用中文就用中文回复，用英文就用英文回复
+- 跟随用户的语言回复，用户用什么语言就用什么语言回复
 - 中文回复遵循《中文文案排版指北》
