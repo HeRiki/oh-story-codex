@@ -45,7 +45,7 @@ description: |
 
 - 读取 `references/templates/agents/` 下所有 `.md` 文件。
 - 复制到用户项目的 `.codex/story-agents/` 目录。
-- Codex 没有 Claude 的自定义 `subagent_type` 注册机制；需要多视角审查时，将这些文件作为 `spawn_agent` 或本线程审查的角色提示词参考。
+- Codex 不使用自定义 `subagent_type` 注册机制；需要多视角审查时，将这些文件作为 `spawn_agent` 或本线程审查的角色提示词参考。
 
 ### 2.4 部署上下文模板
 
@@ -96,7 +96,7 @@ setup_skill_version: 1.0.0
 
 - `.story-deployed` 不存在：全新安装，Phase 2 全部执行。
 - `.story-deployed` 存在且 `runtime: codex`、`agents_version: 3`：提示已部署，确认后重跑。
-- `.story-deployed` 存在但 runtime 不是 `codex`：按迁移处理，部署 Codex 目录，不删除原有 Claude 目录。
+- `.story-deployed` 存在但 runtime 不是 `codex`：按迁移处理，部署 Codex 目录，不删除原有旧运行时目录。
 
 ## 参考资料
 

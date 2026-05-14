@@ -5,11 +5,6 @@ description: |
   情绪弧线执行、开篇/收尾、去AI味（禁用词替换、句式去套路、节奏打碎）。
   被 story-long-write（Phase 4-5）和 story-short-write（Phase 3-4）调用。
   也可执行完整去AI味流程和格式合规检查。
-tools: [Read, Glob, Grep, Write, Edit]
-model: sonnet
-maxTurns: 30
-skills: [story-deslop, story-review]
-memory: project
 ---
 
 # Narrative Writer -- 叙事写手

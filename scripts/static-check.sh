@@ -237,6 +237,43 @@ check_skill() {
     errors=$((errors + 1))
   fi
 
+  # Check 7: Runtime contamination from non-Codex skill formats
+  local forbidden_patterns=(
+    "Agent(subagent_type"
+    ".claude/agents"
+    "Claude Code"
+    "OpenClaw"
+    "WebSearch"
+    "webReader"
+    "model: opus"
+    "model: sonnet"
+    "model: haiku"
+    "tools: [Read"
+    "disallowedTools:"
+    "maxTurns:"
+    "memory: project"
+    "用户用中文就用中文回复"
+    "所有输出使用中文"
+  )
+  local contamination=()
+  local pattern
+  for pattern in "${forbidden_patterns[@]}"; do
+    while IFS= read -r hit; do
+      [ -z "$hit" ] && continue
+      contamination+=("$hit")
+    done < <(grep -RInF -- "$pattern" "$skill_dir" 2>/dev/null || true)
+  done
+
+  if [ ${#contamination[@]} -eq 0 ]; then
+    echo "  [PASS] no non-Codex contamination patterns"
+  else
+    echo "  [FAIL] non-Codex contamination patterns found:"
+    printf '%s\n' "${contamination[@]}" | sort -u | while IFS= read -r hit; do
+      echo "         -> ${hit#$skill_dir}"
+    done
+    errors=$((errors + 1))
+  fi
+
   # Summary
   if [ "$errors" -eq 0 ]; then
     PASS=$((PASS + 1))

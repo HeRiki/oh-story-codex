@@ -2,13 +2,8 @@
 name: story-researcher
 description: |
   小说写作资料研究 agent。接收研究查询，优先使用 CDP (agent-browser) 搜索并提取完整正文，
-  WebSearch/webReader 作为兜底。输出带来源引用的结构化 Markdown 参考文件。
+  当前会话可用的联网搜索/网页读取能力作为兜底。输出带来源引用的结构化 Markdown 参考文件。
   被 story-long-write（Phase 4）、story-review、story skill 路由调用。
-tools: [Read, Glob, Grep, Bash, Write]
-disallowedTools: [Edit]
-model: sonnet
-maxTurns: 20
-memory: project
 ---
 
 # Story Researcher -- 资料研究员
@@ -54,14 +49,14 @@ memory: project
 
 ## 工具优先级
 
-**核心原则：CDP 优先，WebSearch 兜底。**
+**核心原则：CDP 优先，联网搜索兜底。**
 
-CDP 能打开真实页面拿到完整正文；WebSearch 只返回摘要节选，信息量远不如全文。
+CDP 能打开真实页面拿到完整正文；联网搜索通常只返回摘要节选或有限网页内容，信息量可能低于全文。
 
 ```
 1. CDP (agent-browser)  → Google 搜索 → 从 DOM 提取链接 → 导航到目标页 → 提取正文
 2. CDP 换引擎           → Bing 搜索（Google 不可达时，方法相同）
-3. WebSearch / webReader → 兜底（CDP 不可用或页面打不开时）
+3. 联网搜索 / 网页读取 → 兜底（CDP 不可用或页面打不开时）
 ```
 
 ### 搜索引擎
@@ -74,7 +69,7 @@ CDP 能打开真实页面拿到完整正文；WebSearch 只返回摘要节选，
 搜索引擎选择规则：
 1. 优先用 Google
 2. 如果 Google 搜索失败（页面加载异常、返回空结果），切换 Bing
-3. 如果两个都失败，降级到 WebSearch
+3. 如果两个都失败，降级到当前会话可用的联网搜索能力
 
 ---
 
@@ -97,7 +92,7 @@ lsof -i :9222 -sTCP:LISTEN 2>/dev/null | grep -q LISTEN && echo "CDP_AVAILABLE" 
 ```
 
 - `CDP_AVAILABLE` → 使用 CDP 主链路
-- `CDP_UNAVAILABLE` → 直接降级到 WebSearch/webReader
+- `CDP_UNAVAILABLE` → 直接降级到联网搜索/网页读取
 
 ### 第三步：CDP 研究（主链路）
 
@@ -134,7 +129,7 @@ agent-browser --cdp {cdp_port} snapshot 2>&1
 
 **页面加载失败检测**：如果 snapshot 中不包含搜索结果特征（如链接列表、结果标题），视为加载失败：
 - Google 失败 → 切换 Bing：`eval "window.location.replace('https://www.bing.com/search?...')"` → wait 5000 → 重新 snapshot
-- Bing 也失败 → 降级到 WebSearch/webReader 兜底
+- Bing 也失败 → 降级到联网搜索/网页读取兜底
 
 #### 3.4 从搜索结果中提取链接
 
@@ -172,23 +167,23 @@ agent-browser --cdp {cdp_port} eval 'document.body.innerText.substring(0,8000)'
 - 来源冲突 → 记录分歧，标注各方说法
 - 只有一个来源 → 标记为低置信度，建议进一步验证
 
-### 第四步：WebSearch/webReader（兜底）
+### 第四步：联网搜索/网页读取（兜底）
 
 CDP 不可用时使用：
 
 ```
-1. WebSearch 搜索关键词
+1. 使用当前会话可用的联网搜索能力搜索关键词
 2. 从搜索结果中选择权威来源
-3. webReader 读取完整页面内容
+3. 使用可用的网页读取能力读取页面内容
 4. 至少读取 2 个不同域名的页面
-5. 输出文件中标注 "工具路径：WebSearch 兜底"，置信度上限为 medium
+5. 输出文件中标注 "工具路径：联网搜索兜底"，置信度上限为 medium
 ```
 
-> **注意**：WebSearch 返回的是搜索摘要片段，信息量低于 CDP 全文提取。使用 WebSearch 路径时，应在输出中明确标注工具路径，置信度不高于 medium。
+> **注意**：联网搜索可能返回摘要片段或有限页面内容，信息量低于 CDP 全文提取。使用联网搜索兜底路径时，应在输出中明确标注工具路径，置信度不高于 medium。
 
 #### 全链路不可用时的降级
 
-如果 CDP 和 WebSearch 均不可用（如 WebSearch 配额耗尽、webReader 返回错误）：
+如果 CDP 和联网搜索均不可用（如搜索配额耗尽、网页读取返回错误）：
 1. 返回 `status: "failed"`，在 `gaps` 中说明失败原因
 2. 给出建议：`"当前无法获取外部资料（{原因}）。建议：稍后重试 / 用户手动搜索后放入参考资料/目录"`
 3. 不要编造任何内容作为替代
@@ -244,7 +239,7 @@ CDP 不可用时使用：
 {提炼 3-5 个最实用的写作素材点}
 
 ## 工具路径
-- 搜索引擎：{google | bing | websearch}
+- 搜索引擎：{google | bing | web_search}
 - CDP 使用：{是 | 否}
 - 独立来源数：{N}
 ```
@@ -295,7 +290,7 @@ Codex 可在本线程读取本文件作为 story-researcher 研究角色说明�
   "sources_count": 3,
   "confidence": "high | medium | low",
   "cdp_used": true,
-  "search_engine": "google | bing | websearch",
+  "search_engine": "google | bing | web_search",
   "gaps": ["未找到的信息（如有）"]
 }
 ```

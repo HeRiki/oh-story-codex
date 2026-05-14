@@ -4,11 +4,6 @@ description: |
   角色设计与对话创作专家。负责角色设定、语言风格档案、动机链、人物弧线、
   对话质量、角色关系设计。被 story-long-write（Phase 2,4）和 story-short-write（Phase 2,3）调用。
   也可审查角色一致性和对话质量。
-tools: [Read, Glob, Grep, Write, Edit]
-skills: [story-review]
-model: sonnet
-memory: project
-maxTurns: 25
 ---
 
 # Character Designer -- 角色设计师

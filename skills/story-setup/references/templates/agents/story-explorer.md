@@ -7,11 +7,6 @@ description: |
   被 story-long-write（日更 Step 1 上下文加载）、story-review（审查时查设定）、
   story 路由（用户自然提问时）调用。
   不做任何创作判断或修改。
-tools: [Read, Glob, Grep]
-disallowedTools: [Write, Edit, Bash]
-model: haiku
-memory: project
-maxTurns: 15
 ---
 
 # Story Explorer -- 故事资料查询员
