@@ -1,6 +1,6 @@
 #!/bin/bash
-# static-check.sh — Skill 结构与路径完整性检查
-# 检查：frontmatter、引用路径有效、死文件、Agent 引用有效、Hook 路径有效
+# static-check.sh — Skill 与插件结构检查
+# 检查：frontmatter、引用路径有效、死文件、Agent 引用有效、Hook 路径有效、非 Codex 污染
 
 set -euo pipefail
 
@@ -42,6 +42,56 @@ extract_agent_refs() {
 }
 
 # ---------- checks ----------
+
+check_plugin_hooks() {
+  local plugin_json="$REPO_ROOT/.codex-plugin/plugin.json"
+  local hook_path="$REPO_ROOT/hooks/hooks.json"
+  local hook_script="$REPO_ROOT/hooks/story-lifecycle-hook.cjs"
+  local errors=0
+
+  echo ""
+  echo "--- plugin hooks ---"
+
+  if [ ! -f "$plugin_json" ]; then
+    echo "  [FAIL] plugin manifest missing: .codex-plugin/plugin.json"
+    errors=$((errors + 1))
+  elif grep -qF '"hooks": "./hooks/hooks.json"' "$plugin_json"; then
+    echo "  [PASS] plugin manifest points to hooks/hooks.json"
+  else
+    echo "  [FAIL] plugin manifest does not point to hooks/hooks.json"
+    errors=$((errors + 1))
+  fi
+
+  if [ -f "$hook_path" ]; then
+    echo "  [PASS] hooks/hooks.json exists"
+    if node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$hook_path" 2>/dev/null; then
+      echo "  [PASS] hooks/hooks.json is valid JSON"
+    else
+      echo "  [FAIL] hooks/hooks.json is not valid JSON"
+      errors=$((errors + 1))
+    fi
+  else
+    echo "  [FAIL] hooks/hooks.json missing"
+    errors=$((errors + 1))
+  fi
+
+  if [ -f "$hook_script" ]; then
+    echo "  [PASS] hook script exists"
+    if node --check "$hook_script" >/dev/null 2>&1; then
+      echo "  [PASS] hook script parses"
+    else
+      echo "  [FAIL] hook script has syntax errors"
+      errors=$((errors + 1))
+    fi
+  else
+    echo "  [FAIL] hook script missing"
+    errors=$((errors + 1))
+  fi
+
+  if [ "$errors" -gt 0 ]; then
+    FAIL=$((FAIL + 1))
+  fi
+}
 
 check_skill() {
   local skill_dir="$1"
@@ -294,6 +344,8 @@ check_skill() {
 echo "Skill Static Check"
 echo "=================="
 echo "Repo: $REPO_ROOT"
+
+check_plugin_hooks
 
 for skill_dir in "$SKILLS_DIR"/*/; do
   check_skill "$skill_dir"

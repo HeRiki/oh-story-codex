@@ -1,0 +1,68 @@
+{
+  "description": "Oh Story Codex lifecycle hooks for story project context, gap checks, session logging, and commit reminders.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|shell_command|functions.shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/story-lifecycle-hook.cjs pre-tool-use",
+            "timeout": 10,
+            "statusMessage": "检查网文提交前提醒..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/story-lifecycle-hook.cjs session-start",
+            "timeout": 10,
+            "statusMessage": "加载网文项目上下文..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/story-lifecycle-hook.cjs user-prompt-submit",
+            "timeout": 10,
+            "statusMessage": "检查网文写作上下文..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/story-lifecycle-hook.cjs stop",
+            "timeout": 10,
+            "statusMessage": "记录网文会话日志..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|shell_command|functions.shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/story-lifecycle-hook.cjs post-tool-use",
+            "timeout": 10,
+            "statusMessage": "检查网文提交提示..."
+          }
+        ]
+      }
+    ]
+  }
+}

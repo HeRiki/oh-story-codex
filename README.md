@@ -30,6 +30,18 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 
 每个 `SKILL.md` 的 frontmatter 只保留 `name` 和 `description`，适配 Codex 的 skill 发现规则。`agents/openai.yaml` 提供 UI 元数据，不参与核心工作流。
 
+插件级生命周期钩子定义在 `hooks/hooks.json`，由 `.codex-plugin/plugin.json` 的 `hooks` 字段加载。当前包含：
+
+| Hook | 用途 |
+|---|---|
+| `PreToolUse` | 检测到即将执行 `git commit` 时，提醒先确认设定、大纲、追踪文件和文档是否同步 |
+| `SessionStart` | 会话开始/恢复时读取已初始化网文项目的 `追踪/上下文.md`，并提示设定、大纲、正文、伏笔、时间线缺口 |
+| `UserPromptSubmit` | 用户提交写作相关提示时，提醒优先读取项目上下文和追踪文件 |
+| `Stop` | 本轮结束前向 `追踪/session-log.txt` 追加轻量会话日志 |
+| `PostToolUse` | 检测到 `git commit` 后提示检查 README、AGENTS.md 或 `追踪/上下文.md` 是否需要同步 |
+
+这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
+
 ## 本地安装
 
 在 Windows + Git Bash 环境下，运行：
@@ -93,6 +105,7 @@ Unofficial Codex port of worldwonderer/oh-story-claudecode
 - 移除了 Claude/OpenClaw 专属 frontmatter 字段，例如 `version`、`metadata.openclaw`。
 - 将 Claude 的 `CLAUDE.md` 项目模板迁移为 Codex 使用的 `AGENTS.md` 模板。
 - 将 `.claude/agents` 的专用 agent 文件保留为 `.codex/story-agents` 参考提示词库；Codex 运行时不能自动注册 Claude 子代理。
+- 将上游自动 hooks 改为 Codex 插件级生命周期 hooks，挂载在 `hooks/hooks.json`。
 - 保留浏览器 CDP 和平台榜单采集脚本；这些脚本仍依赖 Node.js、Chrome 和 `agent-browser`。
 - `story-cover` 原流程引用 GPT-Image API；在 Codex 中也可以改用当前会话可用的图像生成能力。
 

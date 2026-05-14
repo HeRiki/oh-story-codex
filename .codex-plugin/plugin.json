@@ -14,6 +14,7 @@
     "codex-skill"
   ],
   "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Oh Story Codex",
     "shortDescription": "网文创作全流程 Codex 技能包",

@@ -32,6 +32,18 @@ For local skill usage, copy the required skill directories into `$CODEX_HOME/ski
 
 Each `SKILL.md` keeps only the frontmatter required by Codex skill discovery: `name` and `description`. `agents/openai.yaml` provides UI metadata and does not drive the core workflow.
 
+Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the `hooks` field in `.codex-plugin/plugin.json`.
+
+| Hook | Purpose |
+|---|---|
+| `PreToolUse` | Before `git commit`, reminds maintainers to sync settings, outlines, tracking files, and docs |
+| `SessionStart` | Loads `追踪/上下文.md` for initialized story projects and reports missing settings, outline, prose, foreshadowing, or timeline files |
+| `UserPromptSubmit` | Reminds Codex to read project context before handling story-writing prompts |
+| `Stop` | Appends a lightweight session log to `追踪/session-log.txt` before the turn ends |
+| `PostToolUse` | After `git commit`, reminds maintainers to check README, AGENTS.md, or `追踪/上下文.md` updates |
+
+These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
+
 ## Local Installation
 
 On Windows with Git Bash:
@@ -93,6 +105,7 @@ Chinese description:
 - Removed Claude/OpenClaw-specific frontmatter fields such as `version` and `metadata.openclaw`.
 - Migrated the Claude `CLAUDE.md` project template to Codex `AGENTS.md`.
 - Kept the original `.claude/agents` role files as `.codex/story-agents` reference prompts. Codex does not automatically register Claude-style custom subagents.
+- Adapted upstream automatic hooks into Codex plugin lifecycle hooks in `hooks/hooks.json`.
 - Kept browser CDP and platform ranking collection scripts. These still depend on Node.js, Chrome, and `agent-browser`.
 - `story-cover` originally references GPT-Image API. In Codex, it can also use the image generation capability available in the current session.
 
