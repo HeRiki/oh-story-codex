@@ -59,7 +59,7 @@ description: |
 ```text
 deployed_at: <date -u +"%Y-%m-%dT%H:%M:%SZ">
 runtime: codex
-agents_version: 3
+agents_version: 4
 setup_skill_version: 1.0.0
 ```
 
@@ -67,7 +67,7 @@ setup_skill_version: 1.0.0
 
 1. 检查 `AGENTS.md` 是否存在，且包含 Skill 路由表、文件结构、上下文恢复规则。
 2. 检查 `.codex/story-rules/` 是否存在并包含规则文件。
-3. 检查 `.codex/story-agents/` 是否存在并包含 6 个角色提示词。
+3. 检查 `.codex/story-agents/` 是否存在并包含 7 个角色提示词。
 4. 检查 `.story-deployed` 是否存在且 `runtime: codex`。
 5. 输出安装报告，列出已部署文件和已保留的用户原有配置。
 
@@ -95,7 +95,8 @@ setup_skill_version: 1.0.0
 ## 重新部署
 
 - `.story-deployed` 不存在：全新安装，Phase 2 全部执行。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 3`：提示已部署，确认后重跑。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 4`：提示已部署，确认后重跑。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 4：提示需要重新部署以补充 `chapter-extractor` 章节提取参考提示词。
 - `.story-deployed` 存在但 runtime 不是 `codex`：按迁移处理，部署 Codex 目录，不删除原有旧运行时目录。
 
 ## 参考资料
@@ -104,5 +105,5 @@ setup_skill_version: 1.0.0
 |---|---|
 | `references/templates/AGENTS.md.tmpl` | 项目根 `AGENTS.md` 模板 |
 | `references/templates/rules/` | 写作规则参考 |
-| `references/templates/agents/` | 6 个角色提示词参考 |
+| `references/templates/agents/` | 7 个角色提示词参考，含 `chapter-extractor` |
 | `references/templates/上下文.md.tmpl` | 写作上下文模板 |

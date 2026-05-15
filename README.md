@@ -24,11 +24,39 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 | `story-cover` | 网文封面提示词与图像生成流程 |
 | `browser-cdp` | 通过 CDP 复用 Chrome 登录态做页面采集 |
 
+## 拆文 Demo
+
+上游 v0.6.1 新增了 `/story-long-analyze` 深度模式的盘龙前 23 章拆文示例，本仓库同步保留在 `demo/拆文库-盘龙/`，仅包含分析输出，不包含小说原文。
+
+主要文件：
+
+```text
+demo/拆文库-盘龙/
+├── 概要.md
+├── 拆文报告.md
+├── 章节/
+├── 角色/
+├── 剧情/
+└── 设定/
+```
+
 ## Codex 使用方式
 
 本仓库本身就是一个 Codex 插件目录，入口在 `.codex-plugin/plugin.json`，技能目录在 `skills/`。作为本地技能使用时，可以把需要的单个 skill 目录复制到 `$CODEX_HOME/skills/`；作为插件使用时，保留当前目录结构并通过 Codex 插件机制加载。
 
 每个 `SKILL.md` 的 frontmatter 只保留 `name` 和 `description`，适配 Codex 的 skill 发现规则。`agents/openai.yaml` 提供 UI 元数据，不参与核心工作流。
+
+`story-setup` 会把 7 个 story agent 参考提示词部署到写作项目的 `.codex/story-agents/`。它们不是 Claude 式自动注册子代理；Codex 默认读取这些文件作为角色说明，只有用户明确要求多代理/委派时才使用 `spawn_agent`。
+
+| 参考提示词 | 用途 |
+|---|---|
+| `story-architect` | 故事架构、主线、世界观和长线伏笔 |
+| `character-designer` | 人设、关系、动机和成长弧 |
+| `narrative-writer` | 正文写作、续写和章节修订 |
+| `consistency-checker` | 设定一致性、伏笔和时间线检查 |
+| `story-researcher` | 资料检索与参考整理 |
+| `story-explorer` | 只读查询项目资料和进度 |
+| `chapter-extractor` | 深度拆文 Stage 2 的章节摘要、情节点和角色提取 |
 
 插件级生命周期钩子定义在 `hooks/hooks.json`，由 `.codex-plugin/plugin.json` 的 `hooks` 字段加载。当前包含：
 

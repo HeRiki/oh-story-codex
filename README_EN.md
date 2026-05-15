@@ -24,6 +24,22 @@ Unofficial Codex port of `worldwonderer/oh-story-claudecode`, a Chinese web nove
 | `story-cover` | Web novel cover prompt and image generation workflow |
 | `browser-cdp` | Uses Chrome DevTools Protocol to reuse login sessions for page collection |
 
+## Deconstruction Demo
+
+Upstream v0.6.1 added a deep `/story-long-analyze` demo for the first 23 chapters of *Coiling Dragon*. This Codex port keeps the analysis output under `demo/拆文库-盘龙/`; it does not include the original novel text.
+
+Main files:
+
+```text
+demo/拆文库-盘龙/
+├── 概要.md
+├── 拆文报告.md
+├── 章节/
+├── 角色/
+├── 剧情/
+└── 设定/
+```
+
 ## Codex Usage
 
 This repository is a Codex plugin directory. The plugin entry is `.codex-plugin/plugin.json`, and the skill directories are under `skills/`.
@@ -31,6 +47,18 @@ This repository is a Codex plugin directory. The plugin entry is `.codex-plugin/
 For local skill usage, copy the required skill directories into `$CODEX_HOME/skills/`. For plugin usage, keep the repository structure intact and load it through Codex's plugin mechanism.
 
 Each `SKILL.md` keeps only the frontmatter required by Codex skill discovery: `name` and `description`. `agents/openai.yaml` provides UI metadata and does not drive the core workflow.
+
+`story-setup` deploys 7 story-agent reference prompts into `.codex/story-agents/` inside a writing project. They are not Claude-style auto-registered subagents. Codex reads them as role instructions by default; use `spawn_agent` only when the user explicitly asks for multi-agent delegation.
+
+| Reference prompt | Purpose |
+|---|---|
+| `story-architect` | Story architecture, main plot, worldbuilding, long-range foreshadowing |
+| `character-designer` | Character design, relationships, motivation, growth arcs |
+| `narrative-writer` | Prose drafting, continuation, chapter revision |
+| `consistency-checker` | Setting consistency, foreshadowing, timeline checks |
+| `story-researcher` | Research and reference collection |
+| `story-explorer` | Read-only project and progress lookup |
+| `chapter-extractor` | Deep deconstruction Stage 2 chapter summary, plot point, and character extraction |
 
 Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the `hooks` field in `.codex-plugin/plugin.json`.
 

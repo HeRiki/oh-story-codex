@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.1
+
+### 新功能
+
+- 新增 **chapter-extractor** 章节提取参考提示词：客观白描铁律、动态密度公式（3-40范围）、100+项泛称黑名单（8类），支持 Codex 深度拆文逐章提取
+- story-long-analyze 管线重构：故事框架识别、两步法剧情聚合、3层置信度孤立情节兜底
+- 管线鲁棒性：Stage 3-4 并行执行图、计数验证、completed_with_errors 部分失败容忍
+
+### 改进
+
+- 方法论深化：两阶段角色模型、别名4类分类、一人一实体原则、13种剧情类型、金手指8类分类
+- 情节点密度从 8-15 扩展为 3-40 动态范围（150-200字/个）
+- 新增智能分块（>500章）、关系提取改为从情节点提取、框架识别自检模板
+- story-setup agents_version 升级到 v4（7 个 story agent 参考提示词）
+- story-import 管道表同步更新
+
+### 修复
+
+- material-decomposition.md 目录名统一为中文（chapters→章节 等）
+- output-templates.md 情节点密度修复（8-15→3-40动态范围）、孤立阈值同步
+- SKILL.md 链接引用修正、质量门控指向权威来源（material-decomposition.md）
+- 孤立情节兜底 output-templates.md 同步为3层置信度
+- 全书概要长度对标 zenstory（300-600→500-1000字），补全长篇体系感描述要求
+- SKILL.md 管道表 Stage 3 孤立兜底步数修正（4→6）
+
 ## v0.6.0
 
 ### 新功能
