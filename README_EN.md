@@ -26,7 +26,7 @@ Unofficial Codex port of `worldwonderer/oh-story-claudecode`, a Chinese web nove
 
 ## Deconstruction Demo
 
-Upstream v0.6.1 added a deep `/story-long-analyze` demo for the first 23 chapters of *Coiling Dragon*. This Codex port keeps the analysis output under `demo/拆文库-盘龙/`; it does not include the original novel text.
+This Codex port keeps upstream demo analysis outputs only; they do not include original story text.
 
 Main files:
 
@@ -38,6 +38,9 @@ demo/拆文库-盘龙/
 ├── 角色/
 ├── 剧情/
 └── 设定/
+
+demo/拆文库-我爸死后我成了他的影子拳手/
+└── 拆文报告.md
 ```
 
 ## Codex Usage

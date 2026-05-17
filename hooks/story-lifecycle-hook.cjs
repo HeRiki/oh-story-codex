@@ -6,6 +6,7 @@ const { spawnSync } = require("child_process");
 
 const MAX_WALK_DEPTH = 6;
 const MAX_SEARCH_DEPTH = 5;
+const OPEN_FORESHADOW_STATES = ["未埋", "已埋", "已过期"];
 
 function readInput() {
   try {
@@ -134,9 +135,22 @@ function collectGapHints(root) {
   const foreshadowing = walkFor(root, (fullPath, entry) => entry.isFile() && entry.name === "伏笔.md");
   const timeline = walkFor(root, (fullPath, entry) => entry.isFile() && entry.name === "时间线.md");
   if (!foreshadowing) hints.push("未发现 `追踪/伏笔.md`");
+  else {
+    const openCount = countOpenForeshadowing(foreshadowing);
+    if (openCount > 0) hints.push(`发现 ${openCount} 条未关闭伏笔，请检查 \`${rel(root, foreshadowing)}\``);
+  }
   if (!timeline) hints.push("未发现 `追踪/时间线.md`");
 
   return hints;
+}
+
+function countOpenForeshadowing(filePath) {
+  const text = readHead(filePath, 2000);
+  if (!text) return 0;
+  return text
+    .split(/\r?\n/)
+    .filter((line) => /状态/.test(line) && OPEN_FORESHADOW_STATES.some((state) => line.includes(state)))
+    .length;
 }
 
 function outputAdditionalContext(hookEventName, message) {

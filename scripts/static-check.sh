@@ -1,6 +1,7 @@
 #!/bin/bash
 # static-check.sh — Skill 与插件结构检查
-# 检查：frontmatter、引用路径有效、死文件、Agent 引用有效、Hook 路径有效、非 Codex 污染
+# 检查：frontmatter、引用路径有效、死文件、交叉引用、Agent 引用有效、Hook 路径有效、
+#       反引号引用有效(含 skill 作用域)、裸文件名检测、SKILL.md section 引用、非 Codex 污染
 
 set -euo pipefail
 
@@ -261,16 +262,20 @@ check_skill() {
       [[ "$base_name" =~ ^[a-z0-9_-]+\.md$ ]] || continue
       # Skip dynamic/runtime-generated files (underscore prefix)
       [[ "$base_name" =~ ^_ ]] && continue
-      # Try resolving: 1) relative to source file, 2) anywhere in this skill, 3) anywhere in skills/, 4) repo root
+      # Resolution scope: bare filenames in references/*.md (direct children) are skill-scoped;
+      # files in subdirectories (templates/, etc.) and path references allow broad resolution
       local found=false
+      local is_scoped_ref=false
+      local src_parent="$(basename "$(dirname "$src_file")")"
+      [[ "$src_parent" == "references" ]] && [[ "$ref_name" != */* ]] && is_scoped_ref=true
       local ref_dir="$(dirname "$src_file")"
       if [ -f "$ref_dir/$ref_name" ]; then
         found=true
       elif find "$skill_dir" -type f -name "$base_name" -print -quit 2>/dev/null | grep -q .; then
         found=true
-      elif find "$SKILLS_DIR" -type f -name "$base_name" -print -quit 2>/dev/null | grep -q .; then
+      elif [ "$is_scoped_ref" = false ] && find "$SKILLS_DIR" -type f -name "$base_name" -print -quit 2>/dev/null | grep -q .; then
         found=true
-      elif [ -f "$REPO_ROOT/$ref_name" ]; then
+      elif [ "$is_scoped_ref" = false ] && [ -f "$REPO_ROOT/$ref_name" ]; then
         found=true
       fi
       if [ "$found" = false ]; then
@@ -289,7 +294,163 @@ check_skill() {
     errors=$((errors + 1))
   fi
 
-  # Check 7: Runtime contamination from non-Codex skill formats
+  # Check 7: Bare prose .md filename detection (not backtick-wrapped, not in markdown links)
+  # FAILs for filenames not found anywhere in skills/; WARNs for existing but unwrapped names
+  local bare_refs=()
+  while IFS= read -r -d '' src_file; do
+    local src_rel="${src_file#$skill_dir/}"
+    # Use awk to: 1) skip code blocks, 2) strip markdown links and backtick content, 3) find bare .md names
+    while IFS= read -r bare; do
+      [ -z "$bare" ] && continue
+      local bname
+      bname="$(basename "$bare")"
+      [[ "$bname" =~ ^[a-z0-9_-]+\.md$ ]] || continue
+      [[ "$bname" =~ ^_ ]] && continue
+      # Skip numbered example filenames (e.g. chapter01.md, file123.md)
+      [[ "$bname" =~ ^[a-z]+[0-9]+\.md$ ]] && continue
+      bare_refs+=("$src_rel: $bname")
+    done < <(awk '
+      /^```/ { in_block = !in_block; next }
+      in_block { next }
+      { gsub(/\[[^\]]*\]\([^)]*\)/, "")
+        gsub(/`[^`]*`/, "")
+        while (match($0, /[a-z0-9_-]+\.md/)) {
+          print substr($0, RSTART, RLENGTH)
+          $0 = substr($0, RSTART + RLENGTH)
+        }
+      }
+    ' "$src_file" 2>/dev/null || true)
+  done < <(find "$skill_dir" -type f -name "*.md" -print0 2>/dev/null)
+
+  # Deduplicate
+  local unique_bare=()
+  if [ ${#bare_refs[@]} -gt 0 ]; then
+    while IFS= read -r ref; do
+      unique_bare+=("$ref")
+    done < <(printf '%s\n' "${bare_refs[@]}" | sort -u)
+  fi
+
+  # Separate bare refs into: broken (file not found) vs valid (exists but should be wrapped)
+  local broken_bare=()
+  local valid_bare=()
+  for x in ${unique_bare[@]+"${unique_bare[@]}"}; do
+    local bname="${x##* }"
+    local src_part="${x%%: *}"
+    local src_file_path="$skill_dir/$src_part"
+    local found=false
+    local ref_dir="$(dirname "$src_file_path")"
+    if [ -f "$ref_dir/$bname" ]; then
+      found=true
+    elif find "$skill_dir" -type f -name "$bname" -print -quit 2>/dev/null | grep -q .; then
+      found=true
+    elif find "$SKILLS_DIR" -type f -name "$bname" -print -quit 2>/dev/null | grep -q .; then
+      found=true
+    fi
+    if [ "$found" = false ]; then
+      broken_bare+=("$x")
+    else
+      valid_bare+=("$x")
+    fi
+  done
+
+  if [ ${#broken_bare[@]} -gt 0 ]; then
+    echo "  [FAIL] bare .md filenames referencing non-existent files:"
+    for x in "${broken_bare[@]}"; do
+      echo "         -> $x"
+    done
+    errors=$((errors + 1))
+  fi
+  if [ ${#valid_bare[@]} -gt 0 ]; then
+    echo "  [WARN] bare .md filenames not wrapped in backticks (Check 6 cannot validate):"
+    for x in "${valid_bare[@]}"; do
+      echo "         -> $x"
+    done
+    warnings=$((warnings + 1))
+  fi
+  if [ ${#broken_bare[@]} -eq 0 ] && [ ${#valid_bare[@]} -eq 0 ]; then
+    echo "  [PASS] no bare prose .md filename references"
+  fi
+
+  # Check 8: SKILL.md section reference validation
+  local broken_section_refs=()
+  if [ -f "$skill_dir/SKILL.md" ] && [ -d "$skill_dir/references" ]; then
+    # Extract all headings from SKILL.md into an array
+    local headings=()
+    local h_tmp
+    h_tmp="$(grep -E '^#{1,4}[[:space:]]' "$skill_dir/SKILL.md" 2>/dev/null | sed -E 's/^#+[[:space:]]*//' | sed 's/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')" || true
+    if [ -n "$h_tmp" ]; then
+      while IFS= read -r h_line; do
+        headings+=("$h_line")
+      done <<< "$h_tmp"
+    fi
+
+    # For each references/*.md file, extract and validate section refs
+    while IFS= read -r -d '' src_file; do
+      local src_rel="${src_file#$skill_dir/}"
+      # Extract section references (grep works, pipe to temp var to avoid nested pipefail)
+      local refs_tmp
+      refs_tmp="$(grep 'SKILL\.md' "$src_file" 2>/dev/null | grep -oE '(见|参考|参见|详见) SKILL\.md [^)]+' | sed -E 's/^(见|参考|参见|详见) SKILL\.md //' | sort -u)" || true
+      [ -z "$refs_tmp" ] && continue
+      while IFS= read -r ref_text; do
+        [ -z "$ref_text" ] && continue
+        # Strip trailing punctuation and lowercase
+        local clean_ref
+        clean_ref="$(echo "$ref_text" | sed -E 's/[）)」』,，。；：;:]+$//' | sed -E 's/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')"
+        [ -z "$clean_ref" ] && continue
+        local matched=false
+        for h in "${headings[@]}"; do
+          # Substring match: ref in heading or heading in ref
+          if [[ "$h" == *"$clean_ref"* ]] || [[ "$clean_ref" == *"$h"* ]]; then
+            matched=true
+            break
+          fi
+        done
+        # Prefix-strip match: progressively remove last token and check headings
+        if [ "$matched" = false ]; then
+          local prefix="$clean_ref"
+          while [[ "$prefix" == *[[:space:]]* ]]; do
+            prefix="${prefix% *}"
+            [ -z "$prefix" ] && break
+            for h in "${headings[@]}"; do
+              if [[ "$h" == *"$prefix"* ]] || [[ "$prefix" == *"$h"* ]]; then
+                matched=true
+                break 2
+              fi
+            done
+          done
+          # Character-level fallback: strip one char at a time (max 3 iterations)
+          # Handles cases like "设计任务第" not matching "设计任务（...）"
+          if [ "$matched" = false ] && [ -n "$prefix" ]; then
+            for _cnt in 1 2 3; do
+              prefix="${prefix%?}"
+              [ -z "$prefix" ] && break
+              for h in "${headings[@]}"; do
+                if [[ "$h" == *"$prefix"* ]] || [[ "$prefix" == *"$h"* ]]; then
+                  matched=true
+                  break 2
+                fi
+              done
+            done
+          fi
+        fi
+        if [ "$matched" = false ]; then
+          broken_section_refs+=("$src_rel -> SKILL.md '$ref_text'")
+        fi
+      done <<< "$refs_tmp"
+    done < <(find "$skill_dir/references" -maxdepth 1 -type f -name "*.md" -print0 2>/dev/null)
+  fi
+
+  if [ ${#broken_section_refs[@]} -eq 0 ]; then
+    echo "  [PASS] no broken SKILL.md section references"
+  else
+    echo "  [FAIL] broken SKILL.md section references:"
+    for x in "${broken_section_refs[@]}"; do
+      echo "         -> $x"
+    done
+    errors=$((errors + 1))
+  fi
+
+  # Check 9: Runtime contamination from non-Codex skill formats
   local forbidden_patterns=(
     "Agent(subagent_type"
     ".claude/agents"

@@ -17,7 +17,7 @@ if [ ! -d "$SKILLS_DIR" ]; then
 fi
 
 # Known intentional differences (basename): these files are expected to differ
-IGNORE_NAMES="output-templates.md"
+IGNORE_NAMES="output-templates.md material-decomposition.md"
 
 mismatches=0
 checked=0

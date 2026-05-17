@@ -9,7 +9,7 @@ description: |
 
 你是短篇网文写作执行器。从构思到成稿，完成一篇完整的短篇小说。
 
-**执行铁律：短篇写的是情绪，不是故事。读者记住的永远是情绪，不是剧情。**
+**执行规则：短篇以情绪为目标函数，所有内容为情绪服务。**
 
 ---
 
@@ -54,9 +54,9 @@ description: |
 
 > 如果用户有参考小说，先用 `/story-short-analyze` 拆解，输出存入 `拆文库/{书名}/`（或用户指定的 对标/ 目录）。写作时参考其结构/情绪/反转设计。
 
-#### 协作提示：story-architect
+#### Agent 调用：story-architect
 
-构思阶段，优先检查 `.codex/story-agents/story-architect.md` 是否存在。若存在，读取该文件作为短篇构思、情绪目标、题材方向和反转设计参考，并在本线程完成框架设计；只有用户明确要求多代理、并行构思或委派时，才使用 `spawn_agent`。
+构思阶段，可读取 `.codex/story-agents/story-architect.md` 作为架构参考提示词辅助框架设计。默认由主线程执行；只有用户明确要求多代理/委派时，才把该任务作为 `spawn_agent` 子任务执行。
 
 帮用户确定短篇的核心框架：
 
@@ -103,9 +103,9 @@ description: |
 5. 反转信息差验证（公式见 writing-workflow.md）
 6. 伏笔回查清单（标准见 writing-workflow.md）
 
-#### 协作提示：character-designer
+#### Agent 调用：character-designer
 
-设计任务完成后，优先检查 `.codex/story-agents/character-designer.md` 是否存在。若存在，读取该文件作为角色设定、关系设计和语言风格档案参考，并在本线程完成角色补强；只有用户明确要求多代理、并行处理或委派时，才使用 `spawn_agent`。
+设计任务完成后，可读取 `.codex/story-agents/character-designer.md` 辅助角色设定和语言风格档案。默认由主线程执行；只有用户明确要求委派时才使用 `spawn_agent`。
 
 ---
 
@@ -113,15 +113,17 @@ description: |
 
 > 术语说明：Phase 3 按「段」划分叙事结构（开头段/铺垫段/升级段/反转段/结尾段），每段包含若干「小节」（数字编号的 beat）。「场景」指写作时的具体画面。
 
-**写作心法：你不是在翻译大纲，你在构建场景。读者要和主角一起经历。**
+**写作指令：按场景展开法逐场景写作，不是翻译大纲。每个场景让读者和主角一起经历。**
 
-#### 协作提示：narrative-writer
+#### Agent 调用：narrative-writer
 
-正文写作阶段，优先检查 `.codex/story-agents/narrative-writer.md` 是否存在。若存在，读取该文件作为正文写作角色参考，结合核心框架、小节大纲、情绪目标和涉及角色完成写作；只有用户明确要求多代理、并行写作或委派时，才使用 `spawn_agent`。
+正文写作阶段，可读取 `.codex/story-agents/narrative-writer.md` 作为正文写作参考提示词。默认由主线程直接写作；只有用户明确要求委派时才使用 `spawn_agent`。
 
 ⚠️ **硬约束：每节 ≥ 800 字 / 50-65 行**。
 题材例外：爽文、打脸、系统流等高信息密度题材可降至 ≥ 500 字/节（见 genre-writing-formulas.md 各题材速查表），但不得低于 500 字。
 写完每节后必须统计字数和行数。不足 800 字（高信息密度题材不足 500 字）的节不得跳过，必须用三层展开法补足后再写下一节。整篇完成后总字数必须 ≥ 8000 字。
+**字数统计必须使用 `wc -m`（字符数）而非 `wc -c`（字节数）。** `wc -c` 统计的是字节数，中文每字符 3 字节（UTF-8），不等于字数。备选方案：`python3 -c "print(len(open('文件路径', encoding='utf-8').read()))"`。
+**⚠️ 字数不足 = 章节未完成。禁止在字数未达标时结束章节。必须继续展开场景直到达标。**
 
 **节数守恒**：正文节数必须等于小节大纲规划节数。不得合并多节为一节。如果写作中发现某节不需要独立存在，应回到大纲阶段调整，而非在写作时偷减。
 
@@ -136,7 +138,7 @@ description: |
    - **禁止凑字**：每个添加必须推动情绪/铺垫/代入感，不得灌水
 
 **节长验证（分批写作，每批写完后执行）**：
-分批写作：每次输出 2-3 节（2-3 节约为 单次输出的最佳叙事窗口，过少浪费上下文，过多降低单节质量），写完后统一检查本批所有节的字数。
+分批写作：每次输出 2-3 节（2-3 节约为单次生成的最佳叙事窗口，过少浪费上下文，过多降低单节质量），写完后统一检查本批所有节的字数。
 如果任何一节 < 800 字（高信息密度题材 < 500 字）→ 用三层展开法补足后再写下一批。
 禁止跳过未达标的小节。
 
@@ -234,7 +236,7 @@ description: |
 **中文文本统计注意事项**：
 - `wc -c` 统计的是字节数，中文每字符 3 字节（UTF-8），不等于字数
 - 字数统计必须使用 `wc -m`（字符数）而非 `wc -c`（字节数）
-- macOS 的 `wc -m` 在某些 locale 下可能不准确，备选方案：`python3 -c "print(len(open('文件路径').read()))"`
+- macOS 的 `wc -m` 在某些 locale 下可能不准确，备选方案：`python3 -c "print(len(open('文件路径', encoding='utf-8').read()))"`
 - 行数统计使用 `wc -l` 是安全的
 
 **不通过 → 回退补足，不得进入精修。**
@@ -246,9 +248,13 @@ description: |
 加载 `references/writing-workflow.md` 中的精修清单完成检查。
 重点：开头钩子、情绪曲线、反转铺垫、每句话价值、格式规范、AI 腔排查。
 
-#### 协作提示：narrative-writer（去 AI 味）+ consistency-checker
+#### Agent 调用：narrative-writer（去AI味）+ consistency-checker
 
-精修阶段，优先检查 `.codex/story-agents/narrative-writer.md` 和 `.codex/story-agents/consistency-checker.md` 是否存在。若存在，读取对应文件作为参考：`narrative-writer` 负责去 AI 味和格式合规检查；`consistency-checker` 负责事实冲突、伏笔断线和角色属性一致性检查。默认在本线程整合完成，只有用户明确要求多代理、并行检查或委派时，才使用 `spawn_agent` 分派对应任务。
+精修阶段，可读取对应 `.codex/story-agents/` 参考提示词辅助执行；默认由主线程处理，只有用户明确要求委派时才使用 `spawn_agent`：
+- `narrative-writer.md` — 执行去AI味（6 Gate）和格式合规检查
+- `consistency-checker.md` — 执行一致性检查
+
+如 agent 不可用，由主线程直接执行。
 
 **自检记录隔离规则**：
 - 所有自检记录（字数统计、禁用词扫描结果、格式检查清单）必须写入独立文件 `自检_{标题}.md`（标题取自 Phase 2 核心框架）
