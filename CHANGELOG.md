@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.5
+
+> 写作去 AI 味密度修复 + 对标路径说明统一
+
+### 修复
+
+- **story-short-write / story-long-write**: 正文写作从旧“三层展开”改为“三维度织入”，避免同一动作/情绪被拆成多段重复描写。
+- **story-short-write / story-long-write**: 新增镜头断段、手机阅读密度和输出前密度重排规则，避免三维度织入后一段到底。
+- **story-short-write / story-long-write / story-deslop**: 字数统计优先使用 Python 字符统计，`wc -m` 仅作 macOS/Linux 备选，禁止 `wc -c` 和模型估算。
+- **story-deslop**: 将重复描写去重纳入 Gate C/D，不再额外堆叠专项流程。
+
+### 改进
+
+- **story-setup**: `agents_version` 升级到 v5，`narrative-writer` 参考提示词同步新版场景写法、段落密度和跨平台字数统计规则。
+- **story-short-write**: 统一短篇 `对标/` 与 `拆文库/` 路径说明：项目根 `拆文库/` 为原始产出，短篇目录 `对标/` 为当前作品引用视图。
+- **story-long-write / chapter-extractor / story-long-analyze**: 长篇情节点密度统一为 150-200 字/个情节点，每章下限 10 个、上限 40 个。
+
+## v0.6.4
+
+> 产线思路统一：核心思路集成 + 文件系统 + 准备层
+
+### 新功能
+
+- 新增 **state-tracking.md** 状态追踪协议文件（long-write / short-write 双 skill 共享）：最简记忆包提取逻辑（当前状态 / 历史因果 / 世界约束）和角色状态快照格式。
+
+### 改进
+
+- **story-long-write**: 新增“核心方法”section，按“先定情绪、验证过的模式、模块组装、只加载必需信息”组织长篇写作流程。
+- **story-long-write**: 单章写作增加准备层：状态筛选、模块召回、指令确认，并新增 `追踪/角色状态.md` 更新规则。
+- **story-long-write**: 文件结构图升级，`对标/` 支持角色、剧情、设定结构化子目录，并支持从 `拆文库/` 回退读取。
+- **story-short-write**: 新增精简版“核心方法”、短篇 `对标/` 引用视图和逐场景准备层。
+- **README / README_EN**: 同步项目文件结构、拆文库/对标关系和状态追踪说明，保留 Codex 移植版定位。
+
 ## v0.6.3
 
 > 引用完整性修复 + CI static-check 增强

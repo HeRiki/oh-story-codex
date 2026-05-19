@@ -59,7 +59,7 @@ description: |
 ```text
 deployed_at: <date -u +"%Y-%m-%dT%H:%M:%SZ">
 runtime: codex
-agents_version: 4
+agents_version: 5
 setup_skill_version: 1.0.0
 ```
 
@@ -95,8 +95,8 @@ setup_skill_version: 1.0.0
 ## 重新部署
 
 - `.story-deployed` 不存在：全新安装，Phase 2 全部执行。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 4`：提示已部署，确认后重跑。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 4：提示需要重新部署以补充 `chapter-extractor` 章节提取参考提示词。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 5`：提示已部署，确认后重跑。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 5：提示需要重新部署以更新 story agents 参考提示词，包含 `chapter-extractor`、新版正文写法、段落密度和跨平台字数统计规则。
 - `.story-deployed` 存在但 runtime 不是 `codex`：按迁移处理，部署 Codex 目录，不删除原有旧运行时目录。
 
 ## 参考资料
@@ -105,5 +105,6 @@ setup_skill_version: 1.0.0
 |---|---|
 | `references/templates/AGENTS.md.tmpl` | 项目根 `AGENTS.md` 模板 |
 | `references/templates/rules/` | 写作规则参考 |
-| `references/templates/agents/` | 7 个角色提示词参考，含 `chapter-extractor` |
+| `references/templates/agents/` | 7 个角色提示词参考，含 `chapter-extractor` 和 v5 叙事写法更新 |
 | `references/templates/上下文.md.tmpl` | 写作上下文模板 |
+| `UPGRADING.md` | 已部署项目重新运行 `/story-setup` 时的升级策略和版本说明 |

@@ -6,6 +6,12 @@ Unofficial Codex port of `worldwonderer/oh-story-claudecode`, a Chinese web nove
 
 > This is an unofficial Codex port. It is not an official release maintained by the upstream author.
 
+## Core Approach
+
+> **Tropes = deterministic emotional payoff**
+
+The workflow follows a practical commercial-writing loop: scan trending charts, deconstruct pacing and reusable plot material, then recombine hooks, payoff, expectation management, and genre modules into the user's own story. The package is organized around reverse-engineering hits, modular plot reuse, layered story-state tracking, and human-AI collaboration.
+
 ## Included Skills
 
 | Skill | Purpose |
@@ -74,6 +80,43 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 | `PostToolUse` | After `git commit`, reminds maintainers to check README, AGENTS.md, or `追踪/上下文.md` updates |
 
 These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
+
+## Project File Structure
+
+Recommended long-form structure:
+
+```text
+Long/{Book Title}/
+├── Settings/
+├── Outlines/
+├── Prose/
+├── Benchmark/
+│   └── {Benchmark Book}/
+│       ├── Source/
+│       ├── Characters/
+│       ├── Plotlines/
+│       ├── Settings/
+│       └── Report.md
+├── Tracking/
+│   ├── Context.md
+│   ├── Foreshadowing.md
+│   ├── Timeline.md
+│   └── Character_Status.md
+└── References/
+```
+
+Recommended short-form structure:
+
+```text
+Short/{Title}/
+├── Prose.md
+├── Section_outline.md
+├── Settings.md
+├── Self-check.md
+└── Benchmark/
+```
+
+`拆文库/` is the source-of-truth deconstruction library produced by analyze skills, usually at project root. Writing skills consume those assets through the current work's `对标/` directory and fall back to `拆文库/` when needed.
 
 ## Local Installation
 
