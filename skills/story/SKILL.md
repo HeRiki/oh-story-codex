@@ -25,8 +25,8 @@ description: |
 | 环境部署 | 准备写书、搭环境、初始化 | `/story-setup` |
 | 浏览器操控 | 浏览器、抓取、登录态 | `/browser-cdp` |
 | 导入小说 | 导入、反向解析、导入小说、把我的书导进来 | `/story-import` |
-| 查故事资料 | 查角色、查伏笔、查进度、查设定、什么状态、写到哪了 | 优先读取 `.codex/story-agents/story-explorer.md` 作为查询角色说明，在本线程执行；只有用户明确要求多代理/委派时才用 `spawn_agent` |
-| 查资料 | 查资料、帮我查资料、调研、搜索一下、搜一下 | 优先读取 `.codex/story-agents/story-researcher.md` 作为研究角色说明，在本线程执行；只有用户明确要求多代理/委派时才用 `spawn_agent` |
+| 查故事资料 | 查角色、查伏笔、查进度、查设定、什么状态、写到哪了 | 直接 spawn `story-explorer` agent（使用结构化 prompt：`项目目录：{dir}\n查询类型：{根据意图选择}\n查询参数：{用户查询}`） |
+| 查资料 | 查资料、帮我查资料、调研、搜索一下、搜一下 | 直接 spawn `story-researcher` agent |
 
 ## 路由流程
 
@@ -41,6 +41,6 @@ description: |
 路由前先检查当前项目状态：
 
 - **无项目目录**（没有包含 `追踪/` 或 `设定/` 的书名目录）：
-  - 如果用户要写作，建议先 `/story-setup` 初始化环境
+  - 如果用户要写作，下一步是先运行 `/story-setup` 初始化环境
   - 如果用户要扫榜/拆文，直接路由
-- **已有项目**：检查 `.story-deployed` 标记，如未部署建议先 `/story-setup`
+- **已有项目**：检查 `.story-deployed` 标记，如未部署则先运行 `/story-setup`

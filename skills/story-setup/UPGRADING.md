@@ -40,7 +40,9 @@
 - `agents_version: 2` → 旧版，需重新部署以获取 story-explorer 参考提示词
 - `agents_version: 3` → 旧版，需重新部署以获取 story-explorer 参考提示词
 - `agents_version: 4` → 旧版，需重新部署以获取 v5 narrative-writer 参考提示词
-- `agents_version: 5` → 当前版本
+- `agents_version: 5` → 旧版，需重新部署以统一短篇正文格式
+- `agents_version: 6` → 旧版，需重新部署以获取日更续写规则修复
+- `agents_version: 7` → 当前版本
 
 ## 版本变更
 
@@ -61,8 +63,19 @@
 - 新增 chapter-extractor 章节提取参考提示词
 - 7 个参考提示词总计（story-architect, character-designer, narrative-writer, consistency-checker, story-researcher, story-explorer, chapter-extractor）
 
-### v5 (当前)
+### v5
 
 - 更新 narrative-writer 场景写法：使用“三维度织入”并按镜头断段控制段落密度
 - 字数统计改为 Python 字符统计优先，`wc -m` 仅作 macOS/Linux 备选，提升 Windows + DeepSeek/Codex 兼容性
 - 已部署项目重新运行 `/story-setup` 后获取新版 story agent 参考提示词
+
+### v6
+
+- 统一 narrative-writer 参考提示词与主会话的短篇正文格式：固定写入 `正文.md`、小节标记统一、段落无空行、对话半角双引号。
+- 短篇写作不再由 narrative-writer 创建长篇 `追踪/上下文.md`。
+
+### v7 (当前)
+
+- 修复长篇 `/story-long-write 日更` 批量续写中的 continuation 规则：同一批次内“继续/续写/日更”保持在 daily workflow，不直接跳到正文续写。
+- 修复伏笔缺口提示语义：正常开放伏笔（`未埋`/`已埋`）不是缺口；只有 `已过期` 或异常状态需要提示。
+- Codex 插件级 lifecycle hook 由本仓库插件加载，不由 `/story-setup` 写入用户项目目录；升级本插件后重新打开会话即可使用新版 hook 行为。已部署项目重新运行 `/story-setup` 用于刷新 `.codex/story-agents/` 和 `.codex/story-rules/`。

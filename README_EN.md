@@ -81,6 +81,19 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 
 These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
 
+## Upgrading to v0.6.6
+
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack to refresh `.codex/story-agents/` and `.codex/story-rules/`.
+
+This release bumps `agents_version` to v7 and focuses on daily workflow drift and token blow-ups in long-form writing projects:
+
+- After `/story-long-write 日更` enters the daily batch flow, same-batch “continue / rewrite / daily write” requests stay inside `workflow-daily.md` instead of jumping directly to prose writing.
+- Before each chapter, the workflow must read concrete project files from the current run: chapter outline, previous chapter prose, `追踪/上下文.md`, `追踪/伏笔.md`, `追踪/时间线.md`, and character status/settings.
+- The Codex `SessionStart` hook now warns only for `已过期` or abnormal foreshadowing states; normal open states (`未埋` / `已埋`) no longer trigger full foreshadowing audits.
+- Daily writing only handles incremental foreshadowing changes for the current batch; run `/story-review` explicitly when you need a full audit.
+
+Codex lifecycle hooks are loaded by this repository's plugin mechanism, not written into the user's project by `/story-setup`. Reopen the session after upgrading the plugin to use the new hook behavior.
+
 ## Project File Structure
 
 Recommended long-form structure:

@@ -79,6 +79,19 @@ demo/拆文库-我爸死后我成了他的影子拳手/
 
 这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
 
+## 升级到 v0.6.6
+
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`，用于刷新 `.codex/story-agents/` 和 `.codex/story-rules/`。
+
+本版将 `agents_version` 升级到 v7，重点修复长篇日更后的 workflow 漂移和 token 膨胀问题：
+
+- `/story-long-write 日更` 进入批量流程后，同一批次里的“继续 / 续写 / 日更”会继续留在 `workflow-daily.md`，不会跳出流程直接写正文。
+- 每章开始前必须读取本轮真实项目文件：细纲、上一章正文、`追踪/上下文.md`、`追踪/伏笔.md`、`追踪/时间线.md`、角色状态/角色设定。
+- Codex `SessionStart` hook 只提示 `已过期` 或异常伏笔状态；正常开放伏笔（`未埋` / `已埋`）不再触发全量伏笔审计。
+- 日更流程只处理本轮增量伏笔；需要全量审计时请显式运行 `/story-review`。
+
+Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。
+
 ## 项目文件结构
 
 长篇项目推荐结构：

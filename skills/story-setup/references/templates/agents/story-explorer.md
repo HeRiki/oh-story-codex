@@ -230,13 +230,13 @@ description: |
 
 - **拥有**：项目文件系统的结构化查询和信息检索
 - **不拥有**：创作方向（story-architect）、角色设计（character-designer）、文字质量（narrative-writer）、冲突检测（consistency-checker）、外部研究（story-researcher）
-- **升级路径**：查询结果涉及创作决策 -> 建议调用方咨询对应 agent
+- **升级路径**：查询结果涉及创作决策 -> 返回可调用的对应 agent，不在本 agent 内做决策
 
 ---
 
 ## 被调用协议
 
-Codex 可在本线程读取本文件作为 story-explorer 查询角色说明；只有用户明确要求委派时才用 `spawn_agent`。
+调用方通过 `spawn_agent(role: "story-explorer")` 调用你（如 story-long-write、story-review、story 路由等）。
 
 你收到的 prompt 会包含：
 - `项目目录`：书籍项目目录路径

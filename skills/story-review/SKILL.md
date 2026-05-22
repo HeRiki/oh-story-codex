@@ -1,13 +1,13 @@
 ---
 name: story-review
 description: |
-  多视角对抗式审查。按故事架构、角色设计、文字质量、设定一致性四个视角找问题并综合裁决；用户明确要求多代理时可并行委派。
+  多视角对抗式审查。4 个 Agent 并行 spawn（full 模式），各自从不同角度找问题，主线程综合裁决。
   触发方式：/story-review、/审查、「审查一下」「帮我审一下」
 ---
 
 # story-review：多视角对抗式审查
 
-你是审查协调器。按多个专业视角找问题，然后综合裁决。
+你是审查协调器。并行 spawn 4 个 Agent，各自从不同角度找问题，然后综合裁决。
 
 **执行铁律：审查是找问题，不是验证正确性。**
 
@@ -15,10 +15,10 @@ description: |
 
 ## Review Mode 选择
 
-- `/story-review` 或 `/story-review full` → 执行全部 4 个审查视角。只有用户明确要求多代理/并行委派时，才用 `spawn_agent` 分派这些视角；否则本线程依次完成。
-- `/story-review lean` → 只执行 story-architect + consistency-checker 两个视角。
-- `/story-review solo` → 只做基础检查。
-- 未指定 → 默认 full，并告知用户执行模式。
+- `/story-review` 或 `/story-review full` → spawn 全部 4 个 Agent（仅主会话使用；如果当前已经在子代理内，自动降级为 solo）
+- `/story-review lean` → 只 spawn story-architect + consistency-checker（仅主会话使用；子代理内自动降级为 solo）
+- `/story-review solo` → 不 spawn Agent，自身做基础检查
+- 未指定 → 默认 full，并告知用户
 
 ---
 
@@ -37,15 +37,15 @@ description: |
    - 知乎盐言 → 读取 [references/rubrics/zhihu.md](references/rubrics/zhihu.md)
    - 未指定 → 默认加载 [references/quality-rubric.md](references/quality-rubric.md)
 
-**Phase 1.5：可选 story-explorer 预查询**。如果项目已部署 story-explorer 参考提示词（检查 `.codex/story-agents/story-explorer.md` 是否存在），可读取该文件并用结构化查询预查设定摘要：`项目目录：{dir}\n查询类型：setting_appearances\n查询参数：{审查涉及的设定关键词}`。此步可选，跳过不影响审查流程。
+**Phase 1.5：可选 story-explorer 预查询**。如果项目已部署 story-explorer agent（检查 `.codex/story-agents/story-explorer.md` 是否存在），可 spawn `spawn_agent(role: "story-explorer", prompt: "项目目录：{dir}\n查询类型：setting_appearances\n查询参数：{审查涉及的设定关键词}")` 预查设定摘要，将结果注入各 agent 的 prompt，减少重复 grep。此步可选，跳过不影响审查流程。
 
-## Phase 2：执行 4 个审查视角（+ 可选 researcher）
+## Phase 2：并行 Spawn 4 个 Agent（+ 可选 researcher）
 
-默认在本线程依次执行 4 个视角。若用户明确要求多代理/并行审查，可用 Codex `spawn_agent`，每个 agent 的 prompt 必须自包含文件路径和上下文，并说明对应审查视角。
+使用 Agent 工具并行调用 4 次（不同 subagent_type）。
 
-**调用规则**：每个视角都必须基于同一份待审查内容、平台 rubric 和相关设定文件；如果使用 `spawn_agent`，不要依赖父对话隐含上下文。
+**调用规则**：每个 Agent 不继承父对话上下文，prompt 必须自包含文件路径和上下文。
 
-**视角 1: story-architect**
+**Agent 1: story-architect**（subagent_type: story-architect）
 - 审查视角：主题对齐、大纲结构、钩子/反转质量、范围控制
 - 提示指令：
   ```
@@ -65,12 +65,12 @@ description: |
   8. 按平台 rubric 逐项对照，标记 PASS/FAIL
 
   输出格式：
-  VERDICT: APPROVE / CONCERNS / REJECT
+  VERDICT / 结论: APPROVE(通过) / CONCERNS(有问题) / REJECT(需重写)
   FINDINGS: [结构/情节/节奏问题，附具体引用]
   RECOMMENDATIONS: [修改建议]
   ```
 
-**视角 2: character-designer**
+**Agent 2: character-designer**（subagent_type: character-designer）
 - 审查视角：角色语言风格一致性、对话质量、人物弧线
 - 提示指令：
   ```
@@ -88,12 +88,12 @@ description: |
   7. 好感度进度是否可感知？
 
   输出格式：
-  VERDICT: APPROVE / CONCERNS / REJECT
+  VERDICT / 结论: APPROVE(通过) / CONCERNS(有问题) / REJECT(需重写)
   FINDINGS: [角色/对话问题，附具体引用]
   RECOMMENDATIONS: [修改建议]
   ```
 
-**视角 3: narrative-writer**
+**Agent 3: narrative-writer**（subagent_type: narrative-writer）
 - 审查视角：AI味检测、格式合规、节奏均匀度
 - 提示指令：
   ```
@@ -109,12 +109,12 @@ description: |
   5. AI味分级（轻度/中度/重度）？
 
   输出格式：
-  VERDICT: APPROVE / CONCERNS / REJECT
+  VERDICT / 结论: APPROVE(通过) / CONCERNS(有问题) / REJECT(需重写)
   FINDINGS: AI味级别: 轻度/中度/重度; [禁用词/格式/节奏问题，附具体引用]
   RECOMMENDATIONS: [修改建议]
   ```
 
-**视角 4: consistency-checker**
+**Agent 4: consistency-checker**（subagent_type: consistency-checker）
 - 审查视角：grep-first 事实冲突检测，输出 S1-S4 报告
 - 提示指令：
   ```
@@ -131,17 +131,17 @@ description: |
   5. 伏笔密度是否合理？
 
   输出格式：
-  VERDICT: APPROVE / CONCERNS / REJECT
+  VERDICT / 结论: APPROVE(通过) / CONCERNS(有问题) / REJECT(需重写)
   FINDINGS: [S1/S2/S3/S4] 具体冲突描述（每条标注严重等级）
   RECOMMENDATIONS: [修复建议]
   ```
 
 ## Phase 3：综合裁决
 
-1. 收集 4 个视角的 VERDICT 和 FINDINGS
-2. 合并去重：将各视角的 FINDINGS 按严重程度排序（S1 > S2 > S3 > S4，AI味重度 > 中度 > 轻度）
-3. **可选事实核查**：如果审查内容涉及需要验证的外部事实（历史年代、地理方位、职业细节等），读取 `.codex/story-agents/story-researcher.md` 作为研究角色说明；只有用户明确要求委派时才额外 `spawn_agent`
-4. **分歧呈现**：如果审查视角间有冲突意见，明确呈现分歧让用户裁决
+1. 收集 4 个 Agent 的 VERDICT 和 FINDINGS
+2. 合并去重：将各 Agent 的 FINDINGS 按严重程度排序（S1 > S2 > S3 > S4，AI味重度 > 中度 > 轻度）
+3. **可选事实核查**：如果审查内容涉及需要验证的外部事实（历史年代、地理方位、职业细节等），额外 spawn `story-researcher` agent 搜索验证。将研究结果纳入裁决参考。
+4. **分歧呈现**：如果 Agent 间有冲突意见，明确呈现分歧让用户裁决
    - 例：story-architect 认为某段"结构合理"，但 character-designer 认为"角色弧线有问题"
    - 不要自动妥协，让用户看到双方理由
 5. 输出综合审查报告
@@ -153,20 +153,20 @@ description: |
 Review Mode: full
 审查范围: {章节/文件}
 
-## Verdict Summary
+## Verdict Summary / 结论汇总
 - story-architect: APPROVE / CONCERNS(n) / REJECT
 - character-designer: APPROVE / CONCERNS(n) / REJECT
 - narrative-writer: APPROVE / CONCERNS(n) / REJECT
 - consistency-checker: APPROVE / CONCERNS(n) / REJECT
 
 ## 综合评定
-{APPROVE / CONCERNS / REJECT}
+{APPROVE(通过) / CONCERNS(有问题) / REJECT(需重写)}
 
 ## 发现的问题
 {按 S1→S4 分级列出所有问题}
 
-## 视角分歧（如有）
-{列出不同审查视角的意见}
+## Agent 分歧（如有）
+{列出 Agent 间不同的意见}
 
 ## 修改建议
 {按优先级排列}
@@ -176,7 +176,7 @@ Review Mode: full
 
 ## lean 模式
 
-只执行 story-architect + consistency-checker，跳过 character-designer 和 narrative-writer。
+只 spawn story-architect + consistency-checker，跳过 character-designer 和 narrative-writer。
 其余流程同 full。
 
 ### lean 模式输出格式
@@ -186,12 +186,12 @@ Review Mode: full
 Review Mode: lean
 审查范围: {章节/文件}
 
-## Verdict Summary
+## Verdict Summary / 结论汇总
 - story-architect: APPROVE / CONCERNS(n) / REJECT
 - consistency-checker: APPROVE / CONCERNS(n) / REJECT
 
 ## 综合评定
-{APPROVE / CONCERNS / REJECT}
+{APPROVE(通过) / CONCERNS(有问题) / REJECT(需重写)}
 
 ## 发现的问题
 {按 S1→S4 分级}
@@ -202,7 +202,7 @@ Review Mode: lean
 
 ## solo 模式
 
-不做多视角拆分。skill 自身执行基础检查：
+不 spawn Agent。先按 Phase 1 第 4 步识别目标平台并加载对应 rubric；即使是 solo，也必须用平台 rubric 校准判断。skill 自身执行基础检查：
 1. 格式合规性检查（一段一句、无空行、对话格式）
 2. 简单的设定一致性 grep
 3. 输出简化版报告
