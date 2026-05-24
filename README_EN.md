@@ -81,16 +81,19 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 
 These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
 
-## Upgrading to v0.6.6
+## Upgrading to v0.6.8
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack to refresh `.codex/story-agents/` and `.codex/story-rules/`.
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v8 so `.codex/story-agents/` and `.codex/story-rules/` are refreshed, including the reviewer reference-path rules.
 
-This release bumps `agents_version` to v7 and focuses on daily workflow drift and token blow-ups in long-form writing projects:
+This release syncs upstream v0.6.7 and v0.6.8. Main changes:
 
-- After `/story-long-write 日更` enters the daily batch flow, same-batch “continue / rewrite / daily write” requests stay inside `workflow-daily.md` instead of jumping directly to prose writing.
-- Before each chapter, the workflow must read concrete project files from the current run: chapter outline, previous chapter prose, `追踪/上下文.md`, `追踪/伏笔.md`, `追踪/时间线.md`, and character status/settings.
-- The Codex `SessionStart` hook now warns only for `已过期` or abnormal foreshadowing states; normal open states (`未埋` / `已埋`) no longer trigger full foreshadowing audits.
-- Daily writing only handles incremental foreshadowing changes for the current batch; run `/story-review` explicitly when you need a full audit.
+- **story-import**: automatic length routing. Long-form imports run full deconstruction plus long-form project migration; short-form imports run the short-form pipeline plus a single-file `正文.md` project.
+- **story-import**: long-form imports reverse-engineer `追踪/角色状态.md`, avoiding long-term fallback behavior in daily writing.
+- **story-import**: when invoking deconstruction skills, it skips the Stage 1 checkpoint so the “stop after golden three chapters” interaction is not surfaced to import users.
+- **story-long-analyze**: quick/deep modes are merged into one pipeline; Stage 1 produces `快速预览.md`, then the run can continue into full deconstruction.
+- **story-short-analyze**: standard/fine modes are merged into one full deconstruction pipeline.
+- **story-review / story-setup agent templates**: reference paths now use `story-review/references/...` or `story-setup/references/agent-references/...`; agents no longer read bare filenames or cross-skill references.
+- **story-long-scan**: Qidian scraping defaults to mobile SSR with CDP + CAPTCHA fallback.
 
 Codex lifecycle hooks are loaded by this repository's plugin mechanism, not written into the user's project by `/story-setup`. Reopen the session after upgrading the plugin to use the new hook behavior.
 

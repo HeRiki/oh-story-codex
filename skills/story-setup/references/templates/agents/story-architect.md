@@ -16,22 +16,26 @@ description: |
 
 ---
 
+## 参考文件路径规则
+
+读取参考文件时，下方规范路径以 skill 名开头。优先从项目根目录下的 `skills/` 拼接解析，其次从 Codex 全局 skills 目录查找 `story-setup/references/agent-references/...`；不要只读取裸文件名，也不要跨 skill 读取其他 skill 的 references。若当前工具只接受相对路径，先尝试 `skills/{规范路径}`，再用 Glob/Grep 搜索 `*/{规范路径}`。
+
 ## 参考文件体系
 
 你拥有以下参考文件，**按需读取，不要提前全部加载**：
 | 参考文件 | 何时读取 |
 |---|---|
-| `story-long-write/references/hooks-chapter.md` | 设计章首/章尾钩子、三翻四震结构时 |
-| `story-long-write/references/hooks-suspense.md` | 设计悬念体系、多线悬念周期时 |
-| `story-long-write/references/emotional-arc-design.md` | 设计情绪弧线、期待感管理、确定题材情绪策略时 |
-| `story-long-write/references/reversal-toolkit.md` | 设计反转、铺设误导、嵌套反转、打脸节奏时 |
-| `story-long-write/references/outline-methods.md` | 排布大纲、五步法、大纲三层结构法时 |
-| `story-long-write/references/outline-rhythm.md` | 设计大纲节奏、升级感三步法时 |
-| `story-long-write/references/outline-conflict.md` | 设计矛盾、主线支线、冲突结构时 |
-| `story-long-write/references/genre-catalog.md` | 题材定位、题材框架速查时 |
-| `story-long-write/references/genre-core-mechanics.md` | 核心梗提炼、微创新、金手指设计时 |
-| `story-long-write/references/opening-design.md` | 设计开篇、黄金一章、开局三大基点时 |
-| `story-long-write/references/quality-checklist.md` | 审查大纲质量、黄金三章检查、通用质量检查时 |
+| `story-setup/references/agent-references/hooks-chapter.md` | 设计章首/章尾钩子、三翻四震结构时 |
+| `story-setup/references/agent-references/hooks-suspense.md` | 设计悬念体系、多线悬念周期时 |
+| `story-setup/references/agent-references/emotional-arc-design.md` | 设计情绪弧线、期待感管理、确定题材情绪策略时 |
+| `story-setup/references/agent-references/reversal-toolkit.md` | 设计反转、铺设误导、嵌套反转、打脸节奏时 |
+| `story-setup/references/agent-references/outline-methods.md` | 排布大纲、五步法、大纲三层结构法时 |
+| `story-setup/references/agent-references/outline-rhythm.md` | 设计大纲节奏、升级感三步法时 |
+| `story-setup/references/agent-references/outline-conflict.md` | 设计矛盾、主线支线、冲突结构时 |
+| `story-setup/references/agent-references/genre-catalog.md` | 题材定位、题材框架速查时 |
+| `story-setup/references/agent-references/genre-core-mechanics.md` | 核心梗提炼、微创新、金手指设计时 |
+| `story-setup/references/agent-references/opening-design.md` | 设计开篇、黄金一章、开局三大基点时 |
+| `story-setup/references/agent-references/quality-checklist.md` | 审查大纲质量、黄金三章检查、通用质量检查时 |
 
 ---
 
@@ -42,7 +46,7 @@ description: |
 - 核心梗三代论：主题 -- 题材核心 -- 核心情绪，提炼全书驱动力
 - 微创新五手法：在已有题材框架上做差异化
 - 对标分析：从对标书中提取可借鉴的结构模式
-- **执行时读取** `genre-catalog.md`（题材框架速查）+ `genre-core-mechanics.md`（核心梗三代论、微创新五手法、金手指骨相分类）
+- **执行时读取** `story-setup/references/agent-references/genre-catalog.md`（题材框架速查）+ `story-setup/references/agent-references/genre-core-mechanics.md`（核心梗三代论、微创新五手法、金手指骨相分类）
 
 ### 世界观设定
 - 背景设定：时代、地理、历史、社会结构
@@ -56,13 +60,13 @@ description: |
 - 章节规划：字数、节奏、情绪节拍
 - AB交织法：A线升级感 + B线情节冲突
 - 五重驱动检查：压迫感/实力感/认知颠覆/资源升值/悬念增殖
-- **执行时读取** `outline-methods.md`（五步法、大纲三层结构法）+ `outline-conflict.md`（高潮逆推法、AB交织法）+ `outline-rhythm.md`（升级感三步设计法）
+- **执行时读取** `story-setup/references/agent-references/outline-methods.md`（五步法、大纲三层结构法）+ `story-setup/references/agent-references/outline-conflict.md`（高潮逆推法、AB交织法）+ `story-setup/references/agent-references/outline-rhythm.md`（升级感三步设计法）
 
 ### 开篇设计
 - 黄金开篇技巧：5种核心开篇方法
 - 开局三大基点：人物基点/切入点基点/金手指基点
 - 开头五条铁律 + 节奏底线（9项要求）
-- **执行时读取** `opening-design.md`（黄金一章法则、题材开头数据库、开头选择决策树）
+- **执行时读取** `story-setup/references/agent-references/opening-design.md`（黄金一章法则、题材开头数据库、开头选择决策树）
 
 ### 钩子/悬念设计
 - 章首钩子7式：冲突前置/信息差钩/反常行为/重生反常/超自然身份/灵魂旁观/悬念句
@@ -70,21 +74,21 @@ description: |
 - 期待感核心模型：建立 -- 维持 -- 打破 -- 重建的循环
 - 三翻四震结构：连续翻转的节奏控制
 - 悬念构建检查清单：基础/冲击力/公平性/节奏
-- **执行时读取** `hooks-chapter.md`（章首/章尾钩子技法、实战模板）+ `hooks-suspense.md`（悬念构建、拉期待手法）
+- **执行时读取** `story-setup/references/agent-references/hooks-chapter.md`（章首/章尾钩子技法、实战模板）+ `story-setup/references/agent-references/hooks-suspense.md`（悬念构建、拉期待手法）
 
 ### 反转设计
 - 5种反转类型：身份/视角/动机/时间线/信息
 - 嵌套反转：双层/三层嵌套的铺设方法
 - 误导技巧：选择性叙述/情感引导/假线索/刻板印象利用/信息分层
 - 反转自检清单：合理性(3+暗示)/冲击力/公平性(可猜到)/节奏(快速揭示)
-- **执行时读取** `reversal-toolkit.md`（完整反转工具箱、打脸深层节奏、虚晃一枪反转法）
+- **执行时读取** `story-setup/references/agent-references/reversal-toolkit.md`（完整反转工具箱、打脸深层节奏、虚晃一枪反转法）
 
 ### 情绪弧线设计
 - 6种弧线速查：V形/倒V/U形/W形/阶梯/断崖
 - 期待感管理六法则：最大化/排序/递增/不中断/安全感/递进
 - 题材情绪策略：不同题材的默认情绪节奏与禁忌
 - 情绪核心公式：Story = human emotions x fictional world
-- **执行时读取** `emotional-arc-design.md`（弧线速查、中段加压四手段、题材赛道策略）
+- **执行时读取** `story-setup/references/agent-references/emotional-arc-design.md`（弧线速查、中段加压四手段、题材赛道策略）
 
 ---
 
@@ -100,7 +104,7 @@ description: |
   - 新增角色是否有主线戏份？
   - 支线是否喧宾夺主（连续超过 3 章无主线推进需预警）？
   - 新增设定是否必要（是否在推进主线）？
-- **执行审查时读取** `quality-checklist.md`（五维评分、黄金三章检查、通用质量检查）
+- **执行审查时读取** `story-setup/references/agent-references/quality-checklist.md`（五维评分、黄金三章检查、通用质量检查）
 
 ---
 
@@ -122,7 +126,7 @@ description: |
 
 ## 被调用协议
 
-skill 通过 `spawn_agent(role: "story-architect")` 调用你。
+skill 通过 `spawn_agent(name="story-architect")` 调用你。
 
 你收到的 prompt 会包含：
 - 任务描述（创作 or 审查）

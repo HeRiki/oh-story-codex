@@ -68,7 +68,7 @@ description: |
 
 1. 检查对标书的 `拆文报告.md` 是否存在（按对标书路径查找）
 2. 如存在，读取核心发现（开篇钩子、爽点密度、节奏模式、可借鉴套路）作为参考上下文
-3. 如均不存在，提示用户：「对标书原文已放入 `对标/{书名}/原文/`。要先用 `/story-long-analyze` 深度拆解吗？拆完后 `拆文报告.md` 会自动存入 `拆文库/{书名}/`，写作时会自动按 `对标/ → 拆文库/` 顺序读取。」
+3. 如均不存在，提示用户：「对标书原文已放入 `对标/{书名}/原文/`。要先用 `/story-long-analyze` 拆解吗？拆完黄金三章会先给你预览，确认后可继续全量拆解，拆完后 `拆文报告.md` 会自动存入 `拆文库/{书名}/`，写作时会自动按 `对标/ → 拆文库/` 顺序读取。」
 4. 如果结构化子目录（角色/剧情/设定）存在，写作时自动召回相关模块
 
 根据回答做匹配：
@@ -79,7 +79,7 @@ description: |
 
 #### Agent 调用：story-architect
 
-story-architect 属于高层级结构设计 agent。轻量题材定位优先由主会话完成；只有涉及复杂世界观、多线结构、强反转工程或用户明确要求时，才调用 story-architect。确认选题方向后，如果项目已部署 story-architect agent（检查 `.codex/story-agents/story-architect.md` 是否存在），可 spawn `spawn_agent(role: "story-architect", prompt: "项目目录：{dir}\n任务类型：题材定位\n查询参数：{用户选择的方向+对标信息}")` 辅助题材分析和核心梗设计。如 agent 不可用，由主线程直接执行。
+story-architect 属于高层级结构设计 agent。轻量题材定位优先由主会话完成；只有涉及复杂世界观、多线结构、强反转工程或用户明确要求时，才调用 story-architect。确认选题方向后，如果项目已部署 story-architect agent（检查 `.codex/story-agents/story-architect.md` 是否存在），可 spawn `spawn_agent(name="story-architect", prompt: "项目目录：{dir}\n任务类型：题材定位\n查询参数：{用户选择的方向+对标信息}")` 辅助题材分析和核心梗设计。如 agent 不可用，由主线程直接执行。
 
 ---
 
@@ -128,8 +128,8 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 #### Agent 调用：story-architect + character-designer
 
 核心设定阶段，如果项目已部署对应 agent，可 spawn 以下 agent 辅助：
-- `spawn_agent(role: "story-architect", prompt: "项目目录：{dir}\n任务类型：核心设定\n查询参数：世界观构建+核心冲突设计")` — 辅助世界观和核心冲突设计
-- `spawn_agent(role: "character-designer", prompt: "项目目录：{dir}\n任务类型：角色设定\n查询参数：{主角设定信息}")` — 辅助角色设定和语言风格档案
+- `spawn_agent(name="story-architect", prompt: "项目目录：{dir}\n任务类型：核心设定\n查询参数：世界观构建+核心冲突设计")` — 辅助世界观和核心冲突设计
+- `spawn_agent(name="character-designer", prompt: "项目目录：{dir}\n任务类型：角色设定\n查询参数：{主角设定信息}")` — 辅助角色设定和语言风格档案
 
 如 agent 不可用，由主线程直接执行。
 
@@ -192,7 +192,7 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 
 #### Agent 调用：story-architect
 
-大纲搭建阶段优先由主会话产出卷纲+首批细纲；只有结构复杂、反转链多或主会话方案不稳定时，才调用 story-architect agent。若项目已部署 story-architect agent（检查 `.codex/story-agents/story-architect.md` 是否存在），可 spawn `spawn_agent(role: "story-architect", prompt: "项目目录：{dir}\n任务类型：大纲搭建\n查询参数：卷级结构+细纲+钩子/反转/情绪弧线设计")` 辅助大纲排布、钩子/反转/情绪弧线设计。如 agent 不可用，由主线程直接执行。
+大纲搭建阶段优先由主会话产出卷纲+首批细纲；只有结构复杂、反转链多或主会话方案不稳定时，才调用 story-architect agent。若项目已部署 story-architect agent（检查 `.codex/story-agents/story-architect.md` 是否存在），可 spawn `spawn_agent(name="story-architect", prompt: "项目目录：{dir}\n任务类型：大纲搭建\n查询参数：卷级结构+细纲+钩子/反转/情绪弧线设计")` 辅助大纲排布、钩子/反转/情绪弧线设计。如 agent 不可用，由主线程直接执行。
 
 ---
 
@@ -282,7 +282,7 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 当用户准备写某一章时：
 
 1. **检查细纲**：读取 `大纲/细纲_第{N}章.md`。如果不存在，**必须先补建细纲再写正文**，不允许跳过细纲直接写作。补建时参考卷纲中本章对应的事件规划和上下文。
-2. **读取上下文**（按需加载，缺失则跳过。可选快捷路径：如果项目已部署 story-explorer agent（检查 `.codex/story-agents/story-explorer.md` 是否存在），可 spawn `spawn_agent(role: "story-explorer", prompt: "项目目录：{dir}\n查询类型：context_load\n查询参数：准备写第 {N} 章")` 一次获取上下文）：
+2. **读取上下文**（按需加载，缺失则跳过。可选快捷路径：如果项目已部署 story-explorer agent（检查 `.codex/story-agents/story-explorer.md` 是否存在），可 spawn `spawn_agent(name="story-explorer", prompt: "项目目录：{dir}\n查询类型：context_load\n查询参数：准备写第 {N} 章")` 一次获取上下文）：
    - (1) `正文/第{N-1}章_*.md` — 上一章正文
    - (2) `大纲/细纲_第{N}章.md` — 本章细纲（含钩子设计）
    - (3) `追踪/伏笔.md`（如存在）— 待回收伏笔
@@ -301,7 +301,7 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 4. **资料研究**（按需）：如果写作中遇到需要查证的外部事实（历史年代、地理方位、职业细节等），spawn `story-researcher` agent 搜索并输出到 `参考资料/` 目录。研究完成后再继续写作。
 5. **标题预检**：写正文前从细纲读取章名；如与既有章节同名或明显重复，先按本章核心事件改名，并同步细纲标题与正文文件名。
 6. **写作**：第 1 章如果以内心戏、设定认知或独处开场，必须先把内心变化外化为可见事件（决定、误判、对话、物件变化、外部压力），再按字数目标展开；不得用大段心理独白凑字。若第 1 章低于目标，优先补“外部事件/对话/选择代价”，不要补解释性内心戏。
-7. **正文执行**：如果项目已部署 narrative-writer agent（**必须先检查 `.codex/story-agents/narrative-writer.md` 是否存在**），spawn `spawn_agent(role: "narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n章节：第{N}章\n细纲文件：大纲/细纲_第{N}章.md\n上一章：正文/第{N-1}章_*.md\n准备层输出：{3.1最简记忆包 + 3.2模块召回结果 + 3.3写作意图}\n情绪目标：{从准备层3.3确认}\n涉及角色：{从准备层3.1筛选}\n参考技法：{从准备层3.2召回}\n对标/拆文路径：{本次查找到的 对标/{书名}/ 或 拆文库/{书名}/，没有则写 无}\n对标召回摘要：{准备层3.2输出的相关角色/剧情/设定/章节模块，最多5条；没有则写 无}\n写作硬约束：按三维度织入写场景，但仍必须按镜头断段；一段只承载一个动作/信息变化，优先一段一句，避免一段到底。输出前做密度重排：段落 >60 字按句号/动作转折拆开，单句 >45 字拆短。\n⚠️字数硬约束：本章必须达到细纲中设定的字数目标（{从细纲读取}字）。优先使用 Python 字符统计（跨平台）：`python3 -c "from pathlib import Path; print(len(Path('正文文件路径').read_text(encoding='utf-8')))"`；macOS/Linux 可用 `wc -m` 备选；禁止使用 `wc -c` 或模型估算。字数未达标禁止结束本章。")` 执行正文写作，输出写入 `正文/第XXX章_章名.md`。如 narrative-writer agent 未部署，由主线程直接写作。
+7. **正文执行**：如果项目已部署 narrative-writer agent（**必须先检查 `.codex/story-agents/narrative-writer.md` 是否存在**），spawn `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n章节：第{N}章\n细纲文件：大纲/细纲_第{N}章.md\n上一章：正文/第{N-1}章_*.md\n准备层输出：{3.1最简记忆包 + 3.2模块召回结果 + 3.3写作意图}\n情绪目标：{从准备层3.3确认}\n涉及角色：{从准备层3.1筛选}\n参考技法：{从准备层3.2召回}\n对标/拆文路径：{本次查找到的 对标/{书名}/ 或 拆文库/{书名}/，没有则写 无}\n对标召回摘要：{准备层3.2输出的相关角色/剧情/设定/章节模块，最多5条；没有则写 无}\n写作硬约束：按三维度织入写场景，但仍必须按镜头断段；一段只承载一个动作/信息变化，优先一段一句，避免一段到底。输出前做密度重排：段落 >60 字按句号/动作转折拆开，单句 >45 字拆短。\n⚠️字数硬约束：本章必须达到细纲中设定的字数目标（{从细纲读取}字）。优先使用 Python 字符统计（跨平台）：`python3 -c "from pathlib import Path; print(len(Path('正文文件路径').read_text(encoding='utf-8')))"`；macOS/Linux 可用 `wc -m` 备选；禁止使用 `wc -c` 或模型估算。字数未达标禁止结束本章。")` 执行正文写作，输出写入 `正文/第XXX章_章名.md`。如 narrative-writer agent 未部署，由主线程直接写作。
 8. **字数验证**（写作完成后的第一件事）：优先用 `python3 -c "from pathlib import Path; print(len(Path('正文文件路径').read_text(encoding='utf-8')))"` 统计本章实际字数；macOS/Linux 可用 `wc -m` 备选。如果字数 < 细纲目标的 90%，**回到细纲补充更多子事件/情节点**，然后用三维度织入将这些新子事件写成正文，并按镜头断段控制单段密度，直到字数达标后再进入步骤 9。
 9. **检查**：章尾是否有钩子、爽点是否到位
 10. **禁用词扫描**：对照 `references/banned-words.md` 检查本章，一级词（高频AI腔）命中即替换；二级词（低频/语境相关）高频出现时替换，偶发可参考 `references/anti-ai-writing.md` 定性裁定
@@ -352,11 +352,11 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 
 #### Agent 调用：consistency-checker
 
-质量检查阶段，如果项目已部署 consistency-checker agent（检查 `.codex/story-agents/consistency-checker.md` 是否存在），spawn `spawn_agent(role: "consistency-checker", prompt: "项目目录：{dir}\n检查范围：{本次写作的章节}\n检查类型：事实冲突+伏笔断线+角色属性不一致")` 执行一致性检查，获取 S1-S4 分级报告。如 agent 不可用，由主线程参照 quality-checklist.md 直接检查。
+质量检查阶段，如果项目已部署 consistency-checker agent（检查 `.codex/story-agents/consistency-checker.md` 是否存在），spawn `spawn_agent(name="consistency-checker", prompt: "项目目录：{dir}\n检查范围：{本次写作的章节}\n检查类型：事实冲突+伏笔断线+角色属性不一致")` 执行一致性检查，获取 S1-S4 分级报告。如 agent 不可用，由主线程参照 quality-checklist.md 直接检查。
 
 #### Agent 调用：narrative-writer（去AI味审查）
 
-质量检查阶段，如果项目已部署 narrative-writer agent，可 spawn `spawn_agent(role: "narrative-writer", prompt: "项目目录：{dir}\n任务描述：审查+去AI味\n检查范围：{本次写作的章节}")` 执行文字质量审查和去AI味检查。如 agent 不可用，由主线程直接执行。
+质量检查阶段，如果项目已部署 narrative-writer agent，可 spawn `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：审查+去AI味\n检查范围：{本次写作的章节}")` 执行文字质量审查和去AI味检查。如 agent 不可用，由主线程直接执行。
 
 检查后更新追踪文件：
 - 更新 `追踪/伏笔.md` 中的过期伏笔和回收状态

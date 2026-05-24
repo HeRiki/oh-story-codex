@@ -79,16 +79,19 @@ demo/拆文库-我爸死后我成了他的影子拳手/
 
 这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
 
-## 升级到 v0.6.6
+## 升级到 v0.6.8
 
-如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`，用于刷新 `.codex/story-agents/` 和 `.codex/story-rules/`。
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v8，用于刷新 `.codex/story-agents/` 和 `.codex/story-rules/`，并让 reviewer 参考提示词获得新的参考文件路径规则。
 
-本版将 `agents_version` 升级到 v7，重点修复长篇日更后的 workflow 漂移和 token 膨胀问题：
+本版同步上游 v0.6.7 和 v0.6.8，重点更新：
 
-- `/story-long-write 日更` 进入批量流程后，同一批次里的“继续 / 续写 / 日更”会继续留在 `workflow-daily.md`，不会跳出流程直接写正文。
-- 每章开始前必须读取本轮真实项目文件：细纲、上一章正文、`追踪/上下文.md`、`追踪/伏笔.md`、`追踪/时间线.md`、角色状态/角色设定。
-- Codex `SessionStart` hook 只提示 `已过期` 或异常伏笔状态；正常开放伏笔（`未埋` / `已埋`）不再触发全量伏笔审计。
-- 日更流程只处理本轮增量伏笔；需要全量审计时请显式运行 `/story-review`。
+- **story-import**：按篇幅自动分流。长篇走完整拆解 + 长篇项目结构迁移，短篇走短篇拆解 + 单文件 `正文.md` 工程。
+- **story-import**：长篇导入会反推 `追踪/角色状态.md`，避免后续日更流程缺角色状态时长期走兜底分支。
+- **story-import**：调用拆书 skill 时自动越过 Stage 1 停靠点，避免“黄金三章后停下询问”的交互透传给导入用户。
+- **story-long-analyze**：快速/深度双模式合并为单一拆解管道，Stage 1 产出 `快速预览.md` 后可继续全量拆解。
+- **story-short-analyze**：标准/精细双档收敛为单一全量拆解管道。
+- **story-review / story-setup agent 模板**：参考文件路径统一走 `story-review/references/...` 或 `story-setup/references/agent-references/...`，不再读取裸文件名，也不跨 skill 引用其他 references。
+- **story-long-scan**：起点扫榜脚本默认改为移动端 SSR 抓取，并保留 CDP + CAPTCHA 回退。
 
 Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。
 

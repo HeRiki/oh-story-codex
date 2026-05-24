@@ -19,7 +19,9 @@ fi
 # Known intentional differences (basename): these files are expected to differ
 # - output-templates.md: each skill owns output schemas
 # - material-decomposition.md: long/short analyze use different decomposition pipelines
-IGNORE_NAMES="output-templates.md material-decomposition.md"
+# - quality-checklist.md: story-short-analyze's copy points to material-decomposition.md
+#   (absent in story-short-write); the two copies are intentionally skill-specific
+IGNORE_NAMES="output-templates.md material-decomposition.md quality-checklist.md"
 
 mismatches=0
 checked=0
@@ -59,7 +61,7 @@ for base in $dup_names; do
   all_match=true
 
   for ((i = 1; i < ${#paths[@]}; i++)); do
-    if ! diff -q "$ref_path" "${paths[$i]}" >/dev/null 2>&1; then
+    if ! cmp -s <(tr -d '\r' < "$ref_path") <(tr -d '\r' < "${paths[$i]}"); then
       skill_name="$(echo "${paths[$i]}" | sed "s|$SKILLS_DIR/||" | cut -d'/' -f1)"
       if [ "$all_match" = true ]; then
         echo ""

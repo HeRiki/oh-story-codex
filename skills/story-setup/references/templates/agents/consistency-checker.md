@@ -13,9 +13,13 @@ description: |
 
 **重要：你是只读的。不修改任何文件。只输出检查报告。不做任何文学质量或创作方向的判断。**
 
-评分标准参考 `story-long-write/references/quality-checklist.md` 中的五维评分体系（核心一致度、表层重写度、格式一致度、可读性、逻辑连贯），你的检查聚焦于**核心一致度**和**逻辑连贯**两个维度的事实性冲突。
+评分标准参考 `story-setup/references/agent-references/quality-checklist.md` 中的五维评分体系（核心一致度、表层重写度、格式一致度、可读性、逻辑连贯），你的检查聚焦于**核心一致度**和**逻辑连贯**两个维度的事实性冲突。
 
 ---
+
+## 参考文件路径规则
+
+读取参考文件时，下方规范路径以 skill 名开头。优先从项目根目录下的 `skills/` 拼接解析，其次从 Codex 全局 skills 目录查找 `story-setup/references/agent-references/...`；不要只读取裸文件名，也不要跨 skill 读取其他 skill 的 references。若当前工具只接受相对路径，先尝试 `skills/{规范路径}`，再用 Glob/Grep 搜索 `*/{规范路径}`。
 
 ## 检查流程
 
@@ -114,7 +118,7 @@ description: |
 
 ## 被调用协议
 
-Codex 可在本线程读取本文件作为 consistency-checker 角色说明；只有用户明确要求委派时才用 `spawn_agent`。
+skill 通过 `spawn_agent(name="consistency-checker")` 调用你。
 
 你收到的 prompt 会包含：
 - 检查范围（文件路径或章节范围）

@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.8
+
+> story-import 重构 + skill 自包含化 + 起点扫榜与 story-review 参考路径修复
+
+### 改进
+
+- **story-import**：按篇幅自动分流。长篇走 story-long-analyze 完整拆解 + 长篇结构迁移；短篇走 story-short-analyze + 短篇结构迁移（单文件 `正文.md`，不产 `追踪/`、`大纲/` 等长篇专属目录）。判定优先级：用户声明 > 章节结构 > 字数兜底。
+- **story-import**：长篇新增「角色状态反推」算法，从拆书产物反推 `追踪/角色状态.md`，补齐 story-long-write 日更准备层依赖。
+- **story-import**：调用 story-long-analyze 时自动越过 Stage 1 停靠点，以「完整拆解、一次跑完、不要停下询问」模式驱动，确保 Stage 2-5 全套产物落地。
+- **story-import**：迁移所需模板内联到本 skill references，清除跨 skill `../` 路径依赖。
+- **story-setup**：`agents_version` 升级到 v8；部署后的 `.codex/story-agents/` 使用 `story-setup/references/agent-references/*.md` 规范路径，避免裸文件名和跨 skill references。
+
+### Bug 修复
+
+- 修复 story-review reviewer 读取 `quality-checklist.md` 等参考文件时按当前目录解析导致找不到的问题，统一走 `story-review/references/...` 规范路径。
+- 修复起点中文网扫榜在 PC 站触发风控页时无法采集的问题；`qidian-rank-scraper.js` 默认改为移动端 SSR pageContext 抓取，并保留 CAPTCHA/CDP 回退。
+
+### Codex 适配
+
+- 保留 Codex 插件级 lifecycle hook，不恢复上游 `.claude/hooks` 部署。
+- 保留 demo 不带小说原文的策略；未同步上游 `demo/拆文库-盘龙/原文/原文.txt`。
+
+## v0.6.7
+
+> 拆书 skill 重构：长篇单管道 + 短篇去模式化
+
+### 改进
+
+- **story-long-analyze**：快速/深度双模式合并为单一拆解管道。Stage 0+1 跑完黄金三章后产出 `快速预览.md` 并停靠，确认后从 Stage 2 续跑，不重跑已完成阶段。
+- **story-long-analyze**：质量阈值、分块策略统一归 `material-decomposition.md`；管道运维内容拆出到 `pipeline-ops.md`。
+- **story-short-analyze**：标准/精细双档收敛为单一全量拆解管道。
+- **story-short-analyze**：质量阈值收敛到唯一权威文件；管道阶段术语对齐为 Stage 体系；新增原文备份前置步骤。
+- 黄金三章深度拆解产物由单文件拆为三个单章文件 `第N章_深度拆解.md`。
+- 同步更新 story-long-write、story-import、chapter-extractor 参考提示词中的拆书术语与文件名引用。
+
+### Bug 修复
+
+- 修复 `story-short-write` 指向「自检模式 / 拆文模式」的悬空引用。
+- 修复短篇拆书情节节点密度在多处文件给出不一致数值的问题，统一到唯一权威字数分档表。
+
 ## v0.6.6
 
 > 日更续写稳定性 + Codex lifecycle hook 伏笔降噪

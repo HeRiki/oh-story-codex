@@ -46,6 +46,7 @@ description: |
 - 读取 `references/templates/agents/` 下所有 `.md` 文件。
 - 复制到用户项目的 `.codex/story-agents/` 目录。
 - Codex 不使用自定义 `subagent_type` 注册机制；需要多视角审查时，将这些文件作为 `spawn_agent` 或本线程审查的角色提示词参考。
+- agent 模板中的参考资料路径统一指向 `story-setup/references/agent-references/*.md`，这是本 skill 自带的参考资料副本；不要跨 skill 读取其他 skill 的 references，也不要只写裸文件名。
 
 ### 2.4 部署上下文模板
 
@@ -59,7 +60,7 @@ description: |
 ```text
 deployed_at: <date -u +"%Y-%m-%dT%H:%M:%SZ">
 runtime: codex
-agents_version: 7
+agents_version: 8
 setup_skill_version: 1.0.0
 ```
 
@@ -68,7 +69,7 @@ setup_skill_version: 1.0.0
 1. 检查 `AGENTS.md` 是否存在，且包含 Skill 路由表、文件结构、上下文恢复规则。
 2. 检查 `.codex/story-rules/` 是否存在并包含规则文件。
 3. 检查 `.codex/story-agents/` 是否存在并包含 7 个角色提示词。
-4. 检查 `.story-deployed` 是否存在且 `runtime: codex`。
+4. 检查 `.story-deployed` 是否存在且 `runtime: codex`、`agents_version: 8`。
 5. 输出安装报告，列出已部署文件和已保留的用户原有配置。
 
 ## 模板占位符
@@ -95,9 +96,13 @@ setup_skill_version: 1.0.0
 ## 重新部署
 
 - `.story-deployed` 不存在：全新安装，Phase 2 全部执行。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 7`：提示已部署，确认后重跑。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 7：提示需要重新部署以更新 story agents/rules 参考库，包含短篇正文格式统一、日更续写 continuation 规则和伏笔降噪语义。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 8`：提示已部署，确认后重跑。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 8：提示需要重新部署以更新 story agents/rules 参考库，包含 agent 参考资料路径修复、短篇正文格式统一、日更续写 continuation 规则和伏笔降噪语义。
 - `.story-deployed` 存在但 runtime 不是 `codex`：按迁移处理，部署 Codex 目录，不删除原有旧运行时目录。
+
+## Codex lifecycle hook
+
+Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。
 
 ## 参考资料
 
@@ -105,6 +110,7 @@ setup_skill_version: 1.0.0
 |---|---|
 | `references/templates/AGENTS.md.tmpl` | 项目根 `AGENTS.md` 模板 |
 | `references/templates/rules/` | 写作规则参考 |
-| `references/templates/agents/` | 7 个角色提示词参考，含 v7 日更续写和正文格式更新 |
+| `references/templates/agents/` | 7 个角色提示词参考，含 v8 参考路径修复 |
+| `references/agent-references/` | agent 模板自带的参考资料副本，避免跨 skill references |
 | `references/templates/上下文.md.tmpl` | 写作上下文模板 |
 | `UPGRADING.md` | 已部署项目重新运行 `/story-setup` 时的升级策略和版本说明 |

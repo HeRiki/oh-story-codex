@@ -97,7 +97,7 @@ description: |
 
 #### Agent 调用：story-architect
 
-构思阶段，如果项目已部署 story-architect agent（检查 `.codex/story-agents/story-architect.md` 是否存在），可 spawn `spawn_agent(role: "story-architect", prompt: "项目目录：{dir}\n任务类型：短篇构思\n查询参数：{情绪目标+题材方向}")` 辅助框架设计。如 agent 不可用，由主线程直接执行。
+构思阶段，如果项目已部署 story-architect agent（检查 `.codex/story-agents/story-architect.md` 是否存在），可 spawn `spawn_agent(name="story-architect", prompt: "项目目录：{dir}\n任务类型：短篇构思\n查询参数：{情绪目标+题材方向}")` 辅助框架设计。如 agent 不可用，由主线程直接执行。
 
 帮用户确定短篇的核心框架：
 
@@ -146,7 +146,7 @@ description: |
 
 #### Agent 调用：character-designer
 
-设计任务完成后，如果项目已部署 character-designer agent（检查 `.codex/story-agents/character-designer.md` 是否存在），可 spawn `spawn_agent(role: "character-designer", prompt: "项目目录：{dir}\n任务类型：角色设定\n查询参数：{人设速写+关系}")` 辅助角色设定和语言风格档案。如 agent 不可用，由主线程直接执行。
+设计任务完成后，如果项目已部署 character-designer agent（检查 `.codex/story-agents/character-designer.md` 是否存在），可 spawn `spawn_agent(name="character-designer", prompt: "项目目录：{dir}\n任务类型：角色设定\n查询参数：{人设速写+关系}")` 辅助角色设定和语言风格档案。如 agent 不可用，由主线程直接执行。
 
 ---
 
@@ -179,7 +179,7 @@ description: |
 
 #### Agent 调用：narrative-writer
 
-正文写作阶段默认由主会话按 2-3 节/批分批写正文，主会话输出是短篇正文的标准形态。不要要求单次 agent spawn 完成 8000+ 字全文。每批写完后先更新“已写小节摘要”（3-5 条：已揭示信息、情绪位置、未回收伏笔、下一批衔接句），下一批必须先读取该摘要和 `正文.md` 尾部 300-500 字再续写。只有在用户明确要求子代理、主会话上下文不足，或需要隔离一段试写时，才检查 `.codex/story-agents/narrative-writer.md` 并 spawn `spawn_agent(role: "narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n输出文件：正文.md\n情绪目标：{从核心框架读取}\n小节大纲：小节大纲.md\n涉及角色：{从核心框架读取}\n对标/拆文路径：{本次查找到的 对标/{书名}/ 或 拆文库/{书名}/，没有则写 无}\n拆文召回摘要：{本场景最相关的结构/情绪/反转/写作手法模块，最多5条；没有则写 无}\n格式硬约束：必须完全遵守 story-short-write/references/format-and-structure.md；全文小节标记统一，默认 ###1.、###2.；段落之间不加空行；对话独立成行并使用半角双引号；禁止使用 --- 分隔正文片段；禁止把自检/说明/审查报告写入正文.md。\n写作硬约束：按三维度织入写场景，但仍必须按镜头断段；一段只承载一个动作/信息变化，优先一段一句，避免一段到底。输出前做密度重排：段落 >60 字按句号/动作转折拆开，单句 >45 字拆短。")`。无论由谁写作，最终写入 `正文.md` 前都必须按同一格式规范重排一次，保证主会话与子代理输出格式一致。
+正文写作阶段默认由主会话按 2-3 节/批分批写正文，主会话输出是短篇正文的标准形态。不要要求单次 agent spawn 完成 8000+ 字全文。每批写完后先更新“已写小节摘要”（3-5 条：已揭示信息、情绪位置、未回收伏笔、下一批衔接句），下一批必须先读取该摘要和 `正文.md` 尾部 300-500 字再续写。只有在用户明确要求子代理、主会话上下文不足，或需要隔离一段试写时，才检查 `.codex/story-agents/narrative-writer.md` 并 spawn `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n输出文件：正文.md\n情绪目标：{从核心框架读取}\n小节大纲：小节大纲.md\n涉及角色：{从核心框架读取}\n对标/拆文路径：{本次查找到的 对标/{书名}/ 或 拆文库/{书名}/，没有则写 无}\n拆文召回摘要：{本场景最相关的结构/情绪/反转/写作手法模块，最多5条；没有则写 无}\n格式硬约束：必须完全遵守 story-short-write/references/format-and-structure.md；全文小节标记统一，默认 ###1.、###2.；段落之间不加空行；对话独立成行并使用半角双引号；禁止使用 --- 分隔正文片段；禁止把自检/说明/审查报告写入正文.md。\n写作硬约束：按三维度织入写场景，但仍必须按镜头断段；一段只承载一个动作/信息变化，优先一段一句，避免一段到底。输出前做密度重排：段落 >60 字按句号/动作转折拆开，单句 >45 字拆短。")`。无论由谁写作，最终写入 `正文.md` 前都必须按同一格式规范重排一次，保证主会话与子代理输出格式一致。
 
 ⚠️ **硬约束：每节 ≥ 800 字 / 50-65 行**。
 题材例外：爽文、打脸、系统流等高信息密度题材可降至 ≥ 500 字/节（见 genre-writing-formulas.md 各题材速查表），但不得低于 500 字。
@@ -313,8 +313,8 @@ description: |
 #### Agent 调用：narrative-writer（去AI味）+ consistency-checker
 
 精修阶段，如果项目已部署对应 agent，可 spawn：
-- `spawn_agent(role: "narrative-writer", prompt: "项目目录：{dir}\n任务描述：去AI味+格式检查\n检查范围：{正文文件}")` — 执行去AI味（6 Gate）和格式合规检查
-- `spawn_agent(role: "consistency-checker", prompt: "项目目录：{dir}\n检查范围：{正文文件}\n检查类型：事实冲突+伏笔断线+角色属性不一致")` — 执行一致性检查
+- `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：去AI味+格式检查\n检查范围：{正文文件}")` — 执行去AI味（6 Gate）和格式合规检查
+- `spawn_agent(name="consistency-checker", prompt: "项目目录：{dir}\n检查范围：{正文文件}\n检查类型：事实冲突+伏笔断线+角色属性不一致")` — 执行一致性检查
 
 如 agent 不可用，由主线程直接执行。
 
@@ -335,9 +335,9 @@ description: |
 
 | 时机 | 跳转到 | 命令 |
 |---|---|---|
-| 有参考小说想对标 | story-short-analyze | `/story-short-analyze`（拆文模式） → 输出存入 `拆文库/{书名}/` |
+| 有参考小说想对标 | story-short-analyze | `/story-short-analyze` → 输出存入 `拆文库/{书名}/` |
 | 写完，去 AI 味 | story-deslop | `/story-deslop` |
-| 想自检 | story-short-analyze | `/story-short-analyze`（自检模式） |
+| 想自检 | 本 skill 质量自检 | 用 Phase 4 自检流程 + `references/quality-checklist.md` 逐项核对 |
 | 需要市场方向 | story-short-scan | `/story-short-scan` |
 | 设定太大，适合长篇 | story-long-write | `/story-long-write` |
 
