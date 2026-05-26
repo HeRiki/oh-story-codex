@@ -237,6 +237,10 @@ function getPrompt(input) {
   );
 }
 
+function envFlag(name) {
+  return /^(1|true|yes|on)$/i.test(String(process.env[name] || ""));
+}
+
 function handleSessionStart(input) {
   const root = findStoryRoot(inputCwd(input));
   if (!root) return;
@@ -259,8 +263,9 @@ function handleUserPromptSubmit(input) {
 }
 
 function appendSessionLog(root) {
+  if (!envFlag("STORY_SESSION_LOG")) return;
   const trackingDir = findTrackingDir(root);
-  fs.mkdirSync(trackingDir, { recursive: true });
+  if (!isDirectory(trackingDir)) return;
   const logPath = path.join(trackingDir, "session-log.txt");
   const branch = runGit(root, ["rev-parse", "--abbrev-ref", "HEAD"]) || "unknown";
   const status = runGit(root, ["status", "--short"]);
@@ -287,6 +292,13 @@ function getToolCommand(input) {
   return String(toolInput.command || input.command || "");
 }
 
+function isGitCommitCommand(command) {
+  const normalized = String(command || "").trim();
+  if (!normalized) return false;
+  if (/^(echo|printf|write-output|Write-Output)\b/.test(normalized)) return false;
+  return /(^|[;&|]{1,2}\s*)(git|git\.exe)(\s+-[A-Za-z]\s+\S+|\s+--[A-Za-z0-9-]+(=\S+)?)*\s+commit\b/.test(normalized);
+}
+
 function toolSucceeded(input) {
   const output = input.tool_output || input.toolOutput || {};
   return output.exit_code === undefined || output.exit_code === 0;
@@ -296,7 +308,7 @@ function handlePostToolUse(input) {
   const root = findStoryRoot(inputCwd(input));
   if (!root) return;
   const command = getToolCommand(input);
-  if (!toolSucceeded(input) || !/\bgit\s+commit\b/.test(command)) return;
+  if (!toolSucceeded(input) || !isGitCommitCommand(command)) return;
   outputAdditionalContext(
     "PostToolUse",
     [
@@ -310,7 +322,7 @@ function handlePreToolUse(input) {
   const root = findStoryRoot(inputCwd(input));
   if (!root) return;
   const command = getToolCommand(input);
-  if (!/\bgit\s+commit\b/.test(command)) return;
+  if (!isGitCommitCommand(command)) return;
   outputAdditionalContext(
     "PreToolUse",
     [

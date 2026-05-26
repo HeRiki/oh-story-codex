@@ -17,6 +17,7 @@
 这些文件由 story-setup 管理，不含用户自定义内容：
 - `.codex/story-agents/` — 所有 story agent 参考提示词
 - `.codex/story-rules/` — 所有写作规则参考
+- `.codex/story-agent-references/` — story agent 参考资料副本
 
 ### 需合并（不覆盖）
 
@@ -29,6 +30,7 @@
 - `{书名}/追踪/上下文.md` — 用户写作上下文
 - `{书名}/追踪/伏笔.md` — 用户伏笔追踪
 - `.active-book` — 用户活跃书目
+- 短篇项目的 `追踪/` — setup/hooks 不应为短篇自动创建
 
 > Codex 插件级 lifecycle hooks 由本仓库 `.codex-plugin/plugin.json` 和 `hooks/hooks.json` 加载，不由 `story-setup` 写入用户项目目录。
 
@@ -43,7 +45,8 @@
 - `agents_version: 5` → 旧版，需重新部署以统一短篇正文格式
 - `agents_version: 6` → 旧版，需重新部署以获取日更续写规则修复
 - `agents_version: 7` → 旧版，需重新部署以获取 agent 参考文件路径修复
-- `agents_version: 8` → 当前版本
+- `agents_version: 8` → 旧版，需重新部署以获取 v9 reference bundle、规则格式修复和 reviewer fallback 更新
+- `agents_version: 9` → 当前版本
 
 ## 版本变更
 
@@ -81,8 +84,24 @@
 - 修复伏笔缺口提示语义：正常开放伏笔（`未埋`/`已埋`）不是缺口；只有 `已过期` 或异常状态需要提示。
 - Codex 插件级 lifecycle hook 由本仓库插件加载，不由 `/story-setup` 写入用户项目目录；升级本插件后重新打开会话即可使用新版 hook 行为。已部署项目重新运行 `/story-setup` 用于刷新 `.codex/story-agents/` 和 `.codex/story-rules/`。
 
-### v8 (当前)
+### v8
 
 - 修复 story-review 及部署后的 reviewer agent 在项目根目录下读取参考文件时，只找裸文件名导致找不到 skill references 的问题。
 - agent 模板新增参考文件路径规则：优先从本仓库 `skills/` 或 Codex 全局 skills 目录解析 `story-setup/references/agent-references/*.md` 规范路径，避免依赖当前工作目录且不跨 skill 引用 references。
 - 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/` 并获得新版参考文件路径规则。
+
+### v9 (当前)
+
+- `setup_skill_version` 升级到 `1.1.0`，`.story-deployed` 的 `agents_version` 升级到 `9`。
+- 部署契约补充机械可检查清单：`AGENTS.md`、story rules、story agents、Agent References、上下文模板和 `.story-deployed` 字段都必须明确 source、target、owner、merge mode、validation。
+- Agent Reference bundle 补齐并 canonicalize：
+  - `genre-readers.md`：从 story-long-write 参考资料复制为 story-setup canonical 副本。
+  - `genre-writing-formulas.md`：从 story-long-write 参考资料复制为 story-setup canonical 副本。
+  - `emotional-methods.md`：从 story-long-write 参考资料复制为 story-setup canonical 副本。
+  - `style-combat-face.md`：从 story-long-write 参考资料复制为 story-setup canonical 副本。
+  - `output-templates.md`：不复制；`chapter-extractor` 已内置输出格式，旧的裸引用改写为“遵循本文件输出格式”。
+- `story-format.md` 删除“章节之间用 `---` 分隔”的旧规则，改为禁止正文片段使用水平分隔线，与 narrative-writer 保持一致。
+- `story-review` 增加 stale deployment 检查与内置 rubric fallback；`.story-deployed` 版本小于 9 时自动降级 solo 并建议重新运行 `/story-setup`。
+- `browser-cdp` 启动脚本新增 `--detect-only`、`--yes`、`--reset`、`--profile`，避免在未确认时结束用户常规 Chrome。
+
+已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`。

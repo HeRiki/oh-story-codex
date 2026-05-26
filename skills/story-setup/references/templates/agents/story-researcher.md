@@ -272,7 +272,7 @@ CDP 不可用时使用：
 
 ## 被调用协议
 
-skill 通过 `spawn_agent(role: "story-researcher")` 调用你。
+skill 通过 `spawn_agent(name="story-researcher")` 调用你。
 
 你收到的 prompt 会包含：
 - `query`：研究主题（如"明代锦衣卫组织架构"）

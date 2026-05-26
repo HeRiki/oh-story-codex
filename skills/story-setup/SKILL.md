@@ -1,13 +1,13 @@
 ---
 name: story-setup
 description: |
-  Codex 网文写作项目初始化。将 AGENTS.md、story agents/rules 参考库和上下文模板部署到用户写作项目目录。
+  Codex 网文写作项目初始化。将 AGENTS.md、story agents/rules 参考库、agent reference bundle 和上下文模板部署到用户写作项目目录。
   触发方式：/story-setup、「准备写书」「帮我搭一下环境」「配置写作项目」「初始化写作项目」
 ---
 
 # story-setup：Codex 写作项目初始化
 
-你是写作基础设施部署器。把网文写作项目需要的项目规则、角色提示词参考库和上下文模板部署到用户项目目录。
+你是写作基础设施部署器。把网文写作项目需要的项目规则、角色提示词参考库、agent 参考资料副本和上下文模板部署到用户项目目录。
 
 **执行铁律：不覆盖用户已有配置，合并而非替换。**
 
@@ -27,7 +27,18 @@ description: |
 
 ## Phase 2：部署基础设施
 
-直接向用户确认部署位置后，依次执行：
+直接向用户确认部署位置后，依次执行。
+
+### 2.0 部署清单（机械可检查）
+
+| Source path | Target path | Owner class | Merge mode | Validation check |
+|---|---|---|---|---|
+| `references/templates/AGENTS.md.tmpl` | `AGENTS.md` | user+managed | section merge | 包含 Skill 路由表、文件结构、上下文恢复规则 |
+| `references/templates/rules/*.md` | `.codex/story-rules/*.md` | story-setup managed | replace | 规则文件完整，且包含 `paths` frontmatter |
+| `references/templates/agents/*.md` | `.codex/story-agents/*.md` | story-setup managed | replace | 7 个角色提示词完整，frontmatter 只保留 Codex 可读字段 |
+| `references/agent-references/*.md` | `.codex/story-agent-references/*.md` | story-setup managed | replace | agent 模板引用的参考文件均有同名副本 |
+| `references/templates/上下文.md.tmpl` | `{书名}/追踪/上下文.md` | user state | create only if absent | 不覆盖用户已有写作上下文 |
+| generated sentinel | `.story-deployed` | story-setup managed | replace | 包含 `runtime: codex`、`agents_version: 9`、`setup_skill_version: 1.1.0` |
 
 ### 2.1 部署 AGENTS.md
 
@@ -45,32 +56,46 @@ description: |
 
 - 读取 `references/templates/agents/` 下所有 `.md` 文件。
 - 复制到用户项目的 `.codex/story-agents/` 目录。
-- Codex 不使用自定义 `subagent_type` 注册机制；需要多视角审查时，将这些文件作为 `spawn_agent` 或本线程审查的角色提示词参考。
+- Codex 不使用旧运行时的自定义子代理注册机制；需要多视角审查时，将这些文件作为 `spawn_agent` 或本线程审查的角色提示词参考。
 - agent 模板中的参考资料路径统一指向 `story-setup/references/agent-references/*.md`，这是本 skill 自带的参考资料副本；不要跨 skill 读取其他 skill 的 references，也不要只写裸文件名。
 
-### 2.4 部署上下文模板
+### 2.4 部署 agent reference bundle
+
+- 读取 `references/agent-references/` 下所有 `.md` 文件。
+- 复制到用户项目的 `.codex/story-agent-references/` 目录，作为项目本地可读副本。
+- 校验：凡 `.codex/story-agents/*.md` 或 reference 中出现 `story-setup/references/agent-references/<file>.md`，源包 `references/agent-references/<file>.md` 必须存在；项目本地 `.codex/story-agent-references/<file>.md` 也应存在同名副本。
+- `output-templates.md` 不复制；`chapter-extractor` 已内置输出格式，遵循本文件「输出格式」章节即可。
+
+### 2.5 部署上下文模板
 
 - 读取 `references/templates/上下文.md.tmpl`。
-- 如有书名目录，复制到 `{书名}/追踪/上下文.md`；文件已存在时不覆盖，只提示已有。
+- 如有书名目录且 `{书名}/追踪/` 已存在，复制到 `{书名}/追踪/上下文.md`。
+- 如果目标文件已存在，不覆盖，只提示已有。
+- 短篇项目不得因此创建 `追踪/` 目录。
 
-### 2.5 创建部署标记
+### 2.6 创建部署标记
 
 创建 `.story-deployed`，写入：
 
 ```text
 deployed_at: <date -u +"%Y-%m-%dT%H:%M:%SZ">
 runtime: codex
-agents_version: 8
-setup_skill_version: 1.0.0
+agents_version: 9
+setup_skill_version: 1.1.0
+resolver_strategy: codex-skill-reference
+references_dir: .codex/story-agent-references
 ```
+
+如果 `.story-deployed` 已存在但无 `agents_version` 或版本小于 9，提示用户重新运行 `/story-setup` 以更新 story agents/rules/reference bundle（具体变更见 `UPGRADING.md`）。
 
 ## Phase 3：验证安装
 
 1. 检查 `AGENTS.md` 是否存在，且包含 Skill 路由表、文件结构、上下文恢复规则。
 2. 检查 `.codex/story-rules/` 是否存在并包含规则文件。
 3. 检查 `.codex/story-agents/` 是否存在并包含 7 个角色提示词。
-4. 检查 `.story-deployed` 是否存在且 `runtime: codex`、`agents_version: 8`。
-5. 输出安装报告，列出已部署文件和已保留的用户原有配置。
+4. 检查 `.codex/story-agent-references/` 是否存在，且包含所有 agent 模板引用的参考文件。
+5. 检查 `.story-deployed` 是否存在且 `runtime: codex`、`agents_version: 9`、`setup_skill_version: 1.1.0`。
+6. 输出安装报告，列出已部署文件和已保留的用户原有配置。
 
 ## 模板占位符
 
@@ -96,8 +121,8 @@ setup_skill_version: 1.0.0
 ## 重新部署
 
 - `.story-deployed` 不存在：全新安装，Phase 2 全部执行。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 8`：提示已部署，确认后重跑。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 8：提示需要重新部署以更新 story agents/rules 参考库，包含 agent 参考资料路径修复、短篇正文格式统一、日更续写 continuation 规则和伏笔降噪语义。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 9`：提示已部署，确认后重跑。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 9：提示需要重新部署以更新 story agents/rules/reference bundle，包含 agent 参考资料路径修复、短篇正文格式统一、日更续写 continuation 规则、伏笔降噪语义和 v9 reference bundle。
 - `.story-deployed` 存在但 runtime 不是 `codex`：按迁移处理，部署 Codex 目录，不删除原有旧运行时目录。
 
 ## Codex lifecycle hook
@@ -110,7 +135,7 @@ Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写�
 |---|---|
 | `references/templates/AGENTS.md.tmpl` | 项目根 `AGENTS.md` 模板 |
 | `references/templates/rules/` | 写作规则参考 |
-| `references/templates/agents/` | 7 个角色提示词参考，含 v8 参考路径修复 |
+| `references/templates/agents/` | 7 个角色提示词参考，含 v9 参考路径与 `chapter-extractor` 输出格式修复 |
 | `references/agent-references/` | agent 模板自带的参考资料副本，避免跨 skill references |
 | `references/templates/上下文.md.tmpl` | 写作上下文模板 |
 | `UPGRADING.md` | 已部署项目重新运行 `/story-setup` 时的升级策略和版本说明 |

@@ -236,7 +236,7 @@ description: |
 
 ## 被调用协议
 
-调用方通过 `spawn_agent(role: "story-explorer")` 调用你（如 story-long-write、story-review、story 路由等）。
+调用方通过 `spawn_agent(name="story-explorer")` 调用你（如 story-long-write、story-review、story 路由等）。
 
 你收到的 prompt 会包含：
 - `项目目录`：书籍项目目录路径

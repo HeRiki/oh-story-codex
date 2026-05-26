@@ -152,9 +152,9 @@ Stage 2 使用 chapter-extractor agent 并行处理每章，替代原来的串�
 ### 调用方式
 
 ```python
-Agent(
-  subagent_type: "chapter-extractor",
-  prompt: "章节编号：第{N}章\n章节标题：{标题}\n章节字数：{字数}\n\n章节原文：\n{原文文本}"
+spawn_agent(
+  name="chapter-extractor",
+  prompt="章节编号：第{N}章\n章节标题：{标题}\n章节字数：{字数}\n\n章节原文：\n{原文文本}"
 )
 ```
 

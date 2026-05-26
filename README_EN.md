@@ -57,7 +57,7 @@ For local skill usage, copy the required skill directories into `$CODEX_HOME/ski
 
 Each `SKILL.md` keeps only the frontmatter required by Codex skill discovery: `name` and `description`. `agents/openai.yaml` provides UI metadata and does not drive the core workflow.
 
-`story-setup` deploys 7 story-agent reference prompts into `.codex/story-agents/` inside a writing project. They are not Claude-style auto-registered subagents. Codex reads them as role instructions by default; use `spawn_agent` only when the user explicitly asks for multi-agent delegation.
+`story-setup` deploys 7 story-agent reference prompts into `.codex/story-agents/` and a local reference bundle into `.codex/story-agent-references/` inside a writing project. They are not Claude-style auto-registered subagents. Codex reads them as role instructions by default; use `spawn_agent` only when the user explicitly asks for multi-agent delegation.
 
 | Reference prompt | Purpose |
 |---|---|
@@ -76,24 +76,24 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 | `PreToolUse` | Before `git commit`, reminds maintainers to sync settings, outlines, tracking files, and docs |
 | `SessionStart` | Loads `追踪/上下文.md` for initialized story projects and reports missing settings, outline, prose, foreshadowing, or timeline files |
 | `UserPromptSubmit` | Reminds Codex to read project context before handling story-writing prompts |
-| `Stop` | Appends a lightweight session log to `追踪/session-log.txt` before the turn ends |
+| `Stop` | Does not write logs by default; when `STORY_SESSION_LOG=1`, appends a lightweight session log to existing `追踪/session-log.txt` |
 | `PostToolUse` | After `git commit`, reminds maintainers to check README, AGENTS.md, or `追踪/上下文.md` updates |
 
 These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
 
-## Upgrading to v0.6.8
+## Upgrading to v0.6.9
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v8 so `.codex/story-agents/` and `.codex/story-rules/` are refreshed, including the reviewer reference-path rules.
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v9 so `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/` are refreshed, including reviewer fallback and deployment-version checks.
 
-This release syncs upstream v0.6.7 and v0.6.8. Main changes:
+This release syncs upstream v0.6.9. Main changes:
 
-- **story-import**: automatic length routing. Long-form imports run full deconstruction plus long-form project migration; short-form imports run the short-form pipeline plus a single-file `正文.md` project.
-- **story-import**: long-form imports reverse-engineer `追踪/角色状态.md`, avoiding long-term fallback behavior in daily writing.
-- **story-import**: when invoking deconstruction skills, it skips the Stage 1 checkpoint so the “stop after golden three chapters” interaction is not surfaced to import users.
-- **story-long-analyze**: quick/deep modes are merged into one pipeline; Stage 1 produces `快速预览.md`, then the run can continue into full deconstruction.
-- **story-short-analyze**: standard/fine modes are merged into one full deconstruction pipeline.
-- **story-review / story-setup agent templates**: reference paths now use `story-review/references/...` or `story-setup/references/agent-references/...`; agents no longer read bare filenames or cross-skill references.
-- **story-long-scan**: Qidian scraping defaults to mobile SSR with CDP + CAPTCHA fallback.
+- **story-setup**: `agents_version` is now v9, with a mechanically checkable deployment table, a complete agent reference bundle, and a Codex-local copy under `.codex/story-agent-references/`.
+- **story-setup / story agents**: adds canonical copies of `genre-readers.md`, `genre-writing-formulas.md`, `emotional-methods.md`, and `style-combat-face.md`; `chapter-extractor` no longer depends on an external output template.
+- **story-format**: removes the old “separate chapters with `---`” rule and now forbids horizontal rules in prose fragments, matching narrative-writer.
+- **story-review**: adds stale deployment detection and embedded rubric fallback; deployments older than v9 fall back to solo mode and suggest rerunning `/story-setup`.
+- **story-cover**: updates GPT-Image-2 request handling, separating text-to-image and image-edit calls and avoiding the obsolete `response_format` parameter.
+- **browser-cdp**: adds `--detect-only`, `--yes`, `--reset`, and `--profile`; it will not silently terminate the user's normal Chrome without confirmation.
+- **Codex lifecycle hooks**: remain plugin-level hooks; this port does not restore upstream project-local hook deployment. The Stop hook no longer creates `session-log.txt` by default.
 
 Codex lifecycle hooks are loaded by this repository's plugin mechanism, not written into the user's project by `/story-setup`. Reopen the session after upgrading the plugin to use the new hook behavior.
 
@@ -204,6 +204,7 @@ Chinese description:
 ```bash
 bash scripts/static-check.sh
 bash scripts/check-shared-files.sh
+bash scripts/check-story-setup-deployment.sh
 bash scripts/smoke-test-local-skills.sh
 ```
 

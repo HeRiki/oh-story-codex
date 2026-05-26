@@ -25,6 +25,8 @@ REPLACEMENTS = {
     "Agent(subagent_type": "spawn_agent(name",
     "spawn_agent(name:": "spawn_agent(name=",
     "spawn_agent(name= ": "spawn_agent(name=",
+    'spawn_agent(role: "': 'spawn_agent(name="',
+    'spawn_agent(role="': 'spawn_agent(name="',
     "项目根目录下的 `skills/` 或 `skills/` 拼接解析": "项目根目录下的 `skills/` 拼接解析，其次从 Codex 全局 skills 目录查找",
     "先尝试 `skills/{规范路径}`，再尝试 `skills/{规范路径}`，最后用": "先尝试 `skills/{规范路径}`，再用",
 }

@@ -55,7 +55,7 @@ demo/拆文库-我爸死后我成了他的影子拳手/
 
 每个 `SKILL.md` 的 frontmatter 只保留 `name` 和 `description`，适配 Codex 的 skill 发现规则。`agents/openai.yaml` 提供 UI 元数据，不参与核心工作流。
 
-`story-setup` 会把 7 个 story agent 参考提示词部署到写作项目的 `.codex/story-agents/`。它们不是 Claude 式自动注册子代理；Codex 默认读取这些文件作为角色说明，只有用户明确要求多代理/委派时才使用 `spawn_agent`。
+`story-setup` 会把 7 个 story agent 参考提示词部署到写作项目的 `.codex/story-agents/`，并把 agent 参考资料副本部署到 `.codex/story-agent-references/`。它们不是 Claude 式自动注册子代理；Codex 默认读取这些文件作为角色说明，只有用户明确要求多代理/委派时才使用 `spawn_agent`。
 
 | 参考提示词 | 用途 |
 |---|---|
@@ -74,24 +74,24 @@ demo/拆文库-我爸死后我成了他的影子拳手/
 | `PreToolUse` | 检测到即将执行 `git commit` 时，提醒先确认设定、大纲、追踪文件和文档是否同步 |
 | `SessionStart` | 会话开始/恢复时读取已初始化网文项目的 `追踪/上下文.md`，并提示设定、大纲、正文、伏笔、时间线缺口 |
 | `UserPromptSubmit` | 用户提交写作相关提示时，提醒优先读取项目上下文和追踪文件 |
-| `Stop` | 本轮结束前向 `追踪/session-log.txt` 追加轻量会话日志 |
+| `Stop` | 默认不写日志；设置 `STORY_SESSION_LOG=1` 时向已有 `追踪/session-log.txt` 追加轻量会话日志 |
 | `PostToolUse` | 检测到 `git commit` 后提示检查 README、AGENTS.md 或 `追踪/上下文.md` 是否需要同步 |
 
 这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
 
-## 升级到 v0.6.8
+## 升级到 v0.6.9
 
-如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v8，用于刷新 `.codex/story-agents/` 和 `.codex/story-rules/`，并让 reviewer 参考提示词获得新的参考文件路径规则。
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v9，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`，并让 reviewer 参考提示词获得新的 fallback 与部署版本检查规则。
 
-本版同步上游 v0.6.7 和 v0.6.8，重点更新：
+本版同步上游 v0.6.9，重点更新：
 
-- **story-import**：按篇幅自动分流。长篇走完整拆解 + 长篇项目结构迁移，短篇走短篇拆解 + 单文件 `正文.md` 工程。
-- **story-import**：长篇导入会反推 `追踪/角色状态.md`，避免后续日更流程缺角色状态时长期走兜底分支。
-- **story-import**：调用拆书 skill 时自动越过 Stage 1 停靠点，避免“黄金三章后停下询问”的交互透传给导入用户。
-- **story-long-analyze**：快速/深度双模式合并为单一拆解管道，Stage 1 产出 `快速预览.md` 后可继续全量拆解。
-- **story-short-analyze**：标准/精细双档收敛为单一全量拆解管道。
-- **story-review / story-setup agent 模板**：参考文件路径统一走 `story-review/references/...` 或 `story-setup/references/agent-references/...`，不再读取裸文件名，也不跨 skill 引用其他 references。
-- **story-long-scan**：起点扫榜脚本默认改为移动端 SSR 抓取，并保留 CDP + CAPTCHA 回退。
+- **story-setup**：`agents_version` 升级到 v9；新增机械可检查部署清单，补齐 agent reference bundle，并部署到 `.codex/story-agent-references/`。
+- **story-setup / story agents**：新增 `genre-readers.md`、`genre-writing-formulas.md`、`emotional-methods.md`、`style-combat-face.md` 的 canonical 副本；`chapter-extractor` 不再依赖外部 output template。
+- **story-format**：删除“章节之间用 `---` 分隔”的旧规则，改为禁止正文片段使用水平分隔线，与 narrative-writer 保持一致。
+- **story-review**：增加 stale deployment 检查和内置 rubric fallback；部署版本小于 v9 时自动降级 solo 并提示重新运行 `/story-setup`。
+- **story-cover**：更新 GPT-Image-2 调用方式，区分文生图与图生图，避免旧 `response_format` 参数。
+- **browser-cdp**：新增 `--detect-only`、`--yes`、`--reset`、`--profile`，未确认时不会静默结束用户常规 Chrome。
+- **Codex lifecycle hook**：保留插件级 hook，不恢复上游项目内 hook 部署；Stop 事件默认不再创建 `session-log.txt`。
 
 Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。
 
@@ -204,6 +204,7 @@ Unofficial Codex port of worldwonderer/oh-story-claudecode
 ```bash
 bash scripts/static-check.sh
 bash scripts/check-shared-files.sh
+bash scripts/check-story-setup-deployment.sh
 bash scripts/smoke-test-local-skills.sh
 ```
 

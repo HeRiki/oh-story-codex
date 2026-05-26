@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.9
+
+> 同步上游 v0.6.9：story-setup v9 reference bundle、review fallback、cover/CDP 脚本增强
+
+### 改进
+
+- **story-setup**：`agents_version` 升级到 v9，部署契约补充机械可检查清单，明确 `AGENTS.md`、`.codex/story-agents/`、`.codex/story-rules/`、`.codex/story-agent-references/`、上下文模板和 `.story-deployed` 的 source/target/merge/validation 规则。
+- **story-setup**：新增 agent reference bundle canonical 副本：`genre-readers.md`、`genre-writing-formulas.md`、`emotional-methods.md`、`style-combat-face.md`。
+- **story-review**：新增 stale deployment 检查；已部署项目版本小于 v9 时自动降级 solo，并提示重新运行 `/story-setup`。参考文件不可读时使用内置 rubric fallback，不再中断审查。
+- **story-cover**：更新 GPT-Image-2 调用说明，区分文生图与图生图，移除旧 `response_format` 参数，增强错误处理和提示词落盘。
+- **browser-cdp**：启动脚本新增 `--detect-only`、`--yes`、`--reset`、`--profile`，在非 TTY 下未获同意不会静默结束用户常规 Chrome。
+
+### Bug 修复
+
+- **chapter-extractor**：不再引用外部 `output-templates.md`，输出格式严格遵循自身「输出格式」章节。
+- **story-format**：删除“章节之间用 `---` 分隔”的旧规则，改为禁止正文片段使用水平分隔线，与 narrative-writer 保持一致。
+- **Codex lifecycle hook**：Stop 事件默认不再创建 `session-log.txt`；只有设置 `STORY_SESSION_LOG=1` 且已有 `追踪/` 时才追加轻量日志。
+- **Hook 检查**：`check-hook-regex-sync.sh` 增加普通 `状态` 表头 fixture，锁定正常开放伏笔不报警。
+
+### Codex 适配
+
+- 新增 `scripts/check-story-setup-deployment.sh`，校验 story-setup 没有恢复旧运行时项目内 hooks/settings 部署，且插件级 hooks 仍由 `.codex-plugin/plugin.json` 加载。
+- 保留 Codex 插件级 lifecycle hook，不恢复上游项目内 hook 部署。
+- 保留 demo 不带小说原文的策略。
+
 ## v0.6.8
 
 > story-import 重构 + skill 自包含化 + 起点扫榜与 story-review 参考路径修复

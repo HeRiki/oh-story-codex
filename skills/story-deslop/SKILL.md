@@ -129,7 +129,7 @@ AI味不是语法错误，不需要"修正"。AI味是一种风格问题——�
 
 #### Agent 调用：narrative-writer（去AI味执行）
 
-Phase 2 诊断完成后，如果项目已部署 narrative-writer agent（**必须先检查 `.codex/story-agents/narrative-writer.md` 是否存在**），spawn `spawn_agent(role: "narrative-writer", prompt: "项目目录：{dir}\n任务描述：去AI味\n检查范围：{待处理的正文文件}\nAI味等级：{Phase 2 诊断结果}\n处理策略：{轻度/中度/重度对应的 Gate 范围}\n模式处理：按 references/anti-ai-writing.md 的问题模式目录执行；所有新增模式都归入 Gate A-F 的对应处理。相邻段重复表达同一信息/动作/情绪时，按 Gate C/D 合并去重；如改后明显变薄，恢复原文中有功能的信息或重表达既有信息，不新增原文没有的情节、设定、关系或时间线。")` 执行去AI味操作（6 Gate + 三遍法 + 问题模式目录）。如 narrative-writer agent 未部署，由主线程直接执行。
+Phase 2 诊断完成后，如果项目已部署 narrative-writer agent（**必须先检查 `.codex/story-agents/narrative-writer.md` 是否存在**），spawn `spawn_agent(name="narrative-writer", prompt="项目目录：{dir}\n任务描述：去AI味\n检查范围：{待处理的正文文件}\nAI味等级：{Phase 2 诊断结果}\n处理策略：{轻度/中度/重度对应的 Gate 范围}\n模式处理：按 references/anti-ai-writing.md 的问题模式目录执行；所有新增模式都归入 Gate A-F 的对应处理。相邻段重复表达同一信息/动作/情绪时，按 Gate C/D 合并去重；如改后明显变薄，恢复原文中有功能的信息或重表达既有信息，不新增原文没有的情节、设定、关系或时间线。")` 执行去AI味操作（6 Gate + 三遍法 + 问题模式目录）。如 narrative-writer agent 未部署，由主线程直接执行。
 
 以下为各 Gate 的详细规则（无论 agent 还是主线程执行，均须遵循）：
 
