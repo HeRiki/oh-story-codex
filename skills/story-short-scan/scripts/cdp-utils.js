@@ -5,7 +5,7 @@
  *   const { ab, sleep, evalJSON, scrollLoad, getArg, safeStr } = require("./cdp-utils");
  *
  * 前置：
- *   node ../browser-cdp/scripts/setup-cdp-chrome.js 9222
+ *   node {SKILL_DIR}/browser-cdp/scripts/setup-cdp-chrome.js 9222
  */
 
 const { execSync } = require("child_process");

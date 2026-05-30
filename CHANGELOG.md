@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.12
+
+> 同步上游 v0.6.10-v0.6.12：选题决策、长篇拆文/文风修正、短篇 output contract、女频长篇 playbook、术语白话化与工程守卫
+
+### 新功能
+
+- **story-long-scan**：新增持久 `选题决策.md`，记录能爆的原因、市场验证、差异化定位、可行性高/中/低、失败风险和验证动作。
+- **story-long-analyze**：Stage 5 拆文汇总后可回填 `选题决策.md` 中对应选题的“能爆的原因”，将扫榜假设与拆文验证串起来。
+- **story-long-write / story-short-write**：新增按主题快速定位索引，接入 `cross-book-recall.md`、`reversal-toolkit.md` 七类反转、短篇 `output-contract.md` 与女频写作 playbook。
+- **story-long-write**：新增长篇女频 `female-audience-writing.md`，覆盖卷级感情节奏、多平台篇幅定位和长线骨架题材。
+
+### 改进
+
+- **story-setup**：`agents_version` 升级到 v10，`setup_skill_version` 升级到 `1.1.1`；刷新 7 个 story agent 参考提示词、reference bundle 和流程衔接说明。
+- **story-review**：stale deployment 判断升级到 v10，并补充与写作、拆文、去 AI 味流程的衔接。
+- **story-deslop**：同步上游 rubric 收紧，去除 AI 味时更强调证据、密度和自然段落节奏。
+- **术语白话化**：清理上游新增的抽象术语和自造比喻，统一改为 Codex 版中文说明中的直白判断词。
+- **采集脚本**：同步刺猬猫、晋江、七猫、点众、黑岩采集脚本的错误处理、失败提示和部分落盘逻辑。
+
+### Codex 适配
+
+- 保留 Codex 插件级 lifecycle hook，不恢复上游 `.claude/hooks`、`.claude/settings.local.json` 或 `CLAUDE.md` 部署。
+- `story-setup` 继续部署 `AGENTS.md`、`.codex/story-agents/`、`.codex/story-rules/`、`.codex/story-agent-references/` 和 `.story-deployed`。
+- `scripts/check-story-setup-deployment.sh` 与 `scripts/static-check.sh` 升级污染守卫，确保 skill 内不残留 Claude/OpenClaw 运行时字段。
+- 保留 demo 不带小说原文的策略。
+
 ## v0.6.9
 
 > 同步上游 v0.6.9：story-setup v9 reference bundle、review fallback、cover/CDP 脚本增强

@@ -15,7 +15,7 @@
 | `/story-review`、`/审查` | story-review | 多视角对抗式审查 |
 | `/story-import`、`/导入` | story-import | 逆向导入已有小说到项目结构 |
 | `/story`、`/网文` | story | 工具箱路由 · 模糊意图自动分发 |
-| `/story-setup`、`/准备写书` | story-setup | 环境部署 · AGENTS/rules/agents 参考库 |
+| `/story-setup`、`/准备写书` | story-setup | 环境部署 · AGENTS/rules/agents 一键部署 |
 | `/browser-cdp` | browser-cdp | 浏览器 CDP 工具 |
 
 ## 文件结构
@@ -33,7 +33,7 @@ Agent 间的协调关系由各 Agent 定义文件的职责边界描述，不需�
 
 ## Compact 后恢复上下文
 
-此部分用于 Codex 上下文恢复。发生上下文压缩或新会话时，优先读取本文件和追踪/上下文.md。
+此部分供 Codex 在 compact 后恢复写作上下文时读取。
 写作中的关键上下文：
 1. 当前写作项目名称和进度
 2. 最近讨论的角色设定变更

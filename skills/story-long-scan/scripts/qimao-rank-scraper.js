@@ -12,7 +12,7 @@
  *   node qimao-rank-scraper.js --channel all --type all         # 全部采集
  *
  * 前置：
- *   node ../browser-cdp/scripts/setup-cdp-chrome.js 9222
+ *   node {SKILL_DIR}/browser-cdp/scripts/setup-cdp-chrome.js 9222
  */
 
 const fs = require("fs");
@@ -135,42 +135,52 @@ function scrapeRank(port, channelId, rankTypeId) {
 
   console.log(`\n→ 采集 七猫${ch.label}${rt.label}...`);
 
-  ab(port, "open", RANK_URL);
-  sleep(3000);
+  let books, urls;
+  try {
+    ab(port, "open", RANK_URL);
+    sleep(3000);
 
-  // 切换频道 tab
-  if (!clickTab(port, ch.tab)) {
-    console.log(`  ⚠ 未找到「${ch.tab}」tab`);
+    // 切换频道 tab
+    if (!clickTab(port, ch.tab)) {
+      console.log(`  ⚠ 未找到「${ch.tab}」tab`);
+      return null;
+    }
+    console.log(`  ✓ 切换到${ch.tab}频`);
+    sleep(2000);
+
+    // 切换榜单类型 tab
+    if (!clickTab(port, rt.label)) {
+      console.log(`  ⚠ 未找到「${rt.label}」tab`);
+      return null;
+    }
+    console.log(`  ✓ 切换到${rt.label}`);
+    sleep(2000);
+
+    // 滚动加载更多
+    scrollLoad(port, 5);
+    sleep(1000);
+
+    // 文本解析获取书籍数据 + DOM 获取链接
+    books = extractBooksFromText(port);
+    urls = extractBookUrls(port);
+  } catch (err) {
+    console.error(`[qimao] ${ch.label}${rt.label} 页面加载或提取出错: ${err.message}`);
     return null;
   }
-  console.log(`  ✓ 切换到${ch.tab}频`);
-  sleep(2000);
-
-  // 切换榜单类型 tab
-  if (!clickTab(port, rt.label)) {
-    console.log(`  ⚠ 未找到「${rt.label}」tab`);
-    return null;
-  }
-  console.log(`  ✓ 切换到${rt.label}`);
-  sleep(2000);
-
-  // 滚动加载更多
-  scrollLoad(port, 5);
-  sleep(1000);
-
-  // 文本解析获取书籍数据 + DOM 获取链接
-  const books = extractBooksFromText(port);
-  const urls = extractBookUrls(port);
 
   if (!books.length) {
-    console.log("  ⚠ 未提取到书籍");
+    console.error(`[qimao] 采集失败：页面结构可能已变（选择器没匹配到数据），请检查榜单URL或更新选择器 (${RANK_URL} ${ch.label}${rt.label})`);
     return null;
   }
 
   // 按标题匹配 URL
   for (const b of books) {
-    const matched = urls.find((u) => u.title === b.title);
-    if (matched) b.url = matched.url;
+    try {
+      const matched = urls.find((u) => u.title === b.title);
+      if (matched) b.url = matched.url;
+    } catch (matchErr) {
+      console.error(`[qimao] URL匹配出错（#${b.rank} ${b.title}）: ${matchErr.message}`);
+    }
   }
 
   console.log(`  ✓ 提取 ${books.length} 本`);
@@ -188,27 +198,32 @@ function scrapeRank(port, channelId, rankTypeId) {
   ];
 
   for (const b of books) {
-    lines.push(`### #${b.rank} ${b.title}`);
-    const meta = [
-      b.author,
-      b.genre,
-      b.subGenre,
-      b.status,
-      b.words,
-      b.heat ? b.heat + "热度" : "",
-    ]
-      .filter(Boolean)
-      .join(" · ");
-    lines.push(`*${meta}*`);
-    if (b.update) lines.push(`**最新更新：** ${b.update}`);
-    if (b.url) lines.push(`[作品页](${b.url})`);
-    if (b.desc) {
-      lines.push("");
-      lines.push("**简介**");
-      lines.push("");
-      lines.push(b.desc);
+    try {
+      lines.push(`### #${b.rank} ${b.title}`);
+      const meta = [
+        b.author,
+        b.genre,
+        b.subGenre,
+        b.status,
+        b.words,
+        b.heat ? b.heat + "热度" : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      lines.push(`*${meta}*`);
+      if (b.update) lines.push(`**最新更新：** ${b.update}`);
+      if (b.url) lines.push(`[作品页](${b.url})`);
+      if (b.desc) {
+        lines.push("");
+        lines.push("**简介**");
+        lines.push("");
+        lines.push(b.desc);
+      }
+      lines.push("", "---", "");
+    } catch (bookErr) {
+      console.error(`[qimao] ${ch.label}${rt.label} 第${b.rank}条处理出错: ${bookErr.message}`);
+      lines.push("", "---", "");
     }
-    lines.push("", "---", "");
   }
 
   return lines.join("\n");

@@ -19,7 +19,7 @@ description: |
 
 ## 参考文件路径规则
 
-读取参考文件时，下方规范路径以 skill 名开头。优先从项目根目录下的 `skills/` 拼接解析；若 `/story-setup` 已部署 `.codex/story-agent-references/`，也可以用规范路径的最后一段文件名映射到该目录；其次从 Codex 全局 skills 目录查找 `story-setup/references/agent-references/...`。不要只读取裸文件名，也不要跨 skill 读取其他 skill 的 references。若当前工具只接受相对路径，先尝试 `skills/{规范路径}`，再用 Glob/Grep 搜索 `*/{规范路径}`。
+读取参考文件时，下方规范路径以 skill 名开头。优先从项目根目录下的 `skills/` 拼接解析，其次从 Codex 全局 skills 目录查找 `story-setup/references/agent-references/...`；不要只读取裸文件名，也不要跨 skill 读取其他 skill 的 references。若当前工具只接受相对路径，先尝试 `skills/{规范路径}`，再用 Glob/Grep 搜索 `*/{规范路径}`。
 
 ## 检查流程
 

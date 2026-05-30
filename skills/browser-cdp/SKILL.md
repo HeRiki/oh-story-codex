@@ -13,11 +13,11 @@ description: "通过 CDP 控制 Chrome 浏览器并复用已有登录态。覆�
 - Node.js 12+
 - `agent-browser` 已安装：`npm install -g agent-browser`
 
-> ⚠️ **首次启动会结束用户正在运行的常规 Chrome。** 在启动前必须征求用户同意（见下方"启动流程"），否则用户可能丢失未保存的标签页/草稿。
+> ⚠️ **首次启动会 kill 用户的常规 Chrome。** 在启动前必须征求用户同意（见下方"启动流程"），否则用户可能丢失未保存的标签页/草稿。
 
 ---
 
-## 启动流程（技能模式强制步骤）
+## 启动流程（skill-mode 强制步骤）
 
 **第一步：探测当前状态（无副作用）**
 
@@ -48,7 +48,7 @@ CHROME_PID_COUNT=3
   ```bash
   node {SKILL_DIR}/scripts/setup-cdp-chrome.js 9222 --yes
   ```
-- `CDP_STATUS=needs-setup` 且 `CHROME_RUNNING=yes` → **先直接向用户确认**：告知会结束 N 个 Chrome 进程、可能丢失未保存工作；用户同意后再带 `--yes` 启动；用户拒绝则放弃这次自动化。
+- `CDP_STATUS=needs-setup` 且 `CHROME_RUNNING=yes` → **先用 直接向用户确认 工具向用户确认**：告知会杀掉 N 个 Chrome 进程、可能丢失未保存工作；用户同意后再带 `--yes` 启动；用户拒绝则放弃这次自动化。
 
 **为什么不能直接 `--yes`：** 脚本在非 TTY（即 skill 模式 / Bash 工具）下，如果检测到 Chrome 在跑而没有 `--yes`，会以退出码 3 报 `NEEDS_CONSENT: ...` 并中止，**不会**静默杀进程。这是有意的兜底——但 skill 流程仍应先问用户，而不是看到 3 就盲传 `--yes`。
 
@@ -125,7 +125,7 @@ agent-browser --cdp 9222 type "<sel>" "<text>"
 
 | 问题 | 解决方案 |
 |------|----------|
-| `NEEDS_CONSENT` + 退出码 3 | 询问用户是否允许结束 Chrome；同意后加 `--yes` 重跑 |
+| `NEEDS_CONSENT` + 退出码 3 | 用 直接向用户确认 询问用户是否允许杀掉 Chrome，同意后加 `--yes` 重跑 |
 | CDP 端口未监听 | `--detect-only` 再确认；端口被占用则换端口 |
 | 页面跳转到登录页 | `snapshot -i` 找登录按钮并操作 |
 | `eval` 返回 `null` | 检查 localStorage key 名；含引号的 JS 用 `eval -b` 或 `--stdin` |

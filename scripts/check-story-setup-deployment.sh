@@ -1,7 +1,7 @@
 #!/bin/bash
 # check-story-setup-deployment.sh — Codex 版 story-setup 部署契约检查
 #
-# v0.6.9 上游增强了 story-setup 的部署清单和 reference bundle。
+# v0.6.12 上游增强了 story-setup 的部署清单、reference bundle 和写作 agent。
 # Codex 移植版保留这些可检查约束，但部署目标必须仍是 AGENTS.md
 # 与 .codex/ 目录，不能恢复旧运行时项目内 hooks/settings 写入。
 
@@ -39,8 +39,8 @@ for required in \
   ".codex/story-rules" \
   ".codex/story-agent-references" \
   "references/agent-references/" \
-  "agents_version: 9" \
-  "setup_skill_version: 1.1.0" \
+  "agents_version: 10" \
+  "setup_skill_version: 1.1.1" \
   "runtime: codex"; do
   if ! grep -qF "$required" "$SETUP_SKILL"; then
     fail "story-setup SKILL.md missing Codex deployment requirement: $required"
@@ -90,7 +90,7 @@ done < <(
 
 [ "$missing_refs" -eq 0 ] || fail "$missing_refs referenced agent reference files are missing"
 
-if grep -RInE '(^tools: \[Read|^disallowedTools:|^model:|^memory:|WebSearch|webReader|Claude Code|OpenClaw|AskUserQuestion)' "$AGENT_DIR" "$REFERENCE_DIR" >/tmp/story-setup-contamination.$$ 2>/dev/null; then
+if grep -RInE '(^tools: \[Read|^disallowedTools:|^model:|^memory:|subagent_type|WebSearch|webReader|Claude Code|OpenClaw|AskUserQuestion)' "$AGENT_DIR" "$REFERENCE_DIR" >/tmp/story-setup-contamination.$$ 2>/dev/null; then
   cat /tmp/story-setup-contamination.$$ >&2
   rm -f /tmp/story-setup-contamination.$$
   fail "old-runtime agent/frontmatter contamination detected"

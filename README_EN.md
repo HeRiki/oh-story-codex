@@ -81,19 +81,19 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 
 These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
 
-## Upgrading to v0.6.9
+## Upgrading to v0.6.12
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v9 so `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/` are refreshed, including reviewer fallback and deployment-version checks.
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v10 and `setup_skill_version` to `1.1.1`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
 
-This release syncs upstream v0.6.9. Main changes:
+This release syncs upstream v0.6.10-v0.6.12. Main changes:
 
-- **story-setup**: `agents_version` is now v9, with a mechanically checkable deployment table, a complete agent reference bundle, and a Codex-local copy under `.codex/story-agent-references/`.
-- **story-setup / story agents**: adds canonical copies of `genre-readers.md`, `genre-writing-formulas.md`, `emotional-methods.md`, and `style-combat-face.md`; `chapter-extractor` no longer depends on an external output template.
-- **story-format**: removes the old “separate chapters with `---`” rule and now forbids horizontal rules in prose fragments, matching narrative-writer.
-- **story-review**: adds stale deployment detection and embedded rubric fallback; deployments older than v9 fall back to solo mode and suggest rerunning `/story-setup`.
-- **story-cover**: updates GPT-Image-2 request handling, separating text-to-image and image-edit calls and avoiding the obsolete `response_format` parameter.
-- **browser-cdp**: adds `--detect-only`, `--yes`, `--reset`, and `--profile`; it will not silently terminate the user's normal Chrome without confirmation.
-- **Codex lifecycle hooks**: remain plugin-level hooks; this port does not restore upstream project-local hook deployment. The Stop hook no longer creates `session-log.txt` by default.
+- **Topic decision**: `story-long-scan` now persists `选题决策.md`, recording why a topic may work, market validation, differentiation, feasibility, risks, and validation actions; `story-long-analyze` Stage 5 fills back the deconstruction-based reason a topic can work.
+- **Long-form deconstruction**: updates the long-form pipeline, Stage 6 style profile, and setting split so writing workflows can reuse benchmark style more reliably.
+- **Writing references**: adds or integrates `female-audience-writing.md`, `topic-decision.md`, `cross-book-recall.md`, `output-contract.md`, seven twist categories, and cross-topic quick indexes.
+- **story-setup / story-review**: `agents_version` is now v10, with flow handoff notes, refreshed 7 story-agent reference prompts, and updated reference bundle.
+- **story-deslop / terminology**: tightens the AI-tone rubric and replaces abstract upstream jargon with plainer writing-review terms.
+- **Collectors and CI guards**: syncs scraper robustness improvements and keeps shared-file and story-setup deployment-contract checks in CI.
+- **Codex lifecycle hooks**: remain plugin-level hooks. This port does not restore upstream project-local hook deployment and does not write `.claude/hooks` or `.claude/settings.local.json`.
 
 Codex lifecycle hooks are loaded by this repository's plugin mechanism, not written into the user's project by `/story-setup`. Reopen the session after upgrading the plugin to use the new hook behavior.
 

@@ -46,7 +46,8 @@
 - `agents_version: 6` → 旧版，需重新部署以获取日更续写规则修复
 - `agents_version: 7` → 旧版，需重新部署以获取 agent 参考文件路径修复
 - `agents_version: 8` → 旧版，需重新部署以获取 v9 reference bundle、规则格式修复和 reviewer fallback 更新
-- `agents_version: 9` → 当前版本
+- `agents_version: 9` → 旧版，需重新部署以获取新版写作 Agent、文风档案沿用和流程衔接更新
+- `agents_version: 10` → 当前版本
 
 ## 版本变更
 
@@ -90,7 +91,7 @@
 - agent 模板新增参考文件路径规则：优先从本仓库 `skills/` 或 Codex 全局 skills 目录解析 `story-setup/references/agent-references/*.md` 规范路径，避免依赖当前工作目录且不跨 skill 引用 references。
 - 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/` 并获得新版参考文件路径规则。
 
-### v9 (当前)
+### v9
 
 - `setup_skill_version` 升级到 `1.1.0`，`.story-deployed` 的 `agents_version` 升级到 `9`。
 - 部署契约补充机械可检查清单：`AGENTS.md`、story rules、story agents、Agent References、上下文模板和 `.story-deployed` 字段都必须明确 source、target、owner、merge mode、validation。
@@ -103,5 +104,12 @@
 - `story-format.md` 删除“章节之间用 `---` 分隔”的旧规则，改为禁止正文片段使用水平分隔线，与 narrative-writer 保持一致。
 - `story-review` 增加 stale deployment 检查与内置 rubric fallback；`.story-deployed` 版本小于 9 时自动降级 solo 并建议重新运行 `/story-setup`。
 - `browser-cdp` 启动脚本新增 `--detect-only`、`--yes`、`--reset`、`--profile`，避免在未确认时结束用户常规 Chrome。
+
+### v10 (当前)
+
+- `setup_skill_version` 升级到 `1.1.1`，`.story-deployed` 的 `agents_version` 升级到 `10`。
+- 刷新 7 个 story agent 参考提示词，尤其是 `narrative-writer`：日更续写时更稳定地沿用对标文风与项目文风档案。
+- 补充 `story-setup` 与 `story-review` 的流程衔接说明，方便部署后直接进入写作、导入、扫榜或审查流程。
+- 同步 v0.6.12 上游 reference bundle：选题决策、女频长篇 playbook、短篇 output contract、跨书召回、七类反转和术语白话化。
 
 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`。

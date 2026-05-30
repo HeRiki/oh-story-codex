@@ -13,7 +13,7 @@
  *   node fanqie-rank-scraper.js --channel all                     # 全部采集
  *
  * 前置：
- *   node ../browser-cdp/scripts/setup-cdp-chrome.js 9222
+ *   node {SKILL_DIR}/browser-cdp/scripts/setup-cdp-chrome.js 9222
  */
 
 const fs = require("fs");

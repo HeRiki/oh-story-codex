@@ -1,5 +1,14 @@
 # 去AI味完整指南
 
+<!--
+version: 2.0.0
+sync-source: skills/story-setup/references/agent-references/anti-ai-writing.md
+本文件在 6 个 skill 副本间需保持一致：
+  story-deslop / story-long-write / story-short-write /
+  story-short-analyze / story-review / story-setup
+修改后请同步所有副本（CI 守卫见 scripts/check-shared-files.sh）。
+-->
+
 > 识别AI写作指纹、系统性去AI三遍法、禁用词约束、改写范例库。用于正文写作后做去AI味自检和改写时查阅。
 
 ---
@@ -28,7 +37,7 @@
 
 > 完整禁用词表见 [banned-words.md](banned-words.md)
 
-**补充类目**（banned-words.md 未覆盖的高阶替换）：
+**补充类目**（`banned-words.md` 未覆盖的高阶替换）：
 
 | 类别 | 替代原则 |
 |------|---------|
@@ -153,7 +162,7 @@
 - 是否包含AI高频用词（见上表）
 - 章尾是否有总结/升华
 - 是否有大段纯心理描写
-- 段落是否超过 3 句
+- 段落是否一句一段、不超过 4 分句（网文段落规则）
 
 ### 3. 格式一致性
 - 对话格式统一（中文用""，不是「」）
@@ -177,13 +186,15 @@
 ## 快速自检口诀
 
 ```
-一段不过三句话。
+一句话一段。一段不过 4 分句。
 对话要像人说话。
 心情不写心里话。
 结尾不搞大升华。
 打斗不写流水账。
 日常要埋伏笔桩。
 ```
+
+> 网文段落规则：一句话一段，一段不超过 4 个分句；但也不要连续多段同长度，长短要交错。
 
 ---
 

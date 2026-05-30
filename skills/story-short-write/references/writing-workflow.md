@@ -57,7 +57,7 @@
 
 ```
 项目根/
-├── 拆文库/          # story-short-analyze 默认产出（source of truth）
+├── 拆文库/          # story-short-analyze 默认产出（数据源）
 │   └── {参考小说}/
 │       ├── 拆文报告.md
 │       ├── 情节节点.md

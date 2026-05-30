@@ -79,19 +79,19 @@ demo/拆文库-我爸死后我成了他的影子拳手/
 
 这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
 
-## 升级到 v0.6.9
+## 升级到 v0.6.12
 
-如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v9，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`，并让 reviewer 参考提示词获得新的 fallback 与部署版本检查规则。
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v10、`setup_skill_version` 升级到 `1.1.1`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
 
-本版同步上游 v0.6.9，重点更新：
+本版同步上游 v0.6.10-v0.6.12 累积更新，重点包括：
 
-- **story-setup**：`agents_version` 升级到 v9；新增机械可检查部署清单，补齐 agent reference bundle，并部署到 `.codex/story-agent-references/`。
-- **story-setup / story agents**：新增 `genre-readers.md`、`genre-writing-formulas.md`、`emotional-methods.md`、`style-combat-face.md` 的 canonical 副本；`chapter-extractor` 不再依赖外部 output template。
-- **story-format**：删除“章节之间用 `---` 分隔”的旧规则，改为禁止正文片段使用水平分隔线，与 narrative-writer 保持一致。
-- **story-review**：增加 stale deployment 检查和内置 rubric fallback；部署版本小于 v9 时自动降级 solo 并提示重新运行 `/story-setup`。
-- **story-cover**：更新 GPT-Image-2 调用方式，区分文生图与图生图，避免旧 `response_format` 参数。
-- **browser-cdp**：新增 `--detect-only`、`--yes`、`--reset`、`--profile`，未确认时不会静默结束用户常规 Chrome。
-- **Codex lifecycle hook**：保留插件级 hook，不恢复上游项目内 hook 部署；Stop 事件默认不再创建 `session-log.txt`。
+- **选题决策**：`story-long-scan` 产出持久 `选题决策.md`，按“能爆的原因、市场验证、差异化定位、可行性和验证动作”记录开书判断；`story-long-analyze` Stage 5 会回填拆文验证后的“能爆的原因”。
+- **长篇拆文**：修正长篇拆文管道、Stage 6 文风档案和设定拆分，提升后续写作对对标文风的复用稳定性。
+- **写作 references**：新增或接入 `female-audience-writing.md`、`topic-decision.md`、`cross-book-recall.md`、`output-contract.md`，并补充七类反转工具和主题快速定位索引。
+- **story-setup / story-review**：`agents_version` 升级到 v10，补充流程衔接说明，刷新 7 个 story agent 参考提示词和 reference bundle。
+- **story-deslop / 术语白话化**：收紧去 AI 味 rubric，清理自造比喻和抽象术语，统一改成更直白的写作判断词。
+- **采集与工程守卫**：同步采集脚本健壮性增强，并将共享文件、story-setup 部署契约纳入 CI 检查。
+- **Codex lifecycle hook**：继续保留插件级 hook，不恢复上游项目内 hook 部署，不写入 `.claude/hooks` 或 `.claude/settings.local.json`。
 
 Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。
 

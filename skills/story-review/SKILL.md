@@ -29,11 +29,11 @@ description: |
 3. **检查核心 Agent 部署状态**（只检查项目内 agents，不要假设一定存在）：
    - full 必需：`.codex/story-agents/story-architect.md`、`.codex/story-agents/character-designer.md`、`.codex/story-agents/narrative-writer.md`、`.codex/story-agents/consistency-checker.md`
    - lean 必需：`.codex/story-agents/story-architect.md`、`.codex/story-agents/consistency-checker.md`
-   - 对每个必需 Agent 文件，读取 frontmatter，确认 `name:` 与文件名/调用名完全一致；frontmatter 缺失、不可解析或 name 不匹配时视为 malformed agent。
-   - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `9`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
+   - 对每个必需 Agent 文件，读取 frontmatter，确认 `name:` 与文件名/目标 agent 名称一致；frontmatter 缺失、不可解析或 name 不匹配时视为 malformed agent。
+   - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `10`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
    - 如果目标模式所需任一文件缺失或 malformed，**不要尝试 spawn 缺失/异常 Agent**；自动降级为 `solo`，并在报告开头写明：`Fallback: missing agents -> solo` 或 `Fallback: malformed agents -> solo`，列出问题文件，建议用户运行 `/story-setup`。
 4. **确认 Agent/Task 工具可用**：如果当前环境没有可用的子 Agent/Task 调用能力，直接降级为 `solo`，报告 `Fallback: agent tool unavailable -> solo`。
-5. **运行时失败降级**：如果任何 Agent spawn 返回失败、目标调用名不可用、frontmatter 运行时解析失败或子 Agent 无法启动，停止继续 spawn，改用 `solo` 重新审查，并报告 `Fallback: spawn failed -> solo` 与失败的调用名；不要把部分成功的 Agent 结果当成 full/lean 结论。
+5. **运行时失败降级**：如果任何 Agent spawn 返回失败、目标 agent 名称不可用、frontmatter 运行时解析失败或子 Agent 无法启动，停止继续 spawn，改用 `solo` 重新审查，并报告 `Fallback: spawn failed -> solo` 与失败的 agent 名称；不要把部分成功的 Agent 结果当成 full/lean 结论。
 6. **确定实际模式**：报告中必须同时列出 `Requested Mode` 与 `Effective Mode`。
 7. **禁止把 `.active-book` 当作平台来源**：`.active-book` 只表示当前书名/目录名，不代表目标平台。
 
@@ -59,7 +59,7 @@ Rubric Source: file | embedded fallback
 
 可读取参考文件时，按以下顺序尝试：
 1. `{项目根}/skills/{规范路径}`（项目内安装）
-2. `{仓库根}/skills/{规范路径}`（本仓库开发环境）
+2. `{项目根}/skills/{规范路径}`（本仓库开发环境）
 3. 工具自身可访问的全局 skill 搜索路径中同名 `{skill-name}/...` 目录
 
 规范路径如下；禁止只写裸文件名，禁止跨 skill 误读其他 skill 的 references：
@@ -173,7 +173,7 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
 
 **调用规则**：执行 Phase 0 后，只有实际模式仍是 full/lean 时才 spawn。不要 spawn 缺失 Agent。
 
-**Agent 1: story-architect**（调用名：story-architect）
+**Agent 1: story-architect**（agent name: story-architect）
 - full/lean 均调用。
 - 审查视角：主题对齐、大纲结构、钩子/反转质量、范围控制、平台期待。
 - 提示指令：
@@ -203,7 +203,7 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   RECOMMENDATIONS: [修改建议]
   ```
 
-**Agent 2: character-designer**（调用名：character-designer）
+**Agent 2: character-designer**（agent name: character-designer）
 - full 模式调用。
 - 审查视角：角色语言风格一致性、对话质量、人物弧线、关系推进。
 - 提示指令：
@@ -231,7 +231,7 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   RECOMMENDATIONS: [修改建议]
   ```
 
-**Agent 3: narrative-writer**（调用名：narrative-writer）
+**Agent 3: narrative-writer**（agent name: narrative-writer）
 - full 模式调用。
 - 审查视角：AI味检测、格式合规、节奏均匀度、文字自然度。
 - 提示指令：
@@ -258,7 +258,7 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   RECOMMENDATIONS: [修改建议]
   ```
 
-**Agent 4: consistency-checker**（调用名：consistency-checker）
+**Agent 4: consistency-checker**（agent name: consistency-checker）
 - full/lean 均调用。
 - 审查视角：grep-first 事实冲突检测，输出 S1-S4 报告。
 - 提示指令：
@@ -395,6 +395,19 @@ Rubric Source: file | embedded fallback
 ### 修改建议
 {按优先级排列}
 ```
+
+---
+
+## 流程衔接
+
+**流水线：** 通用
+**位置：** 审查（写作之后）
+
+| 时机 | 跳转到 | 命令 |
+|---|---|---|
+| 要修改查出的问题 | story-long-write / story-short-write | 返回对应写作 skill 修改 |
+| 发现 AI 味需清理 | story-deslop | `/story-deslop` |
+| 需要重新拆解对标书 | story-long-analyze / story-short-analyze | `/story-long-analyze` 或 `/story-short-analyze` |
 
 ---
 

@@ -52,6 +52,9 @@ description: |
 
 ### Phase 1：确认选题方向
 
+**先查选题决策**：如果项目根存在 `选题决策.md`（story-long-scan Phase 4 产出，开书前搬入），读取它——取排在最前（可行性最高）的推荐选题作为开书起点，向用户确认：「扫榜建议写 X（能爆的原因 Y，差异化 Z），按这个开书？」并看 `扫榜日期`：距今较久则提示"市场数据可能过期，建议复扫"。用户认可 → 带该选题的题材/卖点/差异化进入 Phase 2。
+缺失时先问一句：「有扫榜生成的 `选题决策.md` 吗？放到项目根或粘贴路径；没有就直接答下面的问题。」仍无 → 走下面的常规提问。
+
 如果用户已有方向 → 直接进入 Phase 2。
 
 如果用户没有方向：
@@ -60,7 +63,7 @@ description: |
 
 #### 对标上下文加载
 
-> **拆文库/对标关系**：`拆文库/` = analyze skill 的原始产出，是数据源（source of truth）。`对标/` = 写作项目的引用视图，存放与本项目相关的对标数据子集。首次引用对标书时，从 `拆文库/{书名}/` 复制相关子目录（角色/剧情/设定）到 `对标/{书名}/`。
+> **拆文库/对标关系**：`拆文库/` = analyze skill 的原始产出，是数据源。`对标/` = 写作项目的引用视图，存放与本项目相关的对标数据子集。首次引用对标书时，从 `拆文库/{书名}/` 复制相关子目录（章节/角色/剧情/设定）和 `文风.md` 到 `对标/{书名}/`。
 >
 > **对标书路径查找**：优先 `{项目}/对标/{书名}/`，不存在则回退 `拆文库/{书名}/`。下文所有对标数据加载均使用此规则。
 
@@ -125,6 +128,9 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 - **设定/关系.md**：角色关系映射（参考 character-relations.md「四种关系类型」）
 - **设定/题材定位.md**：题材核心梗三分法+对标分析（参考 genre-core-mechanics.md「核心梗解析」）。对标分析表保留 2-3 行摘要，详细数据见 `对标/` 目录
 
+<!-- cross-book-recall:trigger:structure-positioning -->
+> **多对标书时**：参 `references/cross-book-recall.md`，副对标 anchor 入「对标分析」表附录
+
 #### Agent 调用：story-architect + character-designer
 
 核心设定阶段，如果项目已部署对应 agent，可 spawn 以下 agent 辅助：
@@ -155,6 +161,9 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 - 核心事件：{一句话}
 ```
 
+<!-- cross-book-recall:trigger:tempo-volume -->
+> **多对标书时**：参 `references/cross-book-recall.md`，副对标 `章节/*_摘要.md` + `剧情/*.md` 召回卷级节奏
+
 #### 细纲（全书每章）
 
 ⚠️ **大纲四检（每卷/每章设计前必答）**：① 本卷交付什么情绪？什么剧情模式能可靠交付？② 本卷核心冲突是什么？③ 卷节奏（起承转合）哪段加速哪段减速？④ 本卷需要新埋设的伏笔有哪些？上一卷待回收的伏笔如何处理？
@@ -181,11 +190,14 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 
 **细纲质量要求**：每章细纲一视同仁，全部用最高标准打磨——钩子+人设+爽点+悬念+伏笔。
 
+<!-- cross-book-recall:trigger:tempo-chapter -->
+> **多对标书时**：参 `references/cross-book-recall.md`，副对标同基调 `章节/*_摘要.md` 作细纲钩子
+
 **章节标题规则**：只做轻量去重；发现同名或明显重复标题时，按本章核心事件改名，并保持细纲标题与正文文件名一致。
 
 大纲完成后，创建以下 artifact（加载 [references/artifact-protocols.md](references/artifact-protocols.md) 中对应模板）：
 - **大纲/大纲.md**：全书卷级鸟瞰（卷名+字数+章数+核心事件+状态变化，一段式汇总）
-- **大纲/卷纲_第X卷.md**：每卷的爽点节奏+情绪弧线+人物弧线+伏笔+反转（参考 outline-methods.md「大纲三个维度结构法」 + emotional-arc-design.md「六种弧线速查」 + reversal-toolkit.md「五种反转类型」）
+- **大纲/卷纲_第X卷.md**：每卷的爽点节奏+情绪弧线+人物弧线+伏笔+反转（参考 outline-methods.md「大纲三个维度结构法」 + emotional-arc-design.md「六种弧线速查」 + reversal-toolkit.md「反转类型」）
 - **追踪/伏笔.md** + **追踪/时间线.md** + **追踪/角色状态.md**：伏笔状态表+故事时间线+角色状态快照（参考 plot-core-methods.md「连续性追踪」、state-tracking.md「角色状态快照格式」）
 
 前 3 章细纲额外加载 [references/opening-design.md](references/opening-design.md)（黄金三章法则+六大标准）。
@@ -235,24 +247,30 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 │       │   ├── {剧情线名}.md
 │       │   └── 故事线.md
 │       ├── 设定/                  ← 从拆文库/结构化输出同步
-│       │   ├── 世界观.md
-│       │   └── 金手指.md
+│       │   ├── 世界观/             ← 按主题拆分到子目录（早期单文件版本由 story-import 兜底转换）
+│       │   │   ├── 背景设定.md
+│       │   │   ├── 力量体系.md
+│       │   │   ├── 地理.md
+│       │   │   └── 金手指.md       ← 金手指现在放在 世界观/ 下，不再扁平
+│       │   └── 势力/
+│       │       └── {势力名}.md
 │       └── 拆文报告.md
 ├── 追踪/                          ← 角色状态、伏笔、时间线
-│   ├── 伏笔.md                    ← 粗格栅级（跨卷追踪）
-│   ├── 时间线.md                  ← 粗格栅级（全书时间线）
-│   ├── 角色状态.md                ← 细格栅级（角色当前状态快照）
+│   ├── 伏笔.md                    ← 跨卷追踪
+│   ├── 时间线.md                  ← 全书时间线
+│   ├── 角色状态.md                ← 角色当前状态快照
 │   └── 上下文.md                  ← 正文级（日更进度摘要）
 ├── 参考资料/
 │   └── {topic}.md             # story-researcher 输出的研究资料
 ```
 
-**Artifact 映射表**（创建模板详见 [references/artifact-protocols.md](references/artifact-protocols.md)）：
+**产物映射表**（创建模板详见 [references/artifact-protocols.md](references/artifact-protocols.md)）：
 
 | 文件 | 粒度 | 创建阶段 | 读取时机 |
 |------|------|---------|---------|
 | 设定/关系.md | 全书 | Phase 2 | Phase 3 大纲、Phase 4 写作 |
-| 设定/题材定位.md | 全书 | Phase 2 | Phase 3 大纲、每卷开始前 |
+| 设定/题材定位.md（含 `主对标书` 字段，多对标时必填） | 全书 | Phase 2 | Phase 3 大纲、每卷开始前、Phase 4 文风召回 |
+| 对标/{书名}/文风.md | 对标书 | analyze Stage 6 输出 → story-import 同步 | Phase 4 每章写作前（文风召回） |
 | 大纲/卷纲_第X卷.md | 卷 | Phase 3 | Phase 4 写卷首章前 |
 | 追踪/伏笔.md | 全书 | Phase 3 起 | Phase 4 每章写作前 |
 | 追踪/时间线.md | 全书 | Phase 3 起 | Phase 4 每章写作前 |
@@ -267,7 +285,8 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 **缺失文件回退**：所有新增文件是可选增强，缺失时按以下优先级降级，不报错不阻塞：
 1. **角色状态文件缺失** → 从角色设定文件和前文推断当前状态
 2. **对标结构化子目录缺失** → 按「对标书路径查找」规则回退（对标子目录 → 拆文库同名子目录 → 对标拆文报告.md → 跳过）
-3. **伏笔/时间线文件缺失** → 不检查，相关信息在卷纲或大纲中体现即可
+3. **有对标书但 `文风.md` 缺失** → 日更文风召回 fail-fast，提示先运行 `/story-long-analyze` Stage 6 并 `/story-import` 同步；**完全无对标项目**则跳过文风召回，不阻塞
+4. **伏笔/时间线文件缺失** → 不检查，相关信息在卷纲或大纲中体现即可
 
 **文件组织原则：**
 - **人物一个一个文件**：`角色/角色名.md`，方便按需读取
@@ -293,15 +312,21 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
    - (8) `追踪/角色状态.md`（如存在）— 角色当前状态快照
    - (9) 对标书路径下 `剧情/故事线.md`（按对标书路径查找）— 剧情线索引，用于确定本章涉及哪些剧情线
    - (10) 对标书路径下 `剧情/{相关剧情线}.md`（按对标书路径查找）— 从索引中选择与本章相关的剧情线文件
-   - (11) 对标书路径下 `设定/金手指.md` 或 `世界观.md`（按对标书路径查找）— 从拆文产出的设定中获取参考
+   - (11) 对标书路径下 `设定/世界观/*.md`（glob，按对标书路径查找）— 从拆文产出的设定中获取参考。**回退顺序**：① glob `设定/世界观/*.md`；② 若 `设定/世界观/` 子目录不存在则读单文件 `设定/世界观.md`（早期拆文库格式）；③ 若也无则读 `设定/金手指.md` 当作最低限度参考；④ 都没有则跳过本步骤（缺失不阻塞）
 3. **准备层**（下面的 3 步是核心方法在单章写作中的落地：筛选状态 → 召回模块 → 确认意图）：
    - 3.1 **状态筛选**：从 `追踪/角色状态.md` 中筛选本章涉及角色的当前状态，从 `追踪/伏笔.md` 中筛选本章需要回收/推进的伏笔。输出最简记忆包（参考 state-tracking.md）。如果角色状态文件不存在，从角色设定和前文推断
-   - 3.2 **模块召回**：① 本章目标情绪词？② 借鉴哪个参考文件的哪个技法？③ 用在哪些段落？答不出 → 先回读参考再动笔。同时按「对标书路径查找」规则从 `对标/` 或 `拆文库/` 的结构化子目录（角色/剧情/设定/章节）中检索与本章最相关的模块，输出“对标召回摘要”（最多5条，标明路径+可借鉴功能），作为写作参考
+   - 3.2 **模块召回与文风召回**：
+     - ① 本章目标情绪词？② 借鉴哪个参考文件的哪个技法？③ 用在哪些段落？答不出 → 先回读参考再动笔
+     - (a) **文风召回**：按「对标书路径查找」规则读 `{对标书路径}/文风.md`（路径优先 `{项目}/对标/{书名}/`，回退 `拆文库/{书名}/`）；多本对标书时从 `设定/题材定位.md` 读 `主对标书` 字段。文风文件不存在 → **fail-fast 报错**：「对标书 X 缺少 文风.md。请用 `/story-long-analyze` 跑 Stage 6 生成文风，再 `/story-import` 同步。」不 inline 生成
+     - (b) **匹配章节挑选**：从 `{对标书路径}/章节/*_摘要.md` grep `基调：(紧张|轻松|悲伤|热血|温馨|压抑)`（全角冒号），按本章目标情绪挑章 K——多章同基调时选择规则：先看爽点类型是否接近，再看情节点数量/原文章节估算字数是否接近本章目标字数，最后取章节号最小者；必读 `{对标书路径}/章节/第K章_摘要.md`，若同章存在 `第K章_深度拆解.md` 则加读，否则回退黄金三章深度拆解/文风文件里的可借鉴技巧，不因非黄金三章缺少深度拆解而失败
+     - (c) **模块召回**：从对标的结构化子目录（角色/剧情/设定）中按本章情节检索相关模块
+     - (d) <!-- cross-book-recall:trigger:execution-output --> 输出"对标召回摘要 + 文风召回指令 + 原文锚点片段引用"（合计 ≤10 条），作为 narrative-writer 的输入。**多对标书时**参 `references/cross-book-recall.md`，进 prompt 的只主对标（副对标不入正文）
+     - **快捷路径**：项目已部署 story-explorer agent 时（检查 `.codex/story-agents/story-explorer.md`），直接 spawn `spawn_agent(name="story-explorer", prompt: "项目目录：{dir}\n查询类型：benchmark_style_load\n查询参数：我要写第 {N} 章；这一章按细纲偏{紧张/热血/轻松等}，目标字数约 {N}，爽点类型={如有}")` 一次拿到 `{style_profile_path, style_profile_summary, matched_chapter_K, matched_chapter_techniques, anchor_excerpts, gaps}`；准备层必须原样保留 `gaps`，若 `gaps.matched_deep_dive_missing: true`，文风召回指令必须说明已用黄金三章/文风文件里的技巧回退
    - 3.3 **指令确认**：综合细纲+最简记忆包+模块召回结果，确认本章节奏（快/慢）和情绪目标，用一句话概括本章写作意图。例：「快节奏打脸——读者等了三章，这章必须一拳到位。技法=信息差揭示（hooks-suspense.md），用于第2-4段。」
 4. **资料研究**（按需）：如果写作中遇到需要查证的外部事实（历史年代、地理方位、职业细节等），spawn `story-researcher` agent 搜索并输出到 `参考资料/` 目录。研究完成后再继续写作。
 5. **标题预检**：写正文前从细纲读取章名；如与既有章节同名或明显重复，先按本章核心事件改名，并同步细纲标题与正文文件名。
 6. **写作**：第 1 章如果以内心戏、设定认知或独处开场，必须先把内心变化外化为可见事件（决定、误判、对话、物件变化、外部压力），再按字数目标展开；不得用大段心理独白凑字。若第 1 章低于目标，优先补“外部事件/对话/选择代价”，不要补解释性内心戏。
-7. **正文执行**：如果项目已部署 narrative-writer agent（**必须先检查 `.codex/story-agents/narrative-writer.md` 是否存在**），spawn `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n章节：第{N}章\n细纲文件：大纲/细纲_第{N}章.md\n上一章：正文/第{N-1}章_*.md\n准备层输出：{3.1最简记忆包 + 3.2模块召回结果 + 3.3写作意图}\n情绪目标：{从准备层3.3确认}\n涉及角色：{从准备层3.1筛选}\n参考技法：{从准备层3.2召回}\n对标/拆文路径：{本次查找到的 对标/{书名}/ 或 拆文库/{书名}/，没有则写 无}\n对标召回摘要：{准备层3.2输出的相关角色/剧情/设定/章节模块，最多5条；没有则写 无}\n写作硬约束：按三维度织入写场景，但仍必须按镜头断段；一段只承载一个动作/信息变化，优先一段一句，避免一段到底。输出前做密度重排：段落 >60 字按句号/动作转折拆开，单句 >45 字拆短。\n⚠️字数硬约束：本章必须达到细纲中设定的字数目标（{从细纲读取}字）。优先使用 Python 字符统计（跨平台）：`python3 -c "from pathlib import Path; print(len(Path('正文文件路径').read_text(encoding='utf-8')))"`；macOS/Linux 可用 `wc -m` 备选；禁止使用 `wc -c` 或模型估算。字数未达标禁止结束本章。")` 执行正文写作，输出写入 `正文/第XXX章_章名.md`。如 narrative-writer agent 未部署，由主线程直接写作。
+7. **正文执行**：如果项目已部署 narrative-writer agent（**必须先检查 `.codex/story-agents/narrative-writer.md` 是否存在**），spawn `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n章节：第{N}章\n细纲文件：大纲/细纲_第{N}章.md\n上一章：正文/第{N-1}章_*.md\n准备层输出：{3.1最简记忆包 + 3.2模块/文风召回结果 + 3.3写作意图}\n情绪目标：{从准备层3.3确认}\n涉及角色：{从准备层3.1筛选}\n参考技法：{从准备层3.2召回}\n对标/拆文路径：{本次查找到的 对标/{书名}/ 或 拆文库/{书名}/，没有则写 无}\n对标召回摘要：{准备层3.2(c)输出的相关角色/剧情/设定/章节模块，最多5条；没有则写 无}\n文风路径：{准备层3.2(a) 找到的 文风.md 绝对路径，没有则写 无}\n文风召回指令：{准备层3.2(b) 输出，含匹配章节号和 1-2 句技法指令——例如 '标点节奏照文风文件里的破折号节拍、对话潜台词用问非所答；情绪交替参考第K章爽点铺放比'。没有则写 无}\n原文锚点片段：{文风文件里 4-6 段中按本章情绪选 1-2 段，完整粘贴 300-500字 原文 — 用于 few-shot 模仿手法、非抄字句；没有则写 无}\n写作硬约束：按三维度织入写场景，但仍必须按镜头断段；一段只承载一个动作/信息变化，优先一段一句，避免一段到底。输出前做密度重排：段落 >60 字按句号/动作转折拆开，单句 >45 字拆短。**文风优先级**：与默认 Gates 冲突时按 narrative-writer.md 的优先级表决议（硬约束 banned-words/Gate F/万能比喻禁令/字数下限 不让位；句长/标点/对话潜台词/情绪交替由文风优先）。\n⚠️字数硬约束：本章必须达到细纲中设定的字数目标（{从细纲读取}字）。优先使用 Python 字符统计（跨平台）：`python3 -c \"from pathlib import Path; print(len(Path('正文文件路径').read_text(encoding='utf-8')))\"`；macOS/Linux 可用 `wc -m` 备选；禁止使用 `wc -c` 或模型估算。字数未达标禁止结束本章。")` 执行正文写作，输出写入 `正文/第XXX章_章名.md`。如 narrative-writer agent 未部署，由主线程直接写作。
 8. **字数验证**（写作完成后的第一件事）：优先用 `python3 -c "from pathlib import Path; print(len(Path('正文文件路径').read_text(encoding='utf-8')))"` 统计本章实际字数；macOS/Linux 可用 `wc -m` 备选。如果字数 < 细纲目标的 90%，**回到细纲补充更多子事件/情节点**，然后用三维度织入将这些新子事件写成正文，并按镜头断段控制单段密度，直到字数达标后再进入步骤 9。
 9. **检查**：章尾是否有钩子、爽点是否到位
 10. **禁用词扫描**：对照 `references/banned-words.md` 检查本章，一级词（高频AI腔）命中即替换；二级词（低频/语境相关）高频出现时替换，偶发可参考 `references/anti-ai-writing.md` 定性裁定
@@ -389,6 +414,7 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 | 确定题材类型 | `references/genre-catalog.md` |
 | 判断市场方向 | `references/genre-readers.md` |
 | 特殊题材考量 | `references/plot-special-topics.md` |
+| 女频长篇（题材/文案/平台/感情线） | `references/female-audience-writing.md` |
 
 ### Phase 2：核心设定
 
@@ -427,8 +453,7 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 | 商业创作核心方法 | `references/style-commercial-theory.md` |
 | 对话 | `references/dialogue-mastery.md` |
 | 人物深化 | `references/character-design-methods.md` |
-| 情绪技法 | `references/plot-emotion-system.md` + `references/emotional-methods.md` |
-| 叙事单元 | `references/narrative-units.md` |
+| 情绪技法 + 叙事单元 | `references/plot-emotion-system.md` + `references/emotional-methods.md` |
 | 写作技法全程参考 | `references/writing-craft.md` |
 | 格式与结构规范 | `references/format-and-structure.md`（仅对话/段落格式适用长篇） |
 | 状态追踪协议 | `references/state-tracking.md` |
@@ -440,6 +465,23 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 | 质量检查 | `references/quality-checklist.md` |
 | 禁用词扫描 | `references/banned-words.md` |
 | 去AI味 | `references/anti-ai-writing.md` |
+
+### 按主题快速定位（横切主题）
+
+有些主题横跨多个阶段、散在多个文件里。下表给每个主题一个**权威文件**（先读它，通常够用），配套文件只在需要那个角度时再加载。括号是该文件里对应的小节。
+
+| 主题 | 权威文件（先读） | 配套文件（按角度补充） |
+|------|-----------------|----------------------|
+| 爽点（按意图分流） | **`references/plot-emotion-system.md`**（爽点设计体系：本质/六种类型/倒推法——"怎么设计爽点"先读这个） | 翻盘/高潮式爽点→`references/plot-core-methods.md`（假胜→崩解）· 打脸/装逼释放→`references/style-combat-face.md`· 题材打脸逆袭公式→`references/genre-writing-formulas.md`· 爽文循环/多层→`references/outline-methods.md`·`references/outline-conflict.md` |
+| 情绪模块 | **`references/plot-emotion-system.md`**（情绪模块与戏剧单元分类） | `references/outline-rhythm.md`（情绪模块系统 + 常用情绪模块公式） |
+| 节奏 | **`references/outline-rhythm.md`**（升级感三步 + 桥段与节奏的结构化设计） | `references/plot-core-methods.md`（连续性追踪与节奏管理：热度/冷却） |
+| 高潮 | **`references/plot-core-methods.md`**（高潮构建公式：蓄能→假胜→崩解） | `references/outline-rhythm.md`（高潮分类与反推）· `references/outline-methods.md`（八节点故事结构：结构定位） |
+| 金手指 | **`references/plot-special-topics.md`**（金手指拆分理解与战力防崩 + 进阶设计） | `references/outline-conflict.md`（金手指与身份：四点统一） |
+| 感情线 | **`references/character-relations.md`**（好感度体系/四阶段 + 男女频差异） | `references/outline-conflict.md`（感情线设计）· `references/style-combat-face.md`（后宫文女主 / 男频极简爱情线构型）· `references/plot-special-topics.md`（爱情线提纯策略） |
+| 反转 | **`references/reversal-toolkit.md`**（反转类型/铺垫/有效性自检） | `references/plot-core-methods.md`（假胜：先给希望再击碎） |
+| 人物 | **`references/character-basics.md`**（主角/配角/反派/动机模板速填） | `references/character-design-methods.md`（三层标签反差/九维深化）· `references/character-relations.md`（关系类型/感情线） |
+| 女频写作 | **`references/female-audience-writing.md`**（女频长篇：核心原则/文案/题材/感情线长线/平台） | `references/genre-readers.md`（读者心理/平台差异）· `references/character-relations.md`（感情线总框架） |
+| 去AI味 | **`references/anti-ai-writing.md`**（定性裁定） | `references/banned-words.md`（禁用词扫描）· `references/quality-checklist.md`（成稿检查） |
 
 ---
 

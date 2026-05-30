@@ -18,7 +18,7 @@ description: |
 
 ## 参考文件路径规则
 
-读取参考文件时，下方规范路径以 skill 名开头。优先从项目根目录下的 `skills/` 拼接解析；若 `/story-setup` 已部署 `.codex/story-agent-references/`，也可以用规范路径的最后一段文件名映射到该目录；其次从 Codex 全局 skills 目录查找 `story-setup/references/agent-references/...`。不要只读取裸文件名，也不要跨 skill 读取其他 skill 的 references。若当前工具只接受相对路径，先尝试 `skills/{规范路径}`，再用 Glob/Grep 搜索 `*/{规范路径}`。
+读取参考文件时，下方规范路径以 skill 名开头。优先从项目根目录下的 `skills/` 拼接解析，其次从 Codex 全局 skills 目录查找 `story-setup/references/agent-references/...`；不要只读取裸文件名，也不要跨 skill 读取其他 skill 的 references。若当前工具只接受相对路径，先尝试 `skills/{规范路径}`，再用 Glob/Grep 搜索 `*/{规范路径}`。
 
 ## 参考文件体系
 
@@ -46,6 +46,7 @@ description: |
 - 核心梗三代论：主题 -- 题材核心 -- 核心情绪，提炼全书驱动力
 - 微创新五手法：在已有题材框架上做差异化
 - 对标分析：从对标书中提取可借鉴的结构模式
+- **对标书清单**：题材定位输出必须含 `主对标书` 字段 + `对标书列表`（按引用强度标 主/辅/参考）。多本对标书时，`主对标书` 决定 story-long-write 日更默认调用哪本的文风；缺失字段会触发 story-long-write 用字典序第一本并提示用户补字段
 - **执行时读取** `story-setup/references/agent-references/genre-catalog.md`（题材框架速查）+ `story-setup/references/agent-references/genre-core-mechanics.md`（核心梗三代论、微创新五手法、金手指骨相分类）
 
 ### 世界观设定

@@ -453,7 +453,12 @@ check_skill() {
   # Check 9: Runtime contamination from non-Codex skill formats
   local forbidden_patterns=(
     "Agent(subagent_type"
+    "subagent_type"
     ".claude/agents"
+    ".claude/hooks"
+    ".claude/rules"
+    ".claude/settings"
+    "CLAUDE.md"
     "Claude Code"
     "OpenClaw"
     "WebSearch"
