@@ -81,18 +81,17 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 
 These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
 
-## Upgrading to v0.6.12
+## Upgrading to v0.6.13
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v10 and `setup_skill_version` to `1.1.1`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v11 and `setup_skill_version` to `1.1.2`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
 
-This release syncs upstream v0.6.10-v0.6.12. Main changes:
+This release syncs upstream v0.6.13. Main changes:
 
-- **Topic decision**: `story-long-scan` now persists `选题决策.md`, recording why a topic may work, market validation, differentiation, feasibility, risks, and validation actions; `story-long-analyze` Stage 5 fills back the deconstruction-based reason a topic can work.
-- **Long-form deconstruction**: updates the long-form pipeline, Stage 6 style profile, and setting split so writing workflows can reuse benchmark style more reliably.
-- **Writing references**: adds or integrates `female-audience-writing.md`, `topic-decision.md`, `cross-book-recall.md`, `output-contract.md`, seven twist categories, and cross-topic quick indexes.
-- **story-setup / story-review**: `agents_version` is now v10, with flow handoff notes, refreshed 7 story-agent reference prompts, and updated reference bundle.
-- **story-deslop / terminology**: tightens the AI-tone rubric and replaces abstract upstream jargon with plainer writing-review terms.
-- **Collectors and CI guards**: syncs scraper robustness improvements and keeps shared-file and story-setup deployment-contract checks in CI.
+- **Writing references made actionable**: adds concrete web-novel examples for plot frameworks, emotional layers, commercial hooks, cheat progression, and short-form genre blending, while removing vague formulas and jargon.
+- **Within-skill deduplication**: replaces duplicated blocks for power-dialogue, character-state templates, five-act structure, and faction-hand methods with pointers to the single local source.
+- **Naming fix**: renames `style-commercial-theory.md` to `commercial-core-methods.md` so commercial strategy is not confused with prose style.
+- **Consistency fixes**: aligns short-form information-gap thresholds, dialogue ratio, workflow-revision numbering, and long-write anchor names.
+- **story-setup / story-review**: `agents_version` is now v11, with refreshed agent templates and enum-drift fixes for twist types and relationship names.
 - **Codex lifecycle hooks**: remain plugin-level hooks. This port does not restore upstream project-local hook deployment and does not write `.claude/hooks` or `.claude/settings.local.json`.
 
 Codex lifecycle hooks are loaded by this repository's plugin mechanism, not written into the user's project by `/story-setup`. Reopen the session after upgrading the plugin to use the new hook behavior.

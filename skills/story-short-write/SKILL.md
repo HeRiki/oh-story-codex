@@ -164,7 +164,6 @@ description: |
 ├── 设定.md              ← Phase 2 产出（含对标摘要）
 ├── 小节大纲.md          ← Phase 2 产出
 ├── 正文.md              ← Phase 3 产出
-├── 自检_{标题}.md       ← Phase 4 产出
 └── 对标/                ← 当前短篇引用视图（可选）
     └── {书名}/
         ├── 拆文报告.md
@@ -191,7 +190,7 @@ description: |
 ⚠️ **硬约束：每节 ≥ 800 字 / 50-65 行**。
 题材例外：爽文、打脸、系统流等高信息密度题材可降至 ≥ 500 字/节（见 genre-writing-formulas.md 各题材速查表），但不得低于 500 字。
 写完每节后必须统计字数和行数。不足 800 字（高信息密度题材不足 500 字）的节不得跳过，必须补充更多子事件/对话来补足后再写下一节。整篇完成后总字数必须 ≥ 8000 字。
-**字数统计必须跨平台可执行：优先使用 Python 字符统计**：`python3 -c "from pathlib import Path; print(len(Path('文件路径').read_text(encoding='utf-8')))"`。Windows / DeepSeek / Codex 组合下不要让模型自行估算字数；`wc -m` 仅作为 macOS/Linux 备选，禁止使用 `wc -c`（字节数）。如果当前 agent/工具环境没有 Bash/Python 权限，必须在自检文件中标注“未完成机器字数验证”，并按行数速算作为临时估计，不得声称已通过字数硬验证。
+**字数统计必须跨平台可执行：优先使用 Python 字符统计**：`python3 -c "from pathlib import Path; print(len(Path('文件路径').read_text(encoding='utf-8')))"`。Windows / DeepSeek / Codex 组合下不要让模型自行估算字数；`wc -m` 仅作为 macOS/Linux 备选，禁止使用 `wc -c`（字节数）。如果当前 agent/工具环境没有 Bash/Python 权限，必须明确声明“未完成机器字数验证”，并按行数速算作为临时估计，不得声称已通过字数硬验证。
 **⚠️ 字数不足 = 章节未完成。禁止在字数未达标时结束章节。必须继续展开场景直到达标。**
 
 **节数守恒**：正文节数必须等于小节大纲规划节数。不得合并多节为一节。如果写作中发现某节不需要独立存在，应回到大纲阶段调整，而非在写作时偷减。
@@ -325,10 +324,9 @@ description: |
 
 如 agent 不可用，由主线程直接执行。
 
-**自检记录隔离规则**：
-- 所有自检记录（字数统计、禁用词扫描结果、格式检查清单）必须写入独立文件 `自检_{标题}.md`（标题取自 Phase 2 核心框架）
-- **绝对不能**将自检记录附加到正文文件末尾
-- 自检文件与正文文件完全分离，便于后续清理和归档
+**正文洁净规则**：
+- 自检（字数统计、禁用词扫描、格式检查）是过程动作，结果直接在对话里说明，不落盘成文件
+- **绝对不能**把自检记录附加到正文文件末尾
 - 正文中不得出现任何 `<!-- 自检 -->` 或类似的检查标记注释
 
 不通过 → 回退补足。
@@ -376,7 +374,7 @@ description: |
 | [references/character-design-methods.md](references/character-design-methods.md) | 人设方法 |
 | [references/character-relations.md](references/character-relations.md) | 人物关系设计 |
 | [references/dialogue-mastery.md](references/dialogue-mastery.md) | 写对话时 |
-| [references/opening-design.md](references/opening-design.md) | 设计开头时 |
+| [references/opening-design.md](references/opening-design.md) | 设计开头时（短篇用法：「前3章」读作开篇首节~前1/3，七步法按目标字数等比缩放） |
 | [references/genre-catalog.md](references/genre-catalog.md) | 题材框架 |
 | [references/genre-core-mechanics.md](references/genre-core-mechanics.md) | 核心梗设计 |
 | [references/genre-readers.md](references/genre-readers.md) | 读者心理 |
@@ -396,9 +394,10 @@ description: |
 | 钩子 | **`references/hooks-chapter.md`**（章节/开篇钩子类型） | `references/hooks-paragraph.md`（段落钩子）· `references/hooks-suspense.md`（悬念设计） |
 | 女频写作 | **`references/female-audience-writing.md`**（核心原则 / 文案结构体系 / 感情线写法深化） | `references/genre-writing-techniques.md`（女频读者心理与写作技法 / 感情线四阶段推进法）· `references/genre-readers.md`（读者心理） |
 | 题材公式 | **`references/genre-writing-formulas.md`**（各题材创作公式速查） | `references/genre-catalog.md`（题材框架）· `references/genre-core-mechanics.md`（核心梗设计） |
-| 开头 | **`references/opening-design.md`**（黄金一章 / 三大基点 / 题材开头模板） | `references/hooks-chapter.md`（开篇钩子类型） |
+| 开头 | **`references/opening-design.md`**（黄金一章 / 三大基点 / 题材开头模板；短篇：「前3章」读作开篇首节~前1/3、七步法按目标字数等比缩放） | `references/hooks-chapter.md`（开篇钩子类型） |
 | 格式与节奏 | **`references/format-and-structure.md`**（正文格式硬规范） | `references/writing-craft.md`（三维度织入）· `references/writing-workflow.md`（设计/精修工作流） |
-| 去AI味 | **`references/anti-ai-writing.md`**（定性裁定） | `references/banned-words.md`（禁用词扫描）· `references/quality-checklist.md`（成稿检查） |
+| 对话 | **`references/dialogue-mastery.md`**（对话技法主文件：差异化/潜台词/对话节奏） | `references/writing-craft.md`（对话权力博弈的结构化用法） |
+| 去AI味 | **`references/anti-ai-writing.md`**（AI指纹/核心规则/Show Don't Tell） | `references/banned-words.md`（禁用词扫描）· `references/quality-checklist.md`（成稿检查） |
 
 ---
 

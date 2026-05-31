@@ -78,9 +78,9 @@ description: |
 - **执行时读取** `story-setup/references/agent-references/hooks-chapter.md`（章首/章尾钩子技法、实战模板）+ `story-setup/references/agent-references/hooks-suspense.md`（悬念构建、拉期待手法）
 
 ### 反转设计
-- 5种反转类型：身份/视角/动机/时间线/信息
+- 7种反转类型：身份/视角/动机/时间线/信息/认知/无反转（与拆文 _meta.json.reversal_type 一致）
 - 嵌套反转：双层/三层嵌套的铺设方法
-- 误导技巧：选择性叙述/情感引导/假线索/刻板印象利用/信息分层
+- 误导技巧：选择性叙述/情绪引导/假线索/刻板印象利用/信息分层
 - 反转自检清单：合理性(3+暗示)/冲击力/公平性(可猜到)/节奏(快速揭示)
 - **执行时读取** `story-setup/references/agent-references/reversal-toolkit.md`（完整反转工具箱、打脸深层节奏、虚晃一枪反转法）
 

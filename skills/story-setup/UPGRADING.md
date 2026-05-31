@@ -47,7 +47,8 @@
 - `agents_version: 7` → 旧版，需重新部署以获取 agent 参考文件路径修复
 - `agents_version: 8` → 旧版，需重新部署以获取 v9 reference bundle、规则格式修复和 reviewer fallback 更新
 - `agents_version: 9` → 旧版，需重新部署以获取新版写作 Agent、文风档案沿用和流程衔接更新
-- `agents_version: 10` → 当前版本
+- `agents_version: 10` → 旧版，需重新部署以获取 agent 模板枚举漂移修复和 reference 去重/命名更新
+- `agents_version: 11` → 当前版本
 
 ## 版本变更
 
@@ -105,11 +106,18 @@
 - `story-review` 增加 stale deployment 检查与内置 rubric fallback；`.story-deployed` 版本小于 9 时自动降级 solo 并建议重新运行 `/story-setup`。
 - `browser-cdp` 启动脚本新增 `--detect-only`、`--yes`、`--reset`、`--profile`，避免在未确认时结束用户常规 Chrome。
 
-### v10 (当前)
+### v10
 
 - `setup_skill_version` 升级到 `1.1.1`，`.story-deployed` 的 `agents_version` 升级到 `10`。
 - 刷新 7 个 story agent 参考提示词，尤其是 `narrative-writer`：日更续写时更稳定地沿用对标文风与项目文风档案。
 - 补充 `story-setup` 与 `story-review` 的流程衔接说明，方便部署后直接进入写作、导入、扫榜或审查流程。
 - 同步 v0.6.12 上游 reference bundle：选题决策、女频长篇 playbook、短篇 output contract、跨书召回、七类反转和术语白话化。
+
+### v11 (当前)
+
+- `setup_skill_version` 升级到 `1.1.2`，`.story-deployed` 的 `agents_version` 升级到 `11`。
+- 刷新 story agent 参考提示词，修复 `story-architect` 反转类型枚举与 `character-designer` 关系命名枚举漂移。
+- 同步 reference 去重和命名更新：旧的 style-commercial-theory 文件改为 `commercial-core-methods.md`，商业核心方法、剧情框架、写作技法等重复块改为同 skill 内指针。
+- 写作 reference 补充可落地网文例子，删去空泛比喻和难执行的抽象公式。
 
 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`。

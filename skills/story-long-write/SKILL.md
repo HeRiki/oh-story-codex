@@ -197,7 +197,7 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 
 大纲完成后，创建以下 artifact（加载 [references/artifact-protocols.md](references/artifact-protocols.md) 中对应模板）：
 - **大纲/大纲.md**：全书卷级鸟瞰（卷名+字数+章数+核心事件+状态变化，一段式汇总）
-- **大纲/卷纲_第X卷.md**：每卷的爽点节奏+情绪弧线+人物弧线+伏笔+反转（参考 outline-methods.md「大纲三个维度结构法」 + emotional-arc-design.md「六种弧线速查」 + reversal-toolkit.md「反转类型」）
+- **大纲/卷纲_第X卷.md**：每卷的爽点节奏+情绪弧线+人物弧线+伏笔+反转（参考 outline-methods.md「大纲三层结构法」 + emotional-arc-design.md「六种弧线速查」 + reversal-toolkit.md「反转类型」）
 - **追踪/伏笔.md** + **追踪/时间线.md** + **追踪/角色状态.md**：伏笔状态表+故事时间线+角色状态快照（参考 plot-core-methods.md「连续性追踪」、state-tracking.md「角色状态快照格式」）
 
 前 3 章细纲额外加载 [references/opening-design.md](references/opening-design.md)（黄金三章法则+六大标准）。
@@ -450,7 +450,7 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 | 题材风格 | `references/style-genre-modules.md` |
 | 打斗/装逼 | `references/style-combat-face.md` |
 | 写作技法 | `references/style-craft.md` |
-| 商业创作核心方法 | `references/style-commercial-theory.md` |
+| 商业创作核心方法 | `references/commercial-core-methods.md` |
 | 对话 | `references/dialogue-mastery.md` |
 | 人物深化 | `references/character-design-methods.md` |
 | 情绪技法 + 叙事单元 | `references/plot-emotion-system.md` + `references/emotional-methods.md` |
@@ -481,7 +481,7 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 | 反转 | **`references/reversal-toolkit.md`**（反转类型/铺垫/有效性自检） | `references/plot-core-methods.md`（假胜：先给希望再击碎） |
 | 人物 | **`references/character-basics.md`**（主角/配角/反派/动机模板速填） | `references/character-design-methods.md`（三层标签反差/九维深化）· `references/character-relations.md`（关系类型/感情线） |
 | 女频写作 | **`references/female-audience-writing.md`**（女频长篇：核心原则/文案/题材/感情线长线/平台） | `references/genre-readers.md`（读者心理/平台差异）· `references/character-relations.md`（感情线总框架） |
-| 去AI味 | **`references/anti-ai-writing.md`**（定性裁定） | `references/banned-words.md`（禁用词扫描）· `references/quality-checklist.md`（成稿检查） |
+| 去AI味 | **`references/anti-ai-writing.md`**（AI指纹/核心规则/Show Don't Tell） | `references/banned-words.md`（禁用词扫描）· `references/quality-checklist.md`（成稿检查） |
 
 ---
 

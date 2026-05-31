@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.13
+
+> 同步上游 v0.6.13：write references 一致性修复、抽象概念落地化、同 skill 去重、商业核心方法命名修正与 agent 模板枚举漂移修复
+
+### 改进
+
+- **写作 references 落地化**：同步 plot-emotion-system、plot-frameworks、plot-core-methods、emotional-arc-design、outline-structure-theory、style-craft、short genre references 等上游修订，补真实网文例子并删除空泛公式、审美黑话和难执行比喻。
+- **同 skill 去重**：权力博弈对话、角色状态模板、五幕式、阵营手牌法等重复块改为指向同 skill 内唯一资料源，降低后续维护漂移。
+- **命名修正**：`story-long-write/references/style-commercial-theory.md` 改名为 `commercial-core-methods.md`，使文件名与“卖点/商业策略”内容匹配。
+- **一致性修复**：短篇反转信息差阈值统一到 writing-workflow 三档，对话占比统一 45-65%，workflow-revision Step3 编号和 long-write 锚点名对齐正文。
+- **F1 地图分层**：明确“新手村四势力”与“换地图三势力”是分层策略，不是设定矛盾，并补充变现/资源闭环提醒。
+
+### Bug 修复
+
+- **agent 模板枚举漂移**：`story-architect` 反转类型补齐认知/无反转，`character-designer` 关系命名对齐 `character-relations.md`。
+
+### Codex 适配
+
+- `story-setup` 升级到 `agents_version: 11`、`setup_skill_version: 1.1.2`，提示已部署项目重新运行 `/story-setup` 刷新 `.codex/story-agents/` 与 reference bundle。
+- `story-review` stale deployment 检查同步升级到 v11。
+- 保留 Codex 插件级 lifecycle hook，不同步上游 `.claude-plugin`、ClawHub 发布 workflow、`.claude/hooks`、`.claude/settings.local.json` 或 `CLAUDE.md` 部署。
+
 ## v0.6.12
 
 > 同步上游 v0.6.10-v0.6.12：选题决策、长篇拆文/文风修正、短篇 output contract、女频长篇 playbook、术语白话化与工程守卫

@@ -1,7 +1,7 @@
 #!/bin/bash
 # check-story-setup-deployment.sh — Codex 版 story-setup 部署契约检查
 #
-# v0.6.12 上游增强了 story-setup 的部署清单、reference bundle 和写作 agent。
+# v0.6.13 上游增强了 reference bundle 和 story agent 模板。
 # Codex 移植版保留这些可检查约束，但部署目标必须仍是 AGENTS.md
 # 与 .codex/ 目录，不能恢复旧运行时项目内 hooks/settings 写入。
 
@@ -39,8 +39,8 @@ for required in \
   ".codex/story-rules" \
   ".codex/story-agent-references" \
   "references/agent-references/" \
-  "agents_version: 10" \
-  "setup_skill_version: 1.1.1" \
+  "agents_version: 11" \
+  "setup_skill_version: 1.1.2" \
   "runtime: codex"; do
   if ! grep -qF "$required" "$SETUP_SKILL"; then
     fail "story-setup SKILL.md missing Codex deployment requirement: $required"
