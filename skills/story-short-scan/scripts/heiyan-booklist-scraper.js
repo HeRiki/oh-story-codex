@@ -143,6 +143,7 @@ function buildAndSave(allBooks, total, filtered, filepath) {
     lines.push("---", "");
   }
 
+  fs.mkdirSync(OUTDIR, { recursive: true });
   fs.writeFileSync(filepath, lines.join("\n"), "utf-8");
   console.log(`  ✓ 已保存: ${filepath}`);
 }
@@ -248,4 +249,9 @@ function main() {
   buildAndSave(allBooks, total, filtered, filepath);
 }
 
-main();
+try {
+  main();
+} catch (e) {
+  console.error(`黑岩采集失败: ${e && e.message ? e.message : e}`);
+  process.exit(1);
+}

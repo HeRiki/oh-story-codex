@@ -16,7 +16,7 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 
 | Skill | 用途 |
 |---|---|
-| `story` | 工具箱路由入口，根据用户意图分发到具体写作流程 |
+| `story` | 工具箱路由入口，根据用户意图分发到具体写作流程，并支持多书切换 |
 | `story-setup` | 初始化 Codex 写作项目结构和项目级 `AGENTS.md` |
 | `story-long-scan` | 长篇平台扫榜和题材趋势分析 |
 | `story-long-analyze` | 长篇爆款拆文、黄金三章和深度拆解 |

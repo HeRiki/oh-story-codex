@@ -242,6 +242,7 @@ function main() {
       const rtInfo = RANK_TYPES.find((r) => r.id === rt);
       const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       const filename = `七猫${chInfo.label}${rtInfo.label}_${date}.md`;
+      fs.mkdirSync(OUTDIR, { recursive: true });
       const filepath = path.join(OUTDIR, filename);
       fs.writeFileSync(filepath, content, "utf-8");
       console.log(`  ✓ 已保存: ${filepath}`);
@@ -249,4 +250,9 @@ function main() {
   }
 }
 
-main();
+try {
+  main();
+} catch (e) {
+  console.error(`七猫采集失败: ${e && e.message ? e.message : e}`);
+  process.exit(1);
+}

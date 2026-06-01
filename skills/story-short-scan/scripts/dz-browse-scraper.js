@@ -249,10 +249,16 @@ function main() {
     const chInfo = CHANNELS.find((c) => c.id === ch);
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     const filename = `点众${chInfo.label}短篇_${date}.md`;
+    fs.mkdirSync(OUTDIR, { recursive: true });
     const filepath = path.join(OUTDIR, filename);
     fs.writeFileSync(filepath, content, "utf-8");
     console.log(`  ✓ 已保存: ${filepath}`);
   }
 }
 
-main();
+try {
+  main();
+} catch (e) {
+  console.error(`点众采集失败: ${e && e.message ? e.message : e}`);
+  process.exit(1);
+}

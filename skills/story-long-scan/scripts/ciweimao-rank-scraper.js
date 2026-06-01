@@ -183,6 +183,7 @@ function main() {
 
       const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       const filename = `刺猬猫${rt.label}_${date}.md`;
+      fs.mkdirSync(OUTDIR, { recursive: true });
       const filepath = path.join(OUTDIR, filename);
       fs.writeFileSync(filepath, lines.join("\n"), "utf-8");
       console.log(`  ✓ ${rt.label}：${section.entries.length} 条 → ${filepath}`);
@@ -192,4 +193,9 @@ function main() {
   }
 }
 
-main();
+try {
+  main();
+} catch (e) {
+  console.error(`刺猬猫采集失败: ${e && e.message ? e.message : e}`);
+  process.exit(1);
+}

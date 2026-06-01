@@ -16,7 +16,7 @@ The workflow follows a practical commercial-writing loop: scan trending charts, 
 
 | Skill | Purpose |
 |---|---|
-| `story` | Toolbox router that dispatches user intent to the matching writing workflow |
+| `story` | Toolbox router that dispatches user intent to the matching writing workflow and supports active-book switching |
 | `story-setup` | Initializes a Codex writing project and project-level `AGENTS.md` |
 | `story-long-scan` | Long-form platform trend scanning and genre analysis |
 | `story-long-analyze` | Long-form bestseller deconstruction, golden first chapters, and deep analysis |

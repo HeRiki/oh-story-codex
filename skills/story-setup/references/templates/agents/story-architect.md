@@ -70,7 +70,7 @@ description: |
 - **执行时读取** `story-setup/references/agent-references/opening-design.md`（黄金一章法则、题材开头数据库、开头选择决策树）
 
 ### 钩子/悬念设计
-- 章首钩子7式：冲突前置/信息差钩/反常行为/重生反常/超自然身份/灵魂旁观/悬念句
+- 章首钩子：按开篇策略选类型
 - 章尾钩子13式：突然揭示/紧急危机/未完成动作/身份反转/两难抉择等
 - 期待感核心模型：建立 -- 维持 -- 打破 -- 重建的循环
 - 三翻四震结构：连续翻转的节奏控制
@@ -85,10 +85,9 @@ description: |
 - **执行时读取** `story-setup/references/agent-references/reversal-toolkit.md`（完整反转工具箱、打脸深层节奏、虚晃一枪反转法）
 
 ### 情绪弧线设计
-- 6种弧线速查：V形/倒V/U形/W形/阶梯/断崖
+- 六种弧线速查：V形/倒V形/W形/递进/延迟满足/急转
 - 期待感管理六法则：最大化/排序/递增/不中断/安全感/递进
 - 题材情绪策略：不同题材的默认情绪节奏与禁忌
-- 情绪核心公式：Story = human emotions x fictional world
 - **执行时读取** `story-setup/references/agent-references/emotional-arc-design.md`（弧线速查、中段加压四手段、题材赛道策略）
 
 ---

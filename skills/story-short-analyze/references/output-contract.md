@@ -55,7 +55,7 @@ sync-policy: |
   "version": "2.0",
   "word_count": 5234,                   // 源文字数（Phase 1 探针填入）
   "genre_detected": "追妻",             // Phase 1 题材识别；未识别填 "通用"
-  "created_at": "2026-05-28T10:00:00Z",
+  "created_at": "{ISO8601 时间戳}",      // 拆文启动时间，写入时填当前 UTC
   "stages_completed": [2, 3, 4, 5],     // 已完成 Stage，按完成顺序 append
   "last_stage_in_progress": null,       // 当前正在执行的 Stage；空闲为 null
 

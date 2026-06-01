@@ -201,6 +201,7 @@ function main() {
       const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       const chLabel = ch === "0" ? "全站" : `频道${ch}`;
       const filename = `晋江${rtInfo.label}_${chLabel}_${date}.md`;
+      fs.mkdirSync(OUTDIR, { recursive: true });
       const filepath = path.join(OUTDIR, filename);
       fs.writeFileSync(filepath, content, "utf-8");
       console.log(`  ✓ 已保存: ${filepath}`);
@@ -208,4 +209,9 @@ function main() {
   }
 }
 
-main();
+try {
+  main();
+} catch (e) {
+  console.error(`晋江采集失败: ${e && e.message ? e.message : e}`);
+  process.exit(1);
+}

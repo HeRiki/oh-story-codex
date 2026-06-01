@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+> 同步上游 v0.6.13 之后 main 分支的 deferred debt 收尾修复，保留 Codex runtime 语义
+
+### 改进
+
+- **story 路由**：新增多书切换/列出书目入口，支持维护项目根 `.active-book`。
+- **对话参考**：`dialogue-mastery.md` 的人物语言差异化补齐到 7 维，四份同步副本保持一致。
+- **采集脚本**：补齐输出目录创建、顶层错误处理和部分品类级失败跳过逻辑。
+- **CI/守卫**：`check-shared-files.sh` 对 character 参考文件改为只豁免 short-analyze 分叉，CI 增加 JS 采集脚本语法检查。
+
+### Codex 适配
+
+- 未同步上游 Claude 项目内 hook 模板；继续使用 Codex 插件级 lifecycle hook，不写入 `.claude/hooks` 或 `.claude/settings.local.json`。
+
 ## v0.6.13
 
 > 同步上游 v0.6.13：write references 一致性修复、抽象概念落地化、同 skill 去重、商业核心方法命名修正与 agent 模板枚举漂移修复
