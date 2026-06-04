@@ -79,17 +79,17 @@ demo/拆文库-我爸死后我成了他的影子拳手/
 
 这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
 
-## 升级到 v0.6.13
+## 升级到 v0.6.14
 
-如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v11、`setup_skill_version` 升级到 `1.1.2`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v12、`setup_skill_version` 升级到 `1.1.3`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
 
-本版同步上游 v0.6.13，重点包括：
+本版同步上游 v0.6.14，重点包括：
 
-- **写作 references 落地化**：给剧情框架、情绪层级、商业卖点、金手指升级、短篇题材融合等抽象概念补真实网文例子，删去空泛公式和黑话比喻。
-- **同 skill 去重**：权力博弈对话、角色状态模板、五幕式、阵营手牌法等重复块改为同 skill 内指针，减少重复维护。
-- **命名修正**：`style-commercial-theory.md` 改为 `commercial-core-methods.md`，避免把商业策略文件误读成文风文件。
-- **一致性修复**：短篇反转信息差阈值、对话占比、workflow-revision 编号、long SKILL 锚点名等与正文说明对齐。
-- **story-setup / story-review**：`agents_version` 升级到 v11，刷新 agent 模板，修复反转类型和人物关系命名枚举漂移。
+- **细纲后设定补全**：`story-long-write` 在每批细纲建完后，自动扫描会复用的新角色、势力和关键世界观规则，并增量补建 `设定/角色/`、`设定/势力/`、`设定/世界观/` 与 `追踪/角色状态.md`。
+- **Windows 字数统计修复**：所有文档化的 Python 字符统计不再裸调 `python3`，改为按 `python3` → `python` → `py` 探测可用解释器，规避 Windows Microsoft Store 占位程序 exit 49。
+- **CI/守卫**：新增裸 `python3` 调用扫描和跨平台字数统计测试，Windows stub 模式会模拟 exit 49 并验证自动回退。
+- **story-setup / story-review**：`agents_version` 升级到 v12，刷新 `narrative-writer` agent 模板和 reference bundle。
+- **继承 v0.6.13 改进**：继续保留写作 references 落地化、同 skill 去重、商业核心方法命名修正、采集脚本健壮性和 agent 枚举对齐。
 - **Codex lifecycle hook**：继续保留插件级 hook，不恢复上游项目内 hook 部署，不写入 `.claude/hooks` 或 `.claude/settings.local.json`。
 
 Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。

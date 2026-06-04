@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.14
+
+> 同步上游 v0.6.14：细纲后自动补全新设定/角色、Windows `python3` exit 49 字数统计修复、跨平台 Python 调用守卫与 Codex 适配版本升级
+
+### 改进
+
+- **story-long-write**：同步上游 #126，在每批细纲建完后扫描会复用的新具名角色、势力和关键世界观规则，自动增量补建 `设定/角色/`、`设定/势力/`、`设定/世界观/` 与 `追踪/角色状态.md`；一次性路人不建档，已存在档案只补充不覆盖。
+- **产物映射**：补充 `设定/角色/{角色名}.md`、`设定/势力/{名}.md` 的创建阶段和读取阶段说明，正文首次引入会复用角色/势力时也按同一规则补档。
+- **CI/守卫**：新增 `scripts/check-python-invocation.sh`，禁止 skills 内裸调 `python3`；新增 `scripts/test-charcount-portable.sh`，覆盖中文路径、已知字符数和 Windows exit 49 stub 回退。
+- **GitHub Actions**：三平台工作流接入 Python 调用守卫和字数统计测试，并通过 `actions/setup-python@v5` 提供稳定解释器回退。
+
+### Bug 修复
+
+- **Windows 字数统计**：同步上游 #125，修复 Windows 上 `python3` 可能命中 Microsoft Store App Execution Alias 并 exit 49 的问题；文档化命令改为按 `python3` → `python` → `py` 探测可用解释器。
+- **narrative-writer 模板**：字数统计说明同步改为跨平台解释器探测，避免已部署 agent 继续复制裸 `python3` 命令。
+
+### Codex 适配
+
+- `.codex-plugin/plugin.json` 版本升级到 `0.6.14`。
+- `story-setup` 升级到 `agents_version: 12`、`setup_skill_version: 1.1.3`，提示已部署项目重新运行 `/story-setup` 刷新 `.codex/story-agents/` 与 reference bundle。
+- `story-review` stale deployment 检查同步升级到 v12。
+- 保留 Codex 插件级 lifecycle hook；不恢复上游 `.claude-plugin`、`.claude/hooks`、`.claude/settings.local.json` 或 `CLAUDE.md` 部署。
+
 ## v0.6.13
 
 > 同步上游 v0.6.13：write references 一致性修复、抽象概念落地化、同 skill 去重、商业核心方法命名修正与 agent 模板枚举漂移修复

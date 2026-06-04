@@ -81,17 +81,17 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 
 These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
 
-## Upgrading to v0.6.13
+## Upgrading to v0.6.14
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v11 and `setup_skill_version` to `1.1.2`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v12 and `setup_skill_version` to `1.1.3`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
 
-This release syncs upstream v0.6.13. Main changes:
+This release syncs upstream v0.6.14. Main changes:
 
-- **Writing references made actionable**: adds concrete web-novel examples for plot frameworks, emotional layers, commercial hooks, cheat progression, and short-form genre blending, while removing vague formulas and jargon.
-- **Within-skill deduplication**: replaces duplicated blocks for power-dialogue, character-state templates, five-act structure, and faction-hand methods with pointers to the single local source.
-- **Naming fix**: renames `style-commercial-theory.md` to `commercial-core-methods.md` so commercial strategy is not confused with prose style.
-- **Consistency fixes**: aligns short-form information-gap thresholds, dialogue ratio, workflow-revision numbering, and long-write anchor names.
-- **story-setup / story-review**: `agents_version` is now v11, with refreshed agent templates and enum-drift fixes for twist types and relationship names.
+- **Post-outline setting completion**: `story-long-write` now scans each completed outline batch for reusable new characters, factions, and worldbuilding rules, then incrementally creates `设定/角色/`, `设定/势力/`, `设定/世界观/`, and `追踪/角色状态.md` entries.
+- **Windows character-count fix**: documented Python character-count commands no longer call bare `python3`; they probe `python3` -> `python` -> `py` to avoid the Windows Microsoft Store app-execution alias exit 49 failure.
+- **CI guards**: adds bare-`python3` scanning and portable character-count tests, including a Windows stub mode that simulates exit 49 and verifies fallback behavior.
+- **story-setup / story-review**: `agents_version` is now v12, refreshing the `narrative-writer` agent template and reference bundle.
+- **Inherited v0.6.13 updates**: keeps actionable writing references, within-skill deduplication, commercial-core naming fixes, scraper robustness, and agent enum alignment.
 - **Codex lifecycle hooks**: remain plugin-level hooks. This port does not restore upstream project-local hook deployment and does not write `.claude/hooks` or `.claude/settings.local.json`.
 
 Codex lifecycle hooks are loaded by this repository's plugin mechanism, not written into the user's project by `/story-setup`. Reopen the session after upgrading the plugin to use the new hook behavior.

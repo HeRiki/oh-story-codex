@@ -1,6 +1,6 @@
 {
   "name": "oh-story-codex",
-  "version": "0.6.13",
+  "version": "0.6.14",
   "description": "Codex 版网络小说创作技能包，覆盖扫榜、拆文、写作、审查、去 AI 味、导入和封面生成。",
   "author": {
     "name": "oh-story-codex contributors"
