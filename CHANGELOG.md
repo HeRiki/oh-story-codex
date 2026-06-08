@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.15
+
+> 同步上游 v0.6.15：demo 全量重做、story-import 写作工程框架修正、拆文契约/门控补强、标点规范化脚本和 Codex 适配版本升级
+
+### 改进
+
+- **Demo 重做**：同步新版 `demo/拆文库-盘龙`，新增短篇拆文 `demo/拆文库-曾将爱意私藏`，并新增 `demo/让你管账号，你高燃混剪炸全网` 长篇续写工程示例。
+- **story-import**：明确导入交付物是可续写写作工程；Phase 1 新增“建写作工程 vs 只要拆文库分析”的意图确认；移除 `[导入反推]` 约定，未确定字段统一用 `[待补充]`。
+- **story-long-analyze**：补强拆文契约，新增合成阶段事实保真要求，扩展基调/主题标签枚举，并要求文风锚点能回查原文连续片段。
+- **story-short-analyze**：补充情节节点计数口径和 Phase 7.1 源文引用豁免规则，只扫描分析师本人措辞。
+- **banned-words**：同步「不是A，（而）是B」变体说明，`而` 可省略，省略后仍算命中。
+
+### Bug 修复
+
+- **标点规范化**：`story-deslop` / `story-review` 新增本地 `scripts/normalize-punctuation.js`，可检测/规范破折号、双连字符和 Markdown 分隔线，默认保留盐言 `「」` 引号风格。
+
+### Codex 适配
+
+- `.codex-plugin/plugin.json` 版本升级到 `0.6.15`。
+- `story-setup` 升级到 `agents_version: 13`、`setup_skill_version: 1.1.4`，提示已部署项目重新运行 `/story-setup` 刷新 `.codex/story-agents/` 与 reference bundle。
+- `story-review` stale deployment 检查同步升级到 v13。
+- 继续保留 Codex 插件级 lifecycle hook；不恢复上游 `.claude-plugin`、`.claude/hooks`、`.claude/settings.local.json` 或 `CLAUDE.md` 部署。
+
 ## v0.6.14
 
 > 同步上游 v0.6.14：细纲后自动补全新设定/角色、Windows `python3` exit 49 字数统计修复、跨平台 Python 调用守卫与 Codex 适配版本升级

@@ -29,7 +29,7 @@
 用 Grep 读所有 `章节/*_摘要.md`：
 
 ```bash
-grep -hE '基调：(紧张|轻松|悲伤|热血|温馨|压抑)' 章节/*_摘要.md
+grep -hE '基调：(紧张|轻松|悲伤|热血|爽|甜|温馨|恐怖|压抑|其他)' 章节/*_摘要.md
 ```
 
 **关键格式注意**：`章节/*_摘要.md` 的实际格式是 `主题标签：X | 基调：Y` 内联在每个情节点行（一章 11-19 行），用**全角冒号**，**不在行首**。grep 模式不能用 `^基调:` 这种锚定。
@@ -72,7 +72,7 @@ grep -nE '^第[一二三四五六七八九十百千两零0-9]+章' 原文/原文
 
 **确定性句长/标点统计**（替代旧版「眼测」）：
 
-Stage 6 由**主线程**执行，Bash 工具可用。把上一步拼好的 `/tmp/style-sample.txt` 喂给下面的脚本（heredoc 作 Python 源，脚本内 open 样本文件，避免 stdin heredoc 与 `< file` 双重重定向冲突）。先探测可用解释器再跑——**勿直接用 `python3`**，Windows 上它可能触发 Microsoft Store 占位程序、exit 49 失败：
+Stage 6 由**主线程**执行，Bash 工具可用。把上一步拼好的 `/tmp/style-sample.txt` 喂给下面的脚本（heredoc 作 Python 源，脚本内 open 样本文件，避免 stdin heredoc 与 `< file` 双重重定向冲突）。先探测可用解释器再跑——**勿直接用 `python3`**，Windows 上它会触发 Microsoft Store 占位程序、exit 49 失败：
 
 ```bash
 for PYBIN in python3 python py; do "$PYBIN" -c "" 2>/dev/null && break; done
@@ -116,6 +116,7 @@ PYEOF
 - 用 Step 4 grep 拿到的章节行号
 - 该章原文从中选 1 段 300-500 字（优先选对话+动作交织的段落，纯独白/纯设定段不选）
 - 用 `Read offset limit` 切出，保留原标点和段落断行
+- **锚点必须逐字连续切片，禁止改写/缩写/跳段/拼接**：narrative-writer 拿锚点当 few-shot 直接学，标注的行号要能回查原文。落盘前逐段抽 1-2 句 `grep -F` 回 `原文/原文.txt`，grep 不到即说明被改写或拼接——重切为忠实连续片段。确需跳过中间过渡段时，分别标各自真实行号（如「行264-267 + 行269-270」）并在引用块内用「（……中略……）」显式断开，不得用一个连续行号区间假装连续
 
 ### Step 6: 落盘
 

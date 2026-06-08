@@ -49,7 +49,8 @@
 - `agents_version: 9` → 旧版，需重新部署以获取新版写作 Agent、文风档案沿用和流程衔接更新
 - `agents_version: 10` → 旧版，需重新部署以获取 agent 模板枚举漂移修复和 reference 去重/命名更新
 - `agents_version: 11` → 旧版，需重新部署以获取 Windows 字数统计解释器探测修复
-- `agents_version: 12` → 当前版本
+- `agents_version: 12` → 旧版，需重新部署以获取拆文契约、基调枚举和标点格式修复
+- `agents_version: 13` → 当前版本
 
 ## 版本变更
 
@@ -121,10 +122,17 @@
 - 同步 reference 去重和命名更新：旧的 style-commercial-theory 文件改为 `commercial-core-methods.md`，商业核心方法、剧情框架、写作技法等重复块改为同 skill 内指针。
 - 写作 reference 补充可落地网文例子，删去空泛比喻和难执行的抽象公式。
 
-### v12 (当前)
+### v12
 
 - `setup_skill_version` 升级到 `1.1.3`，`.story-deployed` 的 `agents_version` 升级到 `12`。
 - 刷新 `narrative-writer` 参考提示词，字数统计改为 `python3→python→py` 实跑探测，避免 Windows 上 `python3` 触发 Microsoft Store 占位程序并以 exit 49 静默失败。
 - 已部署项目重新运行 `/story-setup` 后可刷新 `.codex/story-agents/narrative-writer.md` 与相关规则说明。
+
+### v13 (当前)
+
+- `setup_skill_version` 升级到 `1.1.4`，`.story-deployed` 的 `agents_version` 升级到 `13`。
+- 刷新 `chapter-extractor`、`story-explorer`、`story-researcher`、`consistency-checker` 与 `narrative-writer` 参考提示词，补齐长篇拆文基调/主题枚举、文风锚点保真、盐言引号保留和标点格式规则。
+- 刷新 agent reference bundle 中的 banned-words、anti-ai-writing、dialogue/format/writing 参考，包含「不是A，（而）是B」变体和 `「」` 引号兼容。
+- 已部署项目重新运行 `/story-setup` 后可刷新 `.codex/story-agents/`、`.codex/story-agent-references/` 与 `.story-deployed`。
 
 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`。

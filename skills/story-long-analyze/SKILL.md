@@ -192,18 +192,20 @@ Stage 4c（角色关系提取）— 串行，依赖 4b 角色实体存在
 
 Stage 3-4 完成前需通过质量检查（置信度、覆盖率、重叠率）。阈值、计算方式与自检清单的唯一权威定义见 [material-decomposition.md 质量阈值体系](references/material-decomposition.md)。
 
+**Stage 3-5 还须过「事实可溯源」自检**：设定/角色/报告里的硬事实（等级/数值/距离/属性/势力数/出场章/谁说的话）必须能 grep 回原文，原文没给的写「原文未明确」、禁推断填空。这是拆文事实错误的最大来源（强模型也会漂移，因为合成阶段离原文两跳、靠合理性填空）。详见 [material-decomposition.md 合成阶段事实保真](references/material-decomposition.md)。
+
 ---
 
 ## Stage 2 并行 Agent 策略
 
-Stage 2 使用 `chapter-extractor` 参考提示词并行处理每章，替代原来的串行分块。
+Stage 2 使用 chapter-extractor agent 并行处理每章，替代原来的串行分块。
 
 ### 调用方式
 
 ```python
 spawn_agent(
   name="chapter-extractor",
-  prompt="章节编号：第{N}章\n章节标题：{标题}\n章节字数：{字数}\n\n章节原文：\n{原文文本}"
+  prompt: "章节编号：第{N}章\n章节标题：{标题}\n章节字数：{字数}\n\n章节原文：\n{原文文本}"
 )
 ```
 
@@ -222,8 +224,13 @@ spawn_agent(
 ### 失败处理 + 质量升级重试
 
 **两类失败**：
-1. **执行失败**（agent crash / 超时 / 空输出）→ 同配置重试 1 次
-2. **质量失败**（输出落盘后跑 chapter-extractor.md「质量检查」9 条自检，任一不达标——典型：情节点 < 10、原文引用缺失、类型/基调超出枚举、角色名为昵称/通用称呼）→ **改用更高推理/更强模型配置重试 1 次**
+1. **执行失败**（agent crash / 超时 / 空输出）→ 同模型（haiku）重试 1 次
+2. **质量失败**（输出落盘后跑 chapter-extractor.md「质量检查」10 条自检，任一不达标——典型：情节点 < 10、原文引用缺失、类型/基调/主题标签超出枚举、`基调：` 漏全角冒号、角色名为昵称/通用称呼）→ **改用更高推理/更强模型配置重试 1 次**
+
+**可机械校验的硬门控**（主线程落盘后直接 grep，命中即判质量失败，不依赖 agent 自报）：
+- 情节点数 `N = grep -cE '^P[0-9]+ '`；`grep -c '基调：'` 必须 == N（少于 N = 有情节点漏 `基调：` 或漏全角冒号 → 下游 Stage 6 文风采样按全角 `基调：` grep，会静默漏章）
+- `grep -hoE '基调：[^ |]+'` 去重后 ⊆ {紧张, 轻松, 悲伤, 热血, 爽, 甜, 温馨, 恐怖, 压抑, 其他}
+- `grep -hoE '主题标签[：]?[^ |]+'` 去重（去 `主题标签`/冒号前缀后）⊆ {爱情, 亲情, 友情, 权力, 金钱, 成长, 复仇, 悬念, 搞笑, 热血, 日常, 其他}（出现 `主题标签：` 带冒号、或值为基调词均判失败）
 
 **升级重试调用方式**（主线程在校验失败后执行）：
 
@@ -231,15 +238,15 @@ spawn_agent(
 spawn_agent(
   name="chapter-extractor",
   reasoning_effort="high",
-  prompt="章节编号：第{N}章\n...（同首次 prompt，可追加：'上次校验失败原因：{自检失败项}'）"
+  prompt: "章节编号：第{N}章\n...（同首次 prompt，可追加：'上次校验失败原因：{自检失败项}'）"
 )
 ```
 
 **最终落盘规则**：
-- 首次通过 → 写入 `章节/第{N}章_摘要.md`，`_progress.md` 标记 `success`
-- 执行失败 + 同配置 retry 通过 → 同上，备注 `retry_same_config`
-- 质量失败 + 高推理 retry 通过 → 同上，备注 `retry_high_reasoning`
-- 高推理 retry 仍失败 → 章节标记 `⚠️ 跳过`，失败原因写入 `_progress.md` 「失败记录」表，拆文报告中注明
+- haiku 首次通过 → 写入 `章节/第{N}章_摘要.md`，`_progress.md` 标记 `success`
+- haiku 失败 + 同模型 retry 通过 → 同上，备注 `retry_same_model`
+- 质量失败 + 升级重试通过 → 同上，备注 `retry_stronger_config`
+- 升级重试仍失败 → 章节标记 `⚠️ 跳过`，失败原因写入 `_progress.md` 「失败记录」表，拆文报告中注明
 - 单章失败不阻断管道；批次全部 spawn 完成后才决定是否进入 Stage 3
 
 ### Agent 不可用降级

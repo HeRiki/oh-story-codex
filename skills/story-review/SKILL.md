@@ -29,8 +29,8 @@ description: |
 3. **检查核心 Agent 部署状态**（只检查项目内 agents，不要假设一定存在）：
    - full 必需：`.codex/story-agents/story-architect.md`、`.codex/story-agents/character-designer.md`、`.codex/story-agents/narrative-writer.md`、`.codex/story-agents/consistency-checker.md`
    - lean 必需：`.codex/story-agents/story-architect.md`、`.codex/story-agents/consistency-checker.md`
-   - 对每个必需 Agent 文件，读取 frontmatter，确认 `name:` 与文件名/目标 agent 名称一致；frontmatter 缺失、不可解析或 name 不匹配时视为 malformed agent。
-   - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `12`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
+   - 对每个必需 Agent 文件，读取 frontmatter，确认 `name:` 与目标 agent 名称完全一致；frontmatter 缺失、不可解析或 name 不匹配时视为 malformed agent。
+   - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `13`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
    - 如果目标模式所需任一文件缺失或 malformed，**不要尝试 spawn 缺失/异常 Agent**；自动降级为 `solo`，并在报告开头写明：`Fallback: missing agents -> solo` 或 `Fallback: malformed agents -> solo`，列出问题文件，建议用户运行 `/story-setup`。
 4. **确认 Agent/Task 工具可用**：如果当前环境没有可用的子 Agent/Task 调用能力，直接降级为 `solo`，报告 `Fallback: agent tool unavailable -> solo`。
 5. **运行时失败降级**：如果任何 Agent spawn 返回失败、目标 agent 名称不可用、frontmatter 运行时解析失败或子 Agent 无法启动，停止继续 spawn，改用 `solo` 重新审查，并报告 `Fallback: spawn failed -> solo` 与失败的 agent 名称；不要把部分成功的 Agent 结果当成 full/lean 结论。
@@ -74,6 +74,7 @@ Rubric Source: file | embedded fallback
 | 对话质量 | `story-review/references/dialogue-mastery.md` |
 | 审查禁用词 | `story-review/references/banned-words.md` |
 | 平台 rubric | `story-review/references/rubrics/{fanqie,qidian,zhihu}.md` |
+| 标点预检脚本 | `story-review/scripts/normalize-punctuation.js` |
 
 ### 内置审查基准包（路径不可读时必用）
 
@@ -131,6 +132,14 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
    - 知乎盐言 → 优先读取 `story-review/references/rubrics/zhihu.md`；不可读时使用内置知乎 fallback 摘要。
    - 未识别平台 → 优先读取 `story-review/references/quality-rubric.md`；不可读时使用内置通用网文内容 rubric，并报告 `Rubric: generic web-fiction` 与 `Rubric Source: file | embedded fallback`。
 5. **形成审查基准包摘要**：把已加载的文件内容或内置 fallback 摘要压缩为 5-12 条审查标准，后续 solo 和子 Agent 都必须使用这份摘要。
+6. **确定性标点预检（只报告，不修改）**：当审查范围包含本地正文文件路径时，运行本 skill 自带脚本：
+   ```bash
+   node scripts/normalize-punctuation.js --check <正文文件...>
+   ```
+   - 将 `em-dash`、`double-hyphen`、`markdown-divider` 结果作为 `format` 或 `prose` findings 合并进报告。
+   - `story-review` 不修改文件；需要自动修复时建议转 `/story-deslop`。
+   - 默认 `--quote-mode keep`，不把知乎盐言短篇的 `「」` 当作问题；只有项目明确指定引号风格时才检查对应转换建议。
+   - 该脚本是 `story-review` 的本地副本，不引用其他 skill 的文件。
 
 **Phase 1.5：可选 story-explorer 预查询**。仅当 `Effective Mode` 仍为 `full`/`lean`、当前允许 spawn 且 Agent/Task 工具可用时，才可检查 `.codex/story-agents/story-explorer.md` 并 spawn `story-explorer` 预查设定摘要；`solo` 或子代理递归保护场景下不得 spawn，只能直接 Read/Grep。Prompt 示例：
 

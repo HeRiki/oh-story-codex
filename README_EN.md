@@ -30,9 +30,9 @@ The workflow follows a practical commercial-writing loop: scan trending charts, 
 | `story-cover` | Web novel cover prompt and image generation workflow |
 | `browser-cdp` | Uses Chrome DevTools Protocol to reuse login sessions for page collection |
 
-## Deconstruction Demo
+## Demo
 
-This Codex port keeps upstream demo analysis outputs only; they do not include original story text.
+This Codex port keeps the upstream v0.6.15 demos to show deconstruction outputs and a continuation-ready imported writing project. Some demos now include upstream-provided source backups or sample prose so the analyze/import/write workflow can be verified end to end.
 
 Main files:
 
@@ -40,13 +40,24 @@ Main files:
 demo/拆文库-盘龙/
 ├── 概要.md
 ├── 拆文报告.md
+├── 文风.md
 ├── 章节/
 ├── 角色/
 ├── 剧情/
-└── 设定/
+├── 设定/
+└── 原文/
 
-demo/拆文库-我爸死后我成了他的影子拳手/
-└── 拆文报告.md
+demo/拆文库-曾将爱意私藏/
+├── 拆文报告.md
+├── 情节节点.md
+├── 写作手法.md
+└── 原文/
+
+demo/让你管账号，你高燃混剪炸全网/
+├── 正文/
+├── 设定/
+├── 大纲/
+└── 追踪/
 ```
 
 ## Codex Usage
@@ -81,17 +92,17 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 
 These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
 
-## Upgrading to v0.6.14
+## Upgrading to v0.6.15
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v12 and `setup_skill_version` to `1.1.3`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v13 and `setup_skill_version` to `1.1.4`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
 
-This release syncs upstream v0.6.14. Main changes:
+This release syncs upstream v0.6.15. Main changes:
 
-- **Post-outline setting completion**: `story-long-write` now scans each completed outline batch for reusable new characters, factions, and worldbuilding rules, then incrementally creates `设定/角色/`, `设定/势力/`, `设定/世界观/`, and `追踪/角色状态.md` entries.
-- **Windows character-count fix**: documented Python character-count commands no longer call bare `python3`; they probe `python3` -> `python` -> `py` to avoid the Windows Microsoft Store app-execution alias exit 49 failure.
-- **CI guards**: adds bare-`python3` scanning and portable character-count tests, including a Windows stub mode that simulates exit 49 and verifies fallback behavior.
-- **story-setup / story-review**: `agents_version` is now v12, refreshing the `narrative-writer` agent template and reference bundle.
-- **Inherited v0.6.13 updates**: keeps actionable writing references, within-skill deduplication, commercial-core naming fixes, scraper robustness, and agent enum alignment.
+- **Demo refresh**: updates `拆文库-盘龙`, adds short-story deconstruction demo `拆文库-曾将爱意私藏`, and adds the imported long-form writing-project demo `让你管账号，你高燃混剪炸全网`.
+- **story-import framing fix**: clarifies that the deliverable is a continuation-ready writing project, adds intent confirmation for “build project vs analysis only”, removes `[导入反推]`, and uses `[待补充]` for uncertain fields.
+- **Deconstruction contracts**: strengthens long-form factual traceability, tone/theme enums, and style anchor fidelity; strengthens short-form node-count semantics and source-quote exemptions.
+- **Punctuation normalization**: `story-deslop` and `story-review` now ship local `normalize-punctuation.js` copies. The default keeps Zhihu/Yanxuan-style `「」` quotes valid.
+- **story-setup / story-review**: `agents_version` is now v13, refreshing `chapter-extractor`, `story-explorer`, `story-researcher`, and the reference bundle.
 - **Codex lifecycle hooks**: remain plugin-level hooks. This port does not restore upstream project-local hook deployment and does not write `.claude/hooks` or `.claude/settings.local.json`.
 
 Codex lifecycle hooks are loaded by this repository's plugin mechanism, not written into the user's project by `/story-setup`. Reopen the session after upgrading the plugin to use the new hook behavior.
@@ -176,6 +187,11 @@ bash scripts/smoke-test-local-skills.sh /c/CodexData/skills
 
 - Original author / upstream core contributor: [`worldwonderer`](https://github.com/worldwonderer)
 - Codex port maintenance: `oh-story-codex contributors`
+
+## Community
+
+- **Telegram**: <https://t.me/ohstoryclaudecode> for chat, troubleshooting, and feature discussion.
+- **GitHub Discussions**: [ask questions, get help, share workflows](https://github.com/worldwonderer/oh-story-claudecode/discussions).
 
 ## Suggested GitHub Description
 

@@ -30,9 +30,9 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 | `story-cover` | 网文封面提示词与图像生成流程 |
 | `browser-cdp` | 通过 CDP 复用 Chrome 登录态做页面采集 |
 
-## 拆文 Demo
+## Demo
 
-本仓库同步保留上游 demo，均仅包含分析输出，不包含小说原文。
+本仓库同步保留上游 v0.6.15 demo，用于展示拆文产物和导入后的可续写工程结构。部分 demo 按上游原样包含原文备份或示例正文，用于验证拆文、导入和续写链路。
 
 主要文件：
 
@@ -40,13 +40,24 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 demo/拆文库-盘龙/
 ├── 概要.md
 ├── 拆文报告.md
+├── 文风.md
 ├── 章节/
 ├── 角色/
 ├── 剧情/
-└── 设定/
+├── 设定/
+└── 原文/
 
-demo/拆文库-我爸死后我成了他的影子拳手/
-└── 拆文报告.md
+demo/拆文库-曾将爱意私藏/
+├── 拆文报告.md
+├── 情节节点.md
+├── 写作手法.md
+└── 原文/
+
+demo/让你管账号，你高燃混剪炸全网/
+├── 正文/
+├── 设定/
+├── 大纲/
+└── 追踪/
 ```
 
 ## Codex 使用方式
@@ -79,17 +90,17 @@ demo/拆文库-我爸死后我成了他的影子拳手/
 
 这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
 
-## 升级到 v0.6.14
+## 升级到 v0.6.15
 
-如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v12、`setup_skill_version` 升级到 `1.1.3`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v13、`setup_skill_version` 升级到 `1.1.4`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
 
-本版同步上游 v0.6.14，重点包括：
+本版同步上游 v0.6.15，重点包括：
 
-- **细纲后设定补全**：`story-long-write` 在每批细纲建完后，自动扫描会复用的新角色、势力和关键世界观规则，并增量补建 `设定/角色/`、`设定/势力/`、`设定/世界观/` 与 `追踪/角色状态.md`。
-- **Windows 字数统计修复**：所有文档化的 Python 字符统计不再裸调 `python3`，改为按 `python3` → `python` → `py` 探测可用解释器，规避 Windows Microsoft Store 占位程序 exit 49。
-- **CI/守卫**：新增裸 `python3` 调用扫描和跨平台字数统计测试，Windows stub 模式会模拟 exit 49 并验证自动回退。
-- **story-setup / story-review**：`agents_version` 升级到 v12，刷新 `narrative-writer` agent 模板和 reference bundle。
-- **继承 v0.6.13 改进**：继续保留写作 references 落地化、同 skill 去重、商业核心方法命名修正、采集脚本健壮性和 agent 枚举对齐。
+- **Demo 重做**：同步新版 `拆文库-盘龙`、新增短篇拆文 `拆文库-曾将爱意私藏`，并新增 `让你管账号，你高燃混剪炸全网` 长篇续写工程 demo。
+- **story-import 工程化修正**：明确导入交付物是可续写写作工程，新增“建工程 vs 只要拆文库分析”的意图确认，并移除 `[导入反推]` 标记，未定字段改为 `[待补充]`。
+- **拆文契约补强**：长篇拆文补事实保真、基调/主题枚举和文风锚点保真；短篇拆文补节点计数口径和源文引用豁免。
+- **标点规范化**：`story-deslop` / `story-review` 增加本地 `normalize-punctuation.js`，默认保留盐言 `「」` 引号，不把它当作格式错误。
+- **story-setup / story-review**：`agents_version` 升级到 v13，刷新 `chapter-extractor`、`story-explorer`、`story-researcher` 等 agent 模板和 reference bundle。
 - **Codex lifecycle hook**：继续保留插件级 hook，不恢复上游项目内 hook 部署，不写入 `.claude/hooks` 或 `.claude/settings.local.json`。
 
 Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。
@@ -174,6 +185,11 @@ bash scripts/smoke-test-local-skills.sh /c/CodexData/skills
 
 - 原项目作者 / 上游核心贡献者：[`worldwonderer`](https://github.com/worldwonderer)
 - Codex 移植维护：`oh-story-codex contributors`
+
+## 交流
+
+- **Telegram 群**：<https://t.me/ohstoryclaudecode>，用于日常交流、踩坑和新功能讨论。
+- **GitHub Discussions**：[提问 / 求助 / 分享用法](https://github.com/worldwonderer/oh-story-claudecode/discussions)，便于检索上游讨论。
 
 ## 发布描述建议
 

@@ -168,6 +168,7 @@ Stage 6 内容写完后，**不**立刻 append `6` 到 `stages_completed[]`。�
 
 扫描 `拆文报告.md` 全文 against [references/banned-words.md](references/banned-words.md)
 词表 + [references/anti-ai-writing.md](references/anti-ai-writing.md) 句式规则。
+扫描时跳过源文引用——以 `>` 开头的引用行、以及表格中「关键台词 / 原文引用」列的引号直引不计入，只扫分析师本人写的措辞。
 
 - **命中** → 不写 `stages_completed[6]`，列出命中位置，提示用户人工修订**拆文报告
   本身**的 AI 腔（不是源文——源文里有 AI 腔正常报告即可，但报告本身不能写成 AI 腔）。
