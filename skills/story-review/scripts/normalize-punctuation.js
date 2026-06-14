@@ -168,12 +168,14 @@ function normalizeDashes(line, lineNo) {
     output += original.slice(lastIndex, match.index);
     const replacement = chooseDashReplacement(original, match.index, match[0].length);
     output += replacement;
-    findings.push({
-      line: lineNo,
-      column: match.index + 1,
-      type: match[0].startsWith('-') ? 'double-hyphen' : 'em-dash',
-      message: replacement ? `替换为「${replacement}」。` : '移除重复标点。',
-    });
+    if (replacement !== match[0]) {
+      findings.push({
+        line: lineNo,
+        column: match.index + 1,
+        type: match[0].startsWith('-') ? 'double-hyphen' : 'em-dash',
+        message: replacement ? `替换为「${replacement}」。` : '移除重复标点。',
+      });
+    }
     lastIndex = match.index + match[0].length;
   }
 
