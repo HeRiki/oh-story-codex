@@ -17,9 +17,33 @@
 
 const fs = require("fs");
 const path = require("path");
-const { ab, sleep, evalJSON, scrollLoad, getArg } = require("./cdp-utils");
+const { ab, sleep, scrollLoad, getArg } = require("./cdp-utils");
 
 const RANK_URL = "https://www.ciweimao.com/rank-index";
+
+// eval 统一走 base64，规避复杂 JS 的 shell 转义问题（与 fanqie 一致）
+function evalJSON(port, js) {
+  const b64 = Buffer.from(String(js), "utf-8").toString("base64");
+  const raw = ab(port, "eval", "-b", b64);
+  if (!raw || raw === "ERR") return null;
+  try {
+    let parsed = JSON.parse(raw);
+    if (typeof parsed === "string") {
+      try { parsed = JSON.parse(parsed); } catch {}
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** 连通性 + 页面就绪自检 */
+function probePage(port) {
+  return evalJSON(
+    port,
+    "JSON.stringify({host:location.host,len:(document.body&&document.body.innerText||'').length})"
+  );
+}
 
 const RANK_TYPES = [
   { id: "click", label: "点击榜", header: "点击榜" },
@@ -84,17 +108,24 @@ function extractAllRanks(port) {
   return evalJSON(port, js) || [];
 }
 
-/** 从 DOM 获取书籍链接（去重，含标题用于匹配） */
+/**
+ * 从 DOM 获取书籍链接。每本书常有封面图 anchor（textContent 为空）和书名 anchor，
+ * 按 bookId 聚合后取最长的非空文本作为书名，避免空封面 anchor 覆盖书名导致回填全失败。
+ */
 function extractBookUrls(port) {
-  const js =
-    "JSON.stringify((()=>{" +
-    "var seen=new Set();var urls=[];" +
-    "Array.from(document.querySelectorAll('a[href*=\"/book/\"]')).forEach(function(a){" +
-    "var h=a.getAttribute('href')||a.href||'';" +
-    "var m=h.match(/\\/book\\/(\\d+)/);" +
-    "if(m&&!seen.has(m[1])){seen.add(m[1]);urls.push({bookId:m[1],title:a.textContent.trim(),url:'https://www.ciweimao.com/book/'+m[1]})}" +
-    "});return urls" +
-    "})())";
+  const js = `JSON.stringify((function(){
+    function clean(t){return t.replace(/^[0-9]+\\[[^\\]]*\\]/,'').replace(/\\s+[0-9.]+(?:万|亿)?$/,'').trim();}
+    var byId={};var order=[];
+    Array.from(document.querySelectorAll('a[href*="/book/"]')).forEach(function(a){
+      var h=a.getAttribute('href')||a.href||'';
+      var m=h.match(/\\/book\\/([0-9]+)/);
+      if(!m)return; var id=m[1];
+      var t=clean((a.innerText||a.textContent||'').replace(/\\s+/g,' ').trim());
+      if(!byId[id]){byId[id]='';order.push(id);}
+      if(t&&t.length>byId[id].length)byId[id]=t;
+    });
+    return order.map(function(id){return {bookId:id,title:byId[id],url:'https://www.ciweimao.com/book/'+id};});
+  })())`;
   return evalJSON(port, js) || [];
 }
 
@@ -115,12 +146,32 @@ function main() {
   try {
     ab(PORT, "open", RANK_URL);
     sleep(4000);
+
+    // 连通性自检：CDP 未起/被重定向时给可操作报错，而非误报"结构已变"
+    const probe = probePage(PORT);
+    if (!probe) {
+      console.error(
+        `  ✗ CDP 无响应。请确认已用 browser-cdp 启动 Chrome（端口 ${PORT}），且 agent-browser 可用。`
+      );
+      return;
+    }
+    if (probe.host && probe.host.indexOf("ciweimao") === -1) {
+      console.error(`  ✗ 当前页面非刺猬猫（host=${probe.host}），可能被重定向，已跳过。`);
+      return;
+    }
+
     scrollLoad(PORT, 3);
     sleep(1000);
 
     sections = extractAllRanks(PORT);
     if (!sections.length) {
-      console.error("[ciweimao] 采集失败：页面结构可能已变（选择器没匹配到数据），请检查榜单URL或更新选择器");
+      // 懒加载可能未触发，再滚动重试一次
+      scrollLoad(PORT, 2);
+      sleep(1000);
+      sections = extractAllRanks(PORT);
+    }
+    if (!sections.length) {
+      console.error("[ciweimao] 采集失败：未解析到榜单（页面结构可能变动或未加载）。请人工打开榜单页确认。");
       return;
     }
 
@@ -147,12 +198,17 @@ function main() {
       }
 
       const now = new Date().toISOString();
+      const norm = (s) => (s || "").replace(/\s+/g, "");
+      const linked = section.entries.filter((e) =>
+        urls.some((u) => norm(u.title) === norm(e.title))
+      ).length;
       const lines = [
         `# 刺猬猫 · ${rt.label}`,
         "",
         `- 来源：${RANK_URL}`,
         `- 抓取时间：${now}`,
         `- 条目数：${section.entries.length}`,
+        `- 作品页链接：${linked} / ${section.entries.length}`,
         "",
         "---",
         "",
@@ -168,8 +224,8 @@ function main() {
           ].filter(Boolean).join(" · ");
           if (meta) lines.push(`*${meta}*`);
 
-          // 按标题匹配书籍链接
-          const matched = urls.find((u) => u.title === entry.title);
+          // 按标题匹配书籍链接（归一后比对）
+          const matched = urls.find((u) => norm(u.title) === norm(entry.title));
           if (matched) {
             lines.push(`[作品页](${matched.url})`);
           }

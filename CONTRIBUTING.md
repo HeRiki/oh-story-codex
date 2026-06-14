@@ -20,8 +20,10 @@ skills/
 ├── story-cover/             # 封面生成
 └── browser-cdp/             # 浏览器操控
 scripts/
-├── static-check.sh          # CI 脚本：frontmatter + 引用路径 + 死文件 + 交叉引用
-└── check-shared-files.sh    # 共享文件一致性校验
+├── static-check.sh                    # frontmatter + 引用路径 + 死文件 + 交叉引用
+├── check-hook-regex-sync.sh           # Codex lifecycle hook 伏笔状态检测行为
+├── check-shared-files.sh              # 跨 skill 同名副本一致性
+└── check-story-setup-deployment.sh    # story-setup Codex 部署契约完整性
 ```
 
 每个 skill 由一个 `SKILL.md`（入口）和 `references/` 目录（知识库）组成。
@@ -58,17 +60,23 @@ description: |
 
 ## CI 检查
 
-PR 自动运行 `bash scripts/static-check.sh`，检查项：
-- frontmatter（name + description 必填）
-- 引用路径有效性（SKILL.md 中提到的 references 文件必须存在）
-- 死文件检测（references/ 中未被 SKILL.md 引用的文件会警告）
-- references 内部交叉引用有效性
+PR 自动运行 `.github/workflows/cross-platform.yml`。static-check job 跑以下检查（全部强制）：
 
-提交前建议本地运行：
+- `scripts/static-check.sh` — frontmatter、引用路径、死文件、references 交叉引用和 Codex 污染扫描
+- `scripts/check-hook-regex-sync.sh` — Codex lifecycle hook 伏笔状态检测行为
+- `scripts/check-shared-files.sh` — 跨 skill 同名副本字节一致性
+- `scripts/check-story-setup-deployment.sh` — story-setup Codex 部署契约完整性
+- 采集脚本和本地规范化脚本 `node --check` 语法校验
+
+另有 Windows / macOS job 验证 CDP 工具加载与 setup 脚本 dry-run。
+
+提交前建议本地全部跑一遍：
 
 ```bash
-bash scripts/static-check.sh       # CI 会跑的检查
-bash scripts/check-shared-files.sh # 共享文件一致性（CI 未强制）
+bash scripts/static-check.sh
+bash scripts/check-hook-regex-sync.sh
+bash scripts/check-shared-files.sh
+bash scripts/check-story-setup-deployment.sh
 ```
 
 ## 共享文件规范

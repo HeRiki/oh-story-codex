@@ -88,7 +88,14 @@ description: |
 | 男频新书榜 | fanqienovel.com/rank/1_1_{cat_id} | 新风向信号 |
 | 女频新书榜 | fanqienovel.com/rank/0_1_{cat_id} | 新风向信号 |
 
-URL 参数：`/rank/{channel}_{type}_{cat_id}`，channel 0=女频/1=男频，type 1=新书榜/2=阅读榜。番茄有字体反爬，需用 `scripts/fanqie-rank-scraper.js`（通过详情页获取可读标题，绕过字体反爬，配合 browser-cdp 使用）。
+URL 参数：`/rank/{channel}_{type}_{cat_id}`，channel 0=女频/1=男频，type 1=新书榜/2=阅读榜。番茄列表页有字体反爬，须用 `scripts/fanqie-rank-scraper.js` 从详情页多策略解码书名/作者/题材/评分/标签/简介，配合 browser-cdp 使用：
+
+```bash
+node scripts/fanqie-rank-scraper.js --channel 1 --type 2 --outdir {输出目录}   # 男频阅读榜
+node scripts/fanqie-rank-scraper.js --channel all --top 15 --outdir {输出目录}   # 男女频，每题材前 15 本
+```
+
+> **番茄采集后必查文件头 `数据质量`**：标 `[标题解析异常]` 或书名大量显示 `（标题待解析）`，说明详情页解码失败（多为页面结构变动或被登录/验证页拦截）。先在已登录 Chrome 里手动打开任一 `https://fanqienovel.com/page/{bookId}` 确认页面正常，再重采；控制台报 `CDP 无响应` 则先按 browser-cdp 重启 Chrome。排查细节见 [references/scan-output-format.md](references/scan-output-format.md)。
 
 **七猫采集目标**：
 
@@ -98,13 +105,19 @@ URL 参数：`/rank/{channel}_{type}_{cat_id}`，channel 0=女频/1=男频，typ
 
 榜单类型：大热榜（日榜/月榜）、新书榜、完结榜、收藏榜、更新榜，支持男生榜/女生榜切换。
 
-**晋江采集目标**：
+**晋江采集目标**（`scripts/jjwxc-rank-scraper.js`，默认列表 + 详情两步走）：
 
 | 榜单 | URL | 核心字段 |
 |------|-----|----------|
-| 收入金榜 | jjwxc.net/topten.php?orderstr=12&t=0 | 收藏数、营养液、积分（**必须进详情页采集**） |
+| 收入金榜 | jjwxc.net/topten.php?orderstr=12&t=0 | 收藏数、营养液、积分、字数、状态（详情页 `onebook.php` 补采） |
 
-> **晋江硬性要求**：列表页只有书名和作者，无法支撑分析。采集时必须逐条进入详情页，获取收藏数、营养液、积分、字数。详情页需登录态时，在文件头注明 `[登录态缺失]`。
+```bash
+node scripts/jjwxc-rank-scraper.js --type 12 --outdir {输出目录}        # 列表+详情（默认每频道前10，详情上限100）
+node scripts/jjwxc-rank-scraper.js --type 12 --top 15 --detail-limit 60  # 调整每频道本数/详情总量
+node scripts/jjwxc-rank-scraper.js --type 12 --list-only                 # 只采列表（快，无核心指标）
+```
+
+> **晋江硬性要求**：列表页只有书名+作者，无法支撑分析，必须进详情页。脚本已自动从书名 anchor 取 `novelid` → `onebook.php?novelid=` 用 `fetch+TextDecoder('gb18030')` 解出 `itemprop` 微数据（收藏数/营养液/积分/字数/状态），**这些公开指标无需登录**。受 `--top`（每频道）+ `--detail-limit`（总量）约束以控制时长；列表全量保留，仅 top 本补详情。文件头标注详情命中率，全部无收藏数时标 `[详情解析异常/登录态缺失]`。
 
 **文件命名**：`{平台}{榜单名称}_{YYYYMMDD}.md`，例：`起点新人签约新书榜_20260425.md`
 
@@ -181,6 +194,7 @@ URL 参数：`/rank/{channel}_{type}_{cat_id}`，channel 0=女频/1=男频，typ
 | 新书榜 | 新题材、新风向的早期信号 |
 | 题材分布 | 各品类在读数集中度 |
 | 在读数趋势 | 同题材不同作品的流量差距 |
+| 标签热词 | 简介开头【】内的标签组合，揭示题材细分卖点（如「种田+慢热+西幻」） |
 
 #### 七猫小说分析维度
 
@@ -193,7 +207,7 @@ URL 参数：`/rank/{channel}_{type}_{cat_id}`，channel 0=女频/1=男频，typ
 
 #### 晋江文学城分析维度
 
-> **采集硬性要求**：必须进入详情页采集收藏数、营养液、积分、字数。仅有书名和作者的晋江数据无法支撑以下分析维度，视为不合格数据。
+> **采集硬性要求**：必须有详情页核心指标（收藏数/营养液/积分/字数）。`jjwxc-rank-scraper.js` 默认已补采（top 本）；若用了 `--list-only` 或文件头标 `[仅列表-无核心指标]`，则该数据不足以支撑以下分析维度，视为不合格。
 
 | 维度 | 看什么 |
 |---|---|
@@ -315,11 +329,11 @@ URL 参数：`/rank/{channel}_{type}_{cat_id}`，channel 0=女频/1=男频，typ
 | [references/publishing-guide.md](references/publishing-guide.md) | 平台适配+推荐机制校验+数据指标+简介设计 |
 | [references/scan-output-format.md](references/scan-output-format.md) | 脚本/CDP 采集字段定义+输出模板+文件命名规范 |
 | [scripts/cdp-utils.js](scripts/cdp-utils.js) | CDP 公共工具函数（ab/sleep/evalJSON/safeStr/scrollLoad/getArg），各采集脚本共用 |
-| [scripts/fanqie-rank-scraper.js](scripts/fanqie-rank-scraper.js) | 番茄榜单采集，通过详情页绕过字体反爬，配合 browser-cdp 使用 |
+| [scripts/fanqie-rank-scraper.js](scripts/fanqie-rank-scraper.js) | 番茄榜单采集，详情页多策略解码（书名/作者/题材/评分/标签/简介）绕过字体反爬，分批请求防超时，带连通性自检+标题解析率质量标注，配合 browser-cdp 使用 |
 | [scripts/qidian-rank-scraper.js](scripts/qidian-rank-scraper.js) | 起点榜单采集（畅销/月票/新书等），默认移动端 SSR 提取，PC/CDP 回退 |
-| [scripts/qimao-rank-scraper.js](scripts/qimao-rank-scraper.js) | 七猫榜单采集（大热/新书/完结等），tab 切换+滚动加载 |
-| [scripts/jjwxc-rank-scraper.js](scripts/jjwxc-rank-scraper.js) | 晋江榜单采集（收入金榜/月榜等），按频道分组提取 |
-| [scripts/ciweimao-rank-scraper.js](scripts/ciweimao-rank-scraper.js) | 刺猬猫榜单采集（点击/收藏/月票等），单页 9 榜提取 |
+| [scripts/qimao-rank-scraper.js](scripts/qimao-rank-scraper.js) | 七猫榜单采集（大热/新书/完结等），tab 切换（失败重试）+滚动加载，按 bookId 取书名回填作品页链接，带连通性自检+链接/热度命中率标注 |
+| [scripts/jjwxc-rank-scraper.js](scripts/jjwxc-rank-scraper.js) | 晋江榜单采集（收入金榜/月榜等），按频道分组；列表取书名/作者/novelid，再进 onebook.php 详情页（gb18030 解码 itemprop）补采收藏/营养液/积分/字数/状态，受 --top/--detail-limit 约束，--list-only 可跳过 |
+| [scripts/ciweimao-rank-scraper.js](scripts/ciweimao-rank-scraper.js) | 刺猬猫榜单采集（点击/收藏/月票等），单页 9 榜提取，按 bookId 归一书名回填作品页链接，带连通性自检+空结果重试+链接命中率标注 |
 
 ---
 

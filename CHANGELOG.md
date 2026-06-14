@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.16
+
+> 同步上游 v0.6.16：扫榜全平台健壮性实测修复、晋江详情指标采集、番茄题材/标签扩采、写作破折号过滤、标点规范化修复和 Codex 适配版本升级
+
+### 改进
+
+- **扫榜脚本**：同步番茄分批详情解析、点众书名/链接重写、七猫/刺猬猫作品页链接回填、黑岩错误态细分，以及全平台连通性自检和输出质量信号。
+- **晋江扫榜**：详情页补采收藏、营养液、积分、字数、状态等公开指标，并支持 `--detail-limit` / `--list-only` 控量。
+- **番茄扫榜**：题材取 `categoryV2`，标签取简介开头 `【...】`，移除 SSR 无评分字段的错误声明。
+- **写作/拆解**：长篇写作流程自动过滤破折号；拆解管道补材料合法性语境，减少对用户自有作品的过度拒绝。
+- **prompt-cache**：同步 `story-deslop`、`narrative-writer`、`story-long-analyze` 的提示词缓存命中优化。
+
+### Bug 修复
+
+- **标点规范化**：`normalize-punctuation.js` 修复合法破折号误伤，并继续保持 story-deslop / story-review / write skill 的副本一致。
+
+### Codex 适配
+
+- `.codex-plugin/plugin.json` 版本升级到 `0.6.16`。
+- `story-setup` 升级到 `agents_version: 14`、`setup_skill_version: 1.1.5`，提示已部署项目重新运行 `/story-setup` 刷新 `.codex/story-agents/` 与 reference bundle。
+- `story-review` stale deployment 检查同步升级到 v14。
+- 继续保留 Codex 插件级 lifecycle hook；不恢复上游 `.claude-plugin`、`.claude/hooks`、`.claude/settings.local.json`、`settings-hooks.json` 或 `CLAUDE.md` 部署。
+
 ## v0.6.15
 
 > 同步上游 v0.6.15：demo 全量重做、story-import 写作工程框架修正、拆文契约/门控补强、标点规范化脚本和 Codex 适配版本升级

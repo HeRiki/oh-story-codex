@@ -383,6 +383,8 @@ story-architect 属于高层级结构设计 agent。轻量题材定位优先由�
 
 检查两个维度：(1) **情绪交付**——每章是否交付了细纲中规划的目标情绪？(2) **技术质量**——一致性、格式、禁用词。参考 [references/quality-checklist.md](references/quality-checklist.md) 中的通用检查和长篇专项清单。
 
+**标点确定性收尾**：本批正文写完后，对所有新写正文文件运行 `node scripts/normalize-punctuation.js 正文/第XXX章_*.md`（写模式，默认 `--quote-mode keep`），确定性清除叙述里的破折号 `——`/`—`、双连字符 `--` 和独立行 `---`，防止长篇累积横线。对话被打断的 `——`、数字区间与盐言「」不受影响。narrative-writer agent 不运行本脚本，由主会话在 agent 返回后针对实际落盘文件运行。
+
 #### Agent 调用：consistency-checker
 
 质量检查阶段，如果项目已部署 consistency-checker agent（检查 `.codex/story-agents/consistency-checker.md` 是否存在），spawn `spawn_agent(name="consistency-checker", prompt: "项目目录：{dir}\n检查范围：{本次写作的章节}\n检查类型：事实冲突+伏笔断线+角色属性不一致")` 执行一致性检查，获取 S1-S4 分级报告。如 agent 不可用，由主线程参照 quality-checklist.md 直接检查。

@@ -17,9 +17,33 @@
 
 const fs = require("fs");
 const path = require("path");
-const { ab, sleep, evalJSON, safeStr, scrollLoad, getArg } = require("./cdp-utils");
+const { ab, sleep, safeStr, scrollLoad, getArg } = require("./cdp-utils");
 
 const RANK_URL = "https://www.qimao.com/paihang";
+
+// eval 统一走 base64，规避复杂 JS 的 shell 转义问题（与 fanqie 一致）
+function evalJSON(port, js) {
+  const b64 = Buffer.from(String(js), "utf-8").toString("base64");
+  const raw = ab(port, "eval", "-b", b64);
+  if (!raw || raw === "ERR") return null;
+  try {
+    let parsed = JSON.parse(raw);
+    if (typeof parsed === "string") {
+      try { parsed = JSON.parse(parsed); } catch {}
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** 连通性 + 页面就绪自检 */
+function probePage(port) {
+  return evalJSON(
+    port,
+    "JSON.stringify({host:location.host,len:(document.body&&document.body.innerText||'').length})"
+  );
+}
 
 const CHANNELS = [
   { id: "male", label: "男频", tab: "男生" },
@@ -52,17 +76,33 @@ function clickTab(port, text) {
   return evalJSON(port, js);
 }
 
-/** 从 DOM 获取书籍链接（按页面顺序，去重） */
+/** 点 tab，失败后等一拍重试一次（tab 异步渲染可能滞后） */
+function clickTabRetry(port, text) {
+  if (clickTab(port, text)) return true;
+  sleep(1500);
+  return !!clickTab(port, text);
+}
+
+/**
+ * 从 DOM 获取书籍链接。每本书有多个 anchor（排名数字/书名/最近更新），
+ * 按 bookId 聚合后取最像书名的文本（非纯数字、非"最近更新"前缀、最长），
+ * 否则书名会被排名数字 anchor 覆盖，导致后续按书名回填链接全失败。
+ */
 function extractBookUrls(port) {
-  const js =
-    "JSON.stringify((()=>{" +
-    "var seen=new Set();var urls=[];" +
-    "Array.from(document.querySelectorAll('a')).forEach(function(a){" +
-    "var h=a.getAttribute('href')||a.href||'';" +
-    "var m=h.match(/\\/(?:shuku|book)\\/(\\d+)/);" +
-    "if(m&&!seen.has(m[1])){seen.add(m[1]);urls.push({bookId:m[1],title:a.textContent.trim(),url:'https://www.qimao.com/shuku/'+m[1]+'/'})}" +
-    "});return urls" +
-    "})())";
+  const js = `JSON.stringify((function(){
+    var byId={};var order=[];
+    Array.from(document.querySelectorAll('a')).forEach(function(a){
+      var h=a.getAttribute('href')||a.href||'';
+      var m=h.match(/\\/(?:shuku|book)\\/([0-9]+)/);
+      if(!m)return; var id=m[1];
+      var t=(a.innerText||a.textContent||'').replace(/\\s+/g,' ').trim();
+      if(!byId[id]){byId[id]='';order.push(id);}
+      if(t&&!/^[0-9]+$/.test(t)&&!/^(最近更新|最新章节|最新)/.test(t)){
+        if(t.length>byId[id].length)byId[id]=t;
+      }
+    });
+    return order.map(function(id){return {bookId:id,title:byId[id],url:'https://www.qimao.com/shuku/'+id+'/'};});
+  })())`;
   return evalJSON(port, js) || [];
 }
 
@@ -140,8 +180,21 @@ function scrapeRank(port, channelId, rankTypeId) {
     ab(port, "open", RANK_URL);
     sleep(3000);
 
-    // 切换频道 tab
-    if (!clickTab(port, ch.tab)) {
+    // 连通性自检：CDP 未起/被重定向时给可操作报错，而非静默产空
+    const probe = probePage(port);
+    if (!probe) {
+      console.error(
+        `  ✗ CDP 无响应。请确认已用 browser-cdp 启动 Chrome（端口 ${port}），且 agent-browser 可用。`
+      );
+      return null;
+    }
+    if (probe.host && probe.host.indexOf("qimao") === -1) {
+      console.error(`  ✗ 当前页面非七猫（host=${probe.host}），可能被重定向，已跳过。`);
+      return null;
+    }
+
+    // 切换频道 tab（tab 渲染可能滞后，失败重试一次）
+    if (!clickTabRetry(port, ch.tab)) {
       console.log(`  ⚠ 未找到「${ch.tab}」tab`);
       return null;
     }
@@ -149,7 +202,7 @@ function scrapeRank(port, channelId, rankTypeId) {
     sleep(2000);
 
     // 切换榜单类型 tab
-    if (!clickTab(port, rt.label)) {
+    if (!clickTabRetry(port, rt.label)) {
       console.log(`  ⚠ 未找到「${rt.label}」tab`);
       return null;
     }
@@ -173,22 +226,27 @@ function scrapeRank(port, channelId, rankTypeId) {
     return null;
   }
 
-  // 按标题匹配 URL
+  // 按标题匹配 URL（书名归一后比对，吸收空白差异）
+  const norm = (s) => (s || "").replace(/\s+/g, "");
   for (const b of books) {
     try {
-      const matched = urls.find((u) => u.title === b.title);
+      const matched = urls.find((u) => norm(u.title) === norm(b.title));
       if (matched) b.url = matched.url;
     } catch (matchErr) {
       console.error(`[qimao] URL匹配出错（#${b.rank} ${b.title}）: ${matchErr.message}`);
     }
   }
 
-  console.log(`  ✓ 提取 ${books.length} 本`);
+  const linked = books.filter((b) => b.url).length;
+  const heated = books.filter((b) => b.heat).length;
+  console.log(`  ✓ 提取 ${books.length} 本（链接 ${linked}/${books.length}，热度 ${heated}/${books.length}）`);
 
   const now = new Date().toISOString();
   const lines = [
     `# 七猫 · ${ch.label} · ${rt.label}`,
     "",
+    `- 作品页链接：${linked} / ${books.length}`,
+    `- 热度命中：${heated} / ${books.length}`,
     `- 来源：${RANK_URL}`,
     `- 抓取时间：${now}`,
     `- 条目数：${books.length}`,

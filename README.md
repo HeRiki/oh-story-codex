@@ -32,7 +32,7 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 
 ## Demo
 
-本仓库同步保留上游 v0.6.15 demo，用于展示拆文产物和导入后的可续写工程结构。部分 demo 按上游原样包含原文备份或示例正文，用于验证拆文、导入和续写链路。
+本仓库同步保留上游 v0.6.16 demo，用于展示拆文产物和导入后的可续写工程结构。部分 demo 按上游原样包含原文备份或示例正文，用于验证拆文、导入和续写链路。
 
 主要文件：
 
@@ -90,17 +90,18 @@ demo/让你管账号，你高燃混剪炸全网/
 
 这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
 
-## 升级到 v0.6.15
+## 升级到 v0.6.16
 
-如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v13、`setup_skill_version` 升级到 `1.1.4`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本版将 `agents_version` 升级到 v14、`setup_skill_version` 升级到 `1.1.5`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
 
-本版同步上游 v0.6.15，重点包括：
+本版同步上游 v0.6.16，重点包括：
 
-- **Demo 重做**：同步新版 `拆文库-盘龙`、新增短篇拆文 `拆文库-曾将爱意私藏`，并新增 `让你管账号，你高燃混剪炸全网` 长篇续写工程 demo。
-- **story-import 工程化修正**：明确导入交付物是可续写写作工程，新增“建工程 vs 只要拆文库分析”的意图确认，并移除 `[导入反推]` 标记，未定字段改为 `[待补充]`。
-- **拆文契约补强**：长篇拆文补事实保真、基调/主题枚举和文风锚点保真；短篇拆文补节点计数口径和源文引用豁免。
-- **标点规范化**：`story-deslop` / `story-review` 增加本地 `normalize-punctuation.js`，默认保留盐言 `「」` 引号，不把它当作格式错误。
-- **story-setup / story-review**：`agents_version` 升级到 v13，刷新 `chapter-extractor`、`story-explorer`、`story-researcher` 等 agent 模板和 reference bundle。
+- **扫榜脚本实测修复**：番茄分批详情解析、点众书名/链接重写、七猫/刺猬猫链接回填、黑岩错误态细分，并补充全平台连通性自检和质量信号。
+- **晋江详情页采集**：补充收藏、营养液、积分、字数、状态等公开指标，支持 `--detail-limit` / `--list-only` 控量。
+- **番茄题材/标签扩采**：题材取 `categoryV2`，标签取简介开头 `【...】`，移除 SSR 无评分字段的错误声明。
+- **写作与拆解修复**：长篇写作流程自动过滤破折号，规范化器不再误伤合法破折号；拆解管道补材料合法性语境。
+- **prompt-cache 优化**：`story-deslop`、`narrative-writer`、`story-long-analyze` 减少提示词缓存未命中。
+- **story-setup / story-review**：`agents_version` 升级到 v14，刷新相关 agent 模板和 reference bundle。
 - **Codex lifecycle hook**：继续保留插件级 hook，不恢复上游项目内 hook 部署，不写入 `.claude/hooks` 或 `.claude/settings.local.json`。
 
 Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。

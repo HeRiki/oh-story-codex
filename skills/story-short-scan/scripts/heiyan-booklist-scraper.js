@@ -29,6 +29,11 @@ const PAGE_SIZE = 20;
 // API 调用
 // ---------------------------------------------------------------------------
 
+/** 连通性自检：区分 CDP 未连 vs 已连但未登录 */
+function probePage(port) {
+  return evalJSON(port, "JSON.stringify({host:location.host})");
+}
+
 /** 从 Cookie 中提取 Admin-Token */
 function getToken(port) {
   const js =
@@ -161,6 +166,16 @@ function main() {
   try {
     ab(PORT, "open", BOOKLIST_URL);
     sleep(3000);
+
+    // 连通性自检：把"CDP 没起来"和"没登录"分开，避免误导用户去登录
+    const probe = probePage(PORT);
+    if (!probe) {
+      console.error(
+        `  ✗ CDP 无响应。请确认已用 browser-cdp 启动 Chrome（端口 ${PORT}），且 agent-browser 可用。`
+      );
+      return;
+    }
+
     token = getToken(PORT);
   } catch (err) {
     console.error(`[heiyan] 页面加载或 token 提取出错: ${err.message}`);
@@ -168,7 +183,7 @@ function main() {
   }
 
   if (!token) {
-    console.log("  ✗ 未检测到 Admin-Token");
+    console.log("  ✗ 未检测到 Admin-Token（CDP 已连，但当前未登录）");
     console.log("  → 请先在 Chrome 中打开 https://manage.zhangwenpindu.cn 并登录");
     console.log("  → 登录后重新运行本脚本");
     return;
@@ -184,14 +199,25 @@ function main() {
       sleep(800);
       const resp = fetchBookList(PORT, token, p);
 
-      if (!resp || resp.code === 401) {
-        console.log(`  ⚠ 第${p}页认证失败，请重新登录`);
+      // 区分失败：接口无响应(超时/CDP) / 401 未授权
+      if (!resp) {
+        console.error(`  ✗ 第${p}页接口无响应（请求超时或 CDP 中断），已停止。`);
+        break;
+      }
+      if (resp.code === 401) {
+        console.log(`  ⚠ 第${p}页认证失败（401），请重新登录后重试。`);
         break;
       }
 
       const rows = resp?.data?.rows;
       if (!rows || !rows.length) {
-        console.log(`  第${p}页无数据，停止`);
+        // 仅在无数据时才用 code 区分"服务端错误"与"正常到底"，避免把
+        // 携带非常规成功 code 的有效响应误判为错误（成功带 rows 一律放行）
+        if (resp.code != null && resp.code !== 0 && resp.code !== 200) {
+          console.error(`  ✗ 第${p}页接口返回错误 code=${resp.code} ${resp.msg || ""}，已停止。`);
+        } else {
+          console.log(`  第${p}页无数据，停止`);
+        }
         break;
       }
 
@@ -212,7 +238,16 @@ function main() {
   }
 
   if (!allBooks.length) {
-    console.error("[heiyan] 采集失败：页面结构可能已变（选择器没匹配到数据），请检查榜单URL或更新选择器");
+    console.error("[heiyan] 采集失败：未取到任何书目。多为登录态过期或接口变动，请重新登录后重试。");
+    return;
+  }
+
+  // 质量门：书名命中率。API 改字段名时会整片 undefined，必须拦截而非静默写盘
+  const named = allBooks.filter((b) => b && b.name).length;
+  if (named / allBooks.length < 0.5) {
+    console.error(
+      `[heiyan] 采集失败：${allBooks.length} 条里仅 ${named} 条有书名，疑似接口字段变动，已放弃写盘。`
+    );
     return;
   }
 
