@@ -4,13 +4,19 @@
 
 > **日更准备步骤**：每章写作前 3 步——状态筛选 + 文风召回 + 意图确认，嵌入 Step 2 逐章循环。
 >
-> Step 2 必读两类对标资料：
-> 1. `{对标书路径}/文风.md`（整书级 ~4000 字，含原文锚点 few-shot）
-> 2. `{对标书路径}/章节/第K章_摘要.md`（按本章情绪/基调挑 1 章）；若同章存在 `第K章_深度拆解.md` 则加读，否则回退黄金三章深度拆解/文风文件里的可借鉴技巧
+> Step 2 必读四类对标资料：
+> 1. `{对标书路径}/剧情/情绪模块.md`（读者需求 / 情绪引擎 + 可复现模块；缺失时回退，不阻塞）
+> 2. `{对标书路径}/剧情/节奏.md`（关键信息推进 + 情绪触动点 + 爆发节奏；缺失时回退，不阻塞）
+> 3. `{对标书路径}/文风.md`（整书级 ~4000 字，含原文锚点 few-shot）
+> 4. `{对标书路径}/章节/第K章_摘要.md`（按本章情绪/基调挑 1 章）；若同章存在 `第K章_深度拆解.md` 则加读，否则回退黄金三章深度拆解/文风文件里的可借鉴技巧
 >
 > 对标书路径查找：先 `{项目}/对标/{书名}/`，回退 `拆文库/{书名}/`。
 >
 > **文风缺失**：停止本章写作，不 inline 生成。报错：「对标书 X 缺少 文风.md。请用 `/story-long-analyze` 跑 Stage 6 生成文风，再 `/story-import` 同步。」
+>
+> **模块/节奏缺失**：v12 新契约对标书缺 `剧情/情绪模块.md` 或 `剧情/节奏.md` 时停止本章准备，提示重跑 `/story-long-analyze` Stage 3+ 或重新 `/story-import`；只有 pre-v12 legacy 拆文库可继续写作，story-explorer 必须在 `gaps.legacy_deconstruction` + `gaps.module_missing` / `gaps.rhythm_missing` 记录，依次低置信回退到 `拆文报告.md`、`文风.md` 可借鉴技巧、匹配章摘要 / `剧情/故事线.md`。
+>
+> **冲突规则**：`剧情/情绪模块.md` 与 `剧情/节奏.md` 是情绪和节奏的 canonical / 权威来源；`拆文报告.md`、`剧情/故事线.md` 是投影摘要；`文风.md` 只管风格。若摘要或文风与权威模块/节奏冲突，保留 `gaps.conflict`，正文意图跟随权威文件。
 >
 > **无对标项目**：跳过 Step 2.3，在 2.4 意图确认标记"无对标参考"。不读不存在的文风、不阻塞、不警告。
 >
@@ -92,16 +98,21 @@
    - 读细纲 → 按需加载角色设定
    - **2.1 标题预检**：扫描既有章节标题；如本章标题同名或明显重复，先按本章核心事件改名，并同步细纲标题与正文文件名
    - **2.2 状态筛选**：每章开始前必须确认以下来源已经在本轮 workflow 中读取或刚更新：本章细纲、上一章正文（或上一章刚写入的正文）、`追踪/上下文.md`、`追踪/伏笔.md`、`追踪/时间线.md`；涉及角色时，还必须确认 `追踪/角色状态.md` 或对应 `设定/角色/{角色名}.md` 的来源。"已加载"只指本轮 workflow 内实际读取/更新过的文件，不得用未标明来源的聊天记忆替代。角色最新状态优先从 `追踪/角色状态.md` 筛选（如不存在则从角色设定推断），待回收/推进伏笔从 `追踪/伏笔.md` 筛选；细纲不存在时仍按下方补建流程处理，不允许直接写正文
-   - **2.3 文风召回**：
-     - 调 story-explorer 的 `benchmark_style_load` query_type（输入：项目目录 + 本章目标情绪 + 本章爽点类型 + 本章目标字数）一次性拿到：`{style_profile_path, style_profile_summary, matched_chapter_K, matched_chapter_techniques, anchor_excerpts, gaps}`
+   - **2.3 对标模块/节奏/文风召回**：
+     - 调 story-explorer 的 `benchmark_style_load` query_type（输入：项目目录 + 本章目标情绪 + 本章爽点类型 + 本章目标字数）一次性拿到：`{style_profile_path, style_profile_summary, selected_emotion_module, rhythm_reference, module_source_path, rhythm_source_path, matched_chapter_K, matched_chapter_techniques, anchor_excerpts, gaps}`
      - 若 `gaps.no_benchmark: true` → 跳过文风召回，在 2.4 意图确认标记"无对标参考"
+     - 若 `gaps.missing_primary_contract: true` → 停止本章准备，按 `repair_action` 提示重跑 `/story-long-analyze` Stage 3+ 或重新 `/story-import`；不得进入 narrative-writer
+     - 若 legacy 的 `gaps.module_missing: true` → 继续写作；`selected_emotion_module` 使用 `拆文报告.md` 读者需求 / 情绪引擎、`文风.md` 可借鉴技巧或匹配章摘要的回退摘要；仍无则写“无”
+     - 若 legacy 的 `gaps.rhythm_missing: true` → 继续写作；`rhythm_reference` 使用 `拆文报告.md` 节奏与情绪触动点、匹配章摘要或 `剧情/故事线.md` 的回退摘要；仍无则写“无”
+     - 若 `gaps.conflict` 或 `gaps.module_rhythm_conflict: true` → 意图确认必须说明冲突并按 `剧情/情绪模块.md` / `剧情/节奏.md` 的权威优先级执行；不得让 `文风.md` 覆盖情绪/节奏目标
      - 若 `gaps.profile_missing: true` → 按上文 fail-fast 流程停止
      - 若 `gaps.profile_degenerate: true`（文风不可用） → 跳过文风、回到默认 Gates 写作
      - 若 `gaps.tone_match_failed: true` → 仅用整书文风写作，不喂 matched_chapter
-     - 否则透传 `style_profile_path`、`style_profile_summary`、`matched_chapter_K`、`matched_chapter_techniques`、`anchor_excerpts` 给 Step 2 末尾的 narrative-writer spawn prompt；其中 `matched_chapter_techniques` 必须进入「文风召回指令」。准备层记录必须保留 `gaps` 原值，尤其 `gaps.matched_deep_dive_missing`；若为 true，文风召回指令中明确写“同章深度拆解缺失，已回退黄金三章/文风技巧”，不得在后续报告中反转为 false
-     - **无 story-explorer 时降级**：主会话手动按对标书路径查找读 `文风.md` + grep `章节/*_摘要.md` 的「基调」字段找匹配章，然后读对应 `第K章_摘要.md`；如 `第K章_深度拆解.md` 不存在，改读 `第1-3章_深度拆解.md` 中与本章基调最接近的一章
-   - **2.4 意图确认**：从细纲「目标情绪」字段确认本章情绪目标，综合状态筛选结果 + 文风召回输出，用一句话写本章意图（情绪+节奏+文风指令）。文风指令例：「标点照文风里的停顿节奏、对话潜台词用问非所答、情绪交替参考第 K 章爽点铺放比。」
-   - 写正文 → **字数验证（优先 Python 字符统计，`wc -m` 仅作 Unix 备选，< 目标90%则强制扩充）** → 检查钩子/爽点 → 禁用词扫描
+     - 否则透传 `style_profile_path`、`style_profile_summary`、`selected_emotion_module`、`rhythm_reference`、`module_source_path`、`rhythm_source_path`、`matched_chapter_K`、`matched_chapter_techniques`、`anchor_excerpts` 给 Step 2 末尾的 narrative-writer spawn prompt；其中 `selected_emotion_module` 必须进入情绪目标，`rhythm_reference` 必须进入节奏/爆发安排，`matched_chapter_techniques` 必须进入「文风召回指令」。准备层记录必须保留 `gaps` 原值，尤其 `gaps.module_missing`、`gaps.rhythm_missing`、`gaps.conflict`、`gaps.matched_deep_dive_missing`；若 `matched_deep_dive_missing` 为 true，文风召回指令中明确写“同章深度拆解缺失，已回退黄金三章/文风技巧”，不得在后续报告中反转为 false
+     - **无 story-explorer 时降级**：主会话手动按对标书路径查找，先读 `剧情/情绪模块.md` 选 `selected_emotion_module`，再读 `剧情/节奏.md` 选 `rhythm_reference`，再读 `文风.md` + grep `章节/*_摘要.md` 的「基调」字段找匹配章，然后读对应 `第K章_摘要.md`；如 `第K章_深度拆解.md` 不存在，改读 `第1-3章_深度拆解.md` 中与本章基调最接近的一章。模块/节奏文件缺失时先判定 v12 vs legacy：v12 停止修复，legacy 才按上方回退继续
+   - **2.4 意图确认**：从细纲「目标情绪」字段确认本章情绪目标，综合状态筛选结果 + `selected_emotion_module` + `rhythm_reference` + 文风召回输出，用一句话写本章意图（情绪+节奏+模块+文风指令）。例：「快节奏打脸——复现 M03‘信息差反杀’的读者期待，关键信息先压后爆，爆发后用一段冷却承接下一钩子；标点照文风里的停顿节奏、对话潜台词用问非所答。」
+   - 写正文 → **字数验证（优先 Python 字符统计，`wc -m` 仅作 Unix 备选，< 目标90%则强制扩充）** → 检查钩子/爽点 → **正文元信息扫描** → 禁用词扫描
+     - **正文元信息扫描**：标题行以外不得出现 `第[一二三四五六七八九十百千万两0-9]+章|上一章|上章|前一章|本章|这一章|前文|后文|伏笔|细纲|读者`。这些词属于写作/工程元信息，必须改成角色当下能感知的事件锚点或相对时间；例如“比第一章那三秒开火更疼”改成“比那三秒开火更疼”。只有角色在故事世界内真实阅读/讨论“第X章”文本，或真实身为作者/读者并谈论读者身份时例外。
    - 每章写完后**立即更新**以下文件：
      - `追踪/伏笔.md`（新增/回收伏笔）
      - `追踪/时间线.md`（记录事件时序）
@@ -120,9 +131,10 @@
 
 1. **禁用词扫描**：对照 `references/banned-words.md`，一级词命中即替换
 2. **标题去重检查**：汇总本轮新写章节与既有标题；发现同名或明显重复时，回到对应细纲和正文文件统一重命名
-3. **钩子检查**：每章章尾是否有钩子
-4. **伏笔盘点（仅本轮增量）**：只确认本批新增/推进/回收的伏笔已写入 `追踪/伏笔.md` 并更新状态；不得在日更流程中通读所有 session 或扫描全部正文做全量伏笔审计。全量伏笔审计只在 `/story-review` 或用户明确要求"全面检查伏笔"时执行
-5. **标点确定性收尾**：对本批所有新写正文文件运行 `node scripts/normalize-punctuation.js 正文/第XXX章_*.md`（写模式，默认 `--quote-mode keep`），确定性去掉叙述里的破折号 `——`/`—`、双连字符 `--` 和独立行 `---`，避免长篇写到上百章后横线累积。脚本只改这些标点：对话被打断的 `——`、数字区间 `100——200` 原样保留，盐言「」不受影响。**由谁运行**：narrative-writer agent 不运行本脚本；主会话在 agent 写完返回后、针对实际落盘的正文文件路径运行（文件名是写完才确定的 `第XXX章_章名.md`）。
+3. **正文元信息扫描**：检查标题行以外是否混入 `第[一二三四五六七八九十百千万两0-9]+章|上一章|上章|前一章|本章|这一章|前文|后文|伏笔|细纲|读者` 这类写作工程词，命中即改成场景内表达；故事内真实阅读/讨论“第X章”或真实读者身份语境除外
+4. **钩子检查**：每章章尾是否有钩子
+5. **伏笔盘点（仅本轮增量）**：只确认本批新增/推进/回收的伏笔已写入 `追踪/伏笔.md` 并更新状态；不得在日更流程中通读所有 session 或扫描全部正文做全量伏笔审计。全量伏笔审计只在 `/story-review` 或用户明确要求"全面检查伏笔"时执行
+6. **标点确定性收尾**：对本批所有新写正文文件运行 `node scripts/normalize-punctuation.js 正文/第XXX章_*.md`（写模式，默认 `--quote-mode keep`），确定性去掉叙述里的破折号 `——`/`—`、双连字符 `--` 和独立行 `---`，避免长篇写到上百章后横线累积。脚本只改这些标点：对话被打断的 `——`、数字区间 `100——200` 原样保留，盐言「」不受影响。**由谁运行**：narrative-writer agent 不运行本脚本；主会话在 agent 写完返回后、针对实际落盘的正文文件路径运行（文件名是写完才确定的 `第XXX章_章名.md`）。
 
 > 完整 Phase 5 检查清单见 SKILL.md Phase 5。
 

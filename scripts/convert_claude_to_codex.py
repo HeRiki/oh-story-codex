@@ -4,8 +4,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    yaml = None
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +33,7 @@ REPLACEMENTS = {
     ".claude/skills/": "skills/",
     "CLAUDE.md": "AGENTS.md",
     "Agent(subagent_type": "spawn_agent(name",
+    "subagent_type": "agent name",
     "spawn_agent(name:": "spawn_agent(name=",
     "spawn_agent(name= ": "spawn_agent(name=",
     'spawn_agent(role: "': 'spawn_agent(name="',
@@ -45,15 +50,51 @@ def render_frontmatter(name: str, description: str) -> str:
         lines.append("description: |")
         lines.extend(f"  {line}" for line in description.splitlines())
     else:
-        dumped = yaml.safe_dump(
-            description,
-            allow_unicode=True,
-            default_style='"',
-            width=10_000,
-        ).strip()
+        if yaml is not None:
+            dumped = yaml.safe_dump(
+                description,
+                allow_unicode=True,
+                default_style='"',
+                width=10_000,
+            ).strip()
+        else:
+            dumped = json.dumps(description, ensure_ascii=False)
         lines.append(f"description: {dumped}")
     lines.append("---")
     return "\n".join(lines)
+
+
+def load_frontmatter(frontmatter: str) -> dict[str, str]:
+    if yaml is not None:
+        data = yaml.safe_load(frontmatter) or {}
+        return data if isinstance(data, dict) else {}
+
+    data: dict[str, str] = {}
+    lines = frontmatter.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if not line or line.startswith((" ", "\t")) or ":" not in line:
+            i += 1
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+        if value == "|":
+            block = []
+            i += 1
+            while i < len(lines):
+                current = lines[i]
+                if current and not current.startswith((" ", "\t")) and ":" in current:
+                    break
+                block.append(current[2:] if current.startswith("  ") else current.lstrip())
+                i += 1
+            data[key] = "\n".join(block).rstrip("\n")
+            continue
+        if value:
+            data[key] = value.strip("\"'")
+        i += 1
+    return data
 
 
 def convert_skill(path: Path) -> None:
@@ -66,7 +107,7 @@ def convert_skill(path: Path) -> None:
         return
 
     _, frontmatter, body = parts
-    data = yaml.safe_load(frontmatter) or {}
+    data = load_frontmatter(frontmatter)
     name = data.get("name", path.parent.name)
     description = data.get("description", "")
     if not isinstance(description, str):
@@ -99,7 +140,7 @@ def convert_agent_template(path: Path) -> None:
         return
 
     _, frontmatter, body = parts
-    data = yaml.safe_load(frontmatter) or {}
+    data = load_frontmatter(frontmatter)
     name = data.get("name", path.stem)
     description = data.get("description", "")
     if not isinstance(description, str):

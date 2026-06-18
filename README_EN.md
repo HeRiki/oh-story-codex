@@ -92,18 +92,21 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 
 These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
 
-## Upgrading to v0.6.16
+## Upgrading to v0.6.16 + Upstream Main Sync
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This release bumps `agents_version` to v14 and `setup_skill_version` to `1.1.5`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This sync bumps `agents_version` to v15 and `setup_skill_version` to `1.1.6`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
 
-This release syncs upstream v0.6.16. Main changes:
+This repository has synced upstream v0.6.16 and the later upstream `main` updates after v0.6.16. Main changes:
 
 - **Ranking scraper fixes**: Fanqie batched detail parsing, Dianzhong title/link rewrite, Qimao/Ciweimao link recovery, Heiyan error-state split, plus connectivity self-checks and output quality signals.
 - **JJWXC detail collection**: collects public metrics such as favorites, nutrient solution, points, word count, and status, with `--detail-limit` / `--list-only` controls.
 - **Fanqie category/tag expansion**: reads `categoryV2` and leading `【...】` tags, and removes the incorrect SSR rating claim.
 - **Writing and deconstruction fixes**: long-form writing filters em dashes, the normalizer no longer flags valid em dashes incorrectly, and deconstruction prompts include clearer legal-material context.
 - **Prompt-cache optimization**: reduces cache misses in `story-deslop`, `narrative-writer`, and `story-long-analyze`.
-- **story-setup / story-review**: `agents_version` is now v14, refreshing related agent templates and the reference bundle.
+- **Deconstruction-to-writing modules**: long-form deconstruction now produces reusable writing modules such as key information expansion techniques, `剧情/节奏.md`, and `剧情/情绪模块.md`; import and daily writing flows consume these benchmark assets first.
+- **Review and prose rules**: adds reasoning-based consistency checks, natural paragraphing, subject rhythm, explanation/omniscient/arrangement detection, and emotion-intensity checks.
+- **Codex prose preflight**: the plugin-level `PreToolUse` hook checks for the matching outline before first creating prose files; continuation, revision, and import migration cases are allowed.
+- **story-setup / story-review**: `agents_version` is now v15, refreshing related agent templates and the reference bundle.
 - **Codex lifecycle hooks**: remain plugin-level hooks. This port does not restore upstream project-local hook deployment and does not write `.claude/hooks` or `.claude/settings.local.json`.
 
 Codex lifecycle hooks are loaded by this repository's plugin mechanism, not written into the user's project by `/story-setup`. Reopen the session after upgrading the plugin to use the new hook behavior.

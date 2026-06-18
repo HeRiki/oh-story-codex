@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+> 同步上游 main（v0.6.16 后）：拆文到写作模块链、推理型一致性检查、自然分段/主语节奏规则，以及 Codex 插件级正文前置检查
+
+### 改进
+
+- **拆文到写作模块链**：同步 `story-long-analyze` 的「关键信息与扩写技法」「剧情/节奏.md」「剧情/情绪模块.md」产物，`story-import` 和 `story-long-write` 对应消费这些对标资产。
+- **写作自然度**：同步解释腔/上帝感/安排感识别、情绪烈度、自然分段、主语节奏和长短疏密规则。
+- **审查增强**：`story-review` / `consistency-checker` 增加推理型一致性检查，不只做字面 grep。
+- **story-setup**：`agents_version` 升级到 v15、`setup_skill_version` 升级到 `1.1.6`，提示已部署项目重新运行 `/story-setup` 刷新 `.codex/story-agents/` 与 reference bundle。
+
+### Codex 适配
+
+- 新增 Codex 插件级正文前置检查：首次创建长篇 `正文/第N章_*.md` 需要已有对应 `大纲/细纲_第N章.md`；首次创建短篇 `正文.md` 需要已有 `小节大纲.md`。续写、改稿和导入迁移场景放行。
+- 继续不恢复上游 `.claude/hooks`、`.claude/settings.local.json` 或 `settings-hooks.json` 项目内部署。
+
 ## v0.6.16
 
 > 同步上游 v0.6.16：扫榜全平台健壮性实测修复、晋江详情指标采集、番茄题材/标签扩采、写作破折号过滤、标点规范化修复和 Codex 适配版本升级

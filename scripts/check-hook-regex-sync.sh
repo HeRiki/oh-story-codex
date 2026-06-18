@@ -141,5 +141,95 @@ for state in $(echo "$STATUS_ENUM" | tr '/' ' '); do
   fi
 done
 
+setup_prose_guard_fixture() {
+  local name="$1"
+  local root="$TMP_DIR/$name"
+  mkdir -p "$root/长篇/正文" "$root/长篇/大纲" "$root/短篇"
+  touch "$root/.story-deployed"
+  touch "$root/短篇/设定.md"
+  printf '%s' "$root"
+}
+
+run_pretool_write() {
+  local root="$1"
+  local target="$2"
+  local node_root="$root"
+  if command -v cygpath >/dev/null 2>&1; then
+    node_root="$(cygpath -m "$root")"
+  fi
+  printf '{"cwd":"%s","hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$node_root" "$target" \
+    | node "$HOOK_FILE" pre-tool-use >/tmp/oh-story-hook-guard.out 2>/tmp/oh-story-hook-guard.err
+}
+
+run_pretool_patch_add() {
+  local root="$1"
+  local target="$2"
+  local node_root="$root"
+  if command -v cygpath >/dev/null 2>&1; then
+    node_root="$(cygpath -m "$root")"
+  fi
+  printf '{"cwd":"%s","hook_event_name":"PreToolUse","tool_name":"functions.apply_patch","tool_input":{"patch":"*** Begin Patch\\n*** Add File: %s\\n+正文\\n*** End Patch\\n"}}' "$node_root" "$target" \
+    | node "$HOOK_FILE" pre-tool-use >/tmp/oh-story-hook-guard.out 2>/tmp/oh-story-hook-guard.err
+}
+
+guard_root="$(setup_prose_guard_fixture prose-guard)"
+guard_ec=0
+run_pretool_write "$guard_root" "长篇/正文/第1章_开篇.md" || guard_ec=$?
+if [ "$guard_ec" -ne 2 ]; then
+  echo "FAIL: prose guard should block first long-form chapter without outline, got exit $guard_ec"
+  cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+  exit 1
+fi
+echo "  OK block: long-form prose without outline"
+
+touch "$guard_root/长篇/大纲/细纲_第1章.md"
+guard_ec=0
+run_pretool_write "$guard_root" "长篇/正文/第1章_开篇.md" || guard_ec=$?
+if [ "$guard_ec" -ne 0 ]; then
+  echo "FAIL: prose guard should allow long-form chapter with outline, got exit $guard_ec"
+  cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+  exit 1
+fi
+echo "  OK allow: long-form prose with outline"
+
+short_ec=0
+run_pretool_write "$guard_root" "短篇/正文.md" || short_ec=$?
+if [ "$short_ec" -ne 2 ]; then
+  echo "FAIL: prose guard should block first short-form prose without section outline, got exit $short_ec"
+  cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+  exit 1
+fi
+echo "  OK block: short-form prose without outline"
+
+touch "$guard_root/短篇/正文.md"
+short_ec=0
+run_pretool_write "$guard_root" "短篇/正文.md" || short_ec=$?
+if [ "$short_ec" -ne 0 ]; then
+  echo "FAIL: prose guard should allow existing prose file revisions, got exit $short_ec"
+  cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+  exit 1
+fi
+echo "  OK allow: existing prose revision"
+
+patch_guard_root="$(setup_prose_guard_fixture prose-guard-patch)"
+patch_ec=0
+run_pretool_patch_add "$patch_guard_root" "长篇/正文/第2章_开篇.md" || patch_ec=$?
+if [ "$patch_ec" -ne 2 ]; then
+  echo "FAIL: prose guard should block apply_patch add-file without outline, got exit $patch_ec"
+  cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+  exit 1
+fi
+echo "  OK block: apply_patch add-file prose without outline"
+
+touch "$patch_guard_root/长篇/大纲/细纲_第2章.md"
+patch_ec=0
+run_pretool_patch_add "$patch_guard_root" "长篇/正文/第2章_开篇.md" || patch_ec=$?
+if [ "$patch_ec" -ne 0 ]; then
+  echo "FAIL: prose guard should allow apply_patch add-file with outline, got exit $patch_ec"
+  cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+  exit 1
+fi
+echo "  OK allow: apply_patch add-file prose with outline"
+
 echo ""
-echo "OK: Codex hook foreshadow detection warns only on overdue/abnormal states"
+echo "OK: Codex hook foreshadow and prose-outline guard behavior is valid"

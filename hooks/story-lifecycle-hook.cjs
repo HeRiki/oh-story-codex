@@ -292,6 +292,129 @@ function getToolCommand(input) {
   return String(toolInput.command || input.command || "");
 }
 
+function getToolName(input) {
+  return String(input.tool_name || input.toolName || input.name || input.tool || "");
+}
+
+function getToolInput(input) {
+  return input.tool_input || input.toolInput || input.input || input.parameters || {};
+}
+
+function extractPatchTargetPaths(text) {
+  const paths = [];
+  for (const line of String(text || "").split(/\r?\n/)) {
+    const match = line.match(/^\*\*\* (?:Add|Update) File: (.+)$/);
+    if (match && match[1].trim()) paths.push(match[1].trim());
+  }
+  return paths;
+}
+
+function findTargetPaths(value, depth = 0) {
+  if (!value || depth > 5) return [];
+  if (typeof value === "string") return extractPatchTargetPaths(value);
+  if (Array.isArray(value)) {
+    const paths = [];
+    for (const item of value) {
+      paths.push(...findTargetPaths(item, depth + 1));
+    }
+    return paths;
+  }
+  if (typeof value !== "object") return [];
+  const explicitPaths = [];
+  for (const key of ["file_path", "filePath", "path", "target_path", "targetPath"]) {
+    if (typeof value[key] === "string" && value[key]) explicitPaths.push(value[key]);
+  }
+  if (explicitPaths.length) return explicitPaths;
+
+  const patchPaths = [];
+  for (const key of ["patch", "diff"]) {
+    if (typeof value[key] === "string") patchPaths.push(...extractPatchTargetPaths(value[key]));
+  }
+  if (patchPaths.length) return patchPaths;
+
+  const nestedPaths = [];
+  for (const key of ["tool_input", "toolInput", "input", "parameters", "args"]) {
+    nestedPaths.push(...findTargetPaths(value[key], depth + 1));
+  }
+  return nestedPaths;
+}
+
+function insideRoot(root, target) {
+  const relative = path.relative(root, target);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function parseChapterNumber(fileName) {
+  const match = String(fileName || "").match(/^第0*([0-9][0-9]*)章.*\.md$/);
+  return match ? String(Number(match[1])) : "";
+}
+
+function hasMatchingOutline(outlineDir, chapterNumber) {
+  if (!isDirectory(outlineDir) || !chapterNumber) return false;
+  let entries = [];
+  try {
+    entries = fs.readdirSync(outlineDir, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  return entries.some((entry) => {
+    if (!entry.isFile()) return false;
+    const match = entry.name.match(/^细纲_第0*([0-9][0-9]*)章.*\.md$/);
+    return match && String(Number(match[1])) === chapterNumber;
+  });
+}
+
+function proseOutlineBlockReason(root, targetPath) {
+  if (!targetPath) return "";
+  const absolute = path.isAbsolute(targetPath) ? path.resolve(targetPath) : path.resolve(root, targetPath);
+  if (!insideRoot(root, absolute)) return "";
+  if (isFile(absolute)) return "";
+
+  const base = path.basename(absolute);
+  const parentName = path.basename(path.dirname(absolute));
+
+  if (base === "正文.md") {
+    const bookDir = path.dirname(absolute);
+    const bookName = path.basename(bookDir);
+    if (isDirectory(path.join(root, "拆文库", bookName))) return "";
+    if (!isFile(path.join(bookDir, "设定.md"))) return "";
+    if (isFile(path.join(bookDir, "小节大纲.md"))) return "";
+    return [
+      "⛔ 写正文被拦截：目标 `正文.md` 缺少同目录 `小节大纲.md`。",
+      "先按 `story-short-write` 完成小节大纲，再创建正文；如果确需先起草，请先补建 `小节大纲.md`。",
+    ].join("\n");
+  }
+
+  if (parentName !== "正文") return "";
+  const chapterNumber = parseChapterNumber(base);
+  if (!chapterNumber) return "";
+  const bookDir = path.dirname(path.dirname(absolute));
+  const bookName = path.basename(bookDir);
+  if (isDirectory(path.join(root, "拆文库", bookName))) return "";
+  const outlineDir = path.join(bookDir, "大纲");
+  if (hasMatchingOutline(outlineDir, chapterNumber)) return "";
+  return [
+    `⛔ 写正文被拦截：第 ${chapterNumber} 章缺少细纲（大纲/细纲_第${chapterNumber}章.md）。`,
+    "先按 `story-long-write` 单章流程补建细纲，再创建正文；如果确需先起草，请先补建对应细纲文件。",
+  ].join("\n");
+}
+
+function maybeBlockProseWithoutOutline(input, root) {
+  const toolName = getToolName(input);
+  if (toolName && !/(Write|Edit|MultiEdit|apply_patch)$/i.test(toolName)) return false;
+  const targetPaths = findTargetPaths(getToolInput(input));
+  if (!targetPaths.length) targetPaths.push(...findTargetPaths(input));
+  for (const targetPath of targetPaths) {
+    const reason = proseOutlineBlockReason(root, targetPath);
+    if (!reason) continue;
+    outputAdditionalContext("PreToolUse", ["## Oh Story Codex 正文前置检查", reason].join("\n"));
+    console.error(reason);
+    process.exitCode = 2;
+    return true;
+  }
+  return false;
+}
+
 function isGitCommitCommand(command) {
   const normalized = String(command || "").trim();
   if (!normalized) return false;
@@ -321,6 +444,7 @@ function handlePostToolUse(input) {
 function handlePreToolUse(input) {
   const root = findStoryRoot(inputCwd(input));
   if (!root) return;
+  if (maybeBlockProseWithoutOutline(input, root)) return;
   const command = getToolCommand(input);
   if (!isGitCommitCommand(command)) return;
   outputAdditionalContext(

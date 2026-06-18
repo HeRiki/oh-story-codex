@@ -51,7 +51,8 @@
 - `agents_version: 11` → 旧版，需重新部署以获取 Windows 字数统计解释器探测修复
 - `agents_version: 12` → 旧版，需重新部署以获取拆文契约、基调枚举和标点格式修复
 - `agents_version: 13` → 旧版，需重新部署以获取 prompt-cache 优化、破折号过滤和标点规范化修复
-- `agents_version: 14` → 当前版本
+- `agents_version: 14` → 旧版，需重新部署以获取拆文到写作模块链、推理型一致性检查、自然分段和主语节奏规则
+- `agents_version: 15` → 当前版本
 
 ## 版本变更
 
@@ -136,11 +137,19 @@
 - 刷新 agent reference bundle 中的 banned-words、anti-ai-writing、dialogue/format/writing 参考，包含「不是A，（而）是B」变体和 `「」` 引号兼容。
 - 已部署项目重新运行 `/story-setup` 后可刷新 `.codex/story-agents/`、`.codex/story-agent-references/` 与 `.story-deployed`。
 
-### v14 (当前)
+### v14
 
 - `setup_skill_version` 升级到 `1.1.5`，`.story-deployed` 的 `agents_version` 升级到 `14`。
 - 刷新 `narrative-writer`、`chapter-extractor`、`consistency-checker` 等参考提示词，继承上游 v0.6.16 的 prompt-cache 优化、写作破折号过滤、规范化器误伤修复和拆解管道合法性语境补强。
 - 刷新 agent reference bundle 中的 anti-ai-writing、banned-words、format-and-structure 等参考，保持 story-deslop / story-review / write skill 的标点规范一致。
 - 已部署项目重新运行 `/story-setup` 后可刷新 `.codex/story-agents/`、`.codex/story-agent-references/` 与 `.story-deployed`。
+
+### v15 (当前)
+
+- `setup_skill_version` 升级到 `1.1.6`，`.story-deployed` 的 `agents_version` 升级到 `15`。
+- 同步上游 main（v0.6.16 后）：`story-long-analyze` Stage 2/3 增加「关键信息与扩写技法」「剧情/节奏.md」「剧情/情绪模块.md」等可复用写作模块，`story-import` 与 `story-long-write` 对应消费这些对标资产。
+- 刷新 `chapter-extractor`、`story-explorer`、`consistency-checker`、`narrative-writer` 等参考提示词：补推理型一致性检查、自然分段、主语节奏、解释腔/上帝感/安排感识别与情绪烈度检查。
+- Codex 插件级 PreToolUse hook 新增正文前置检查：首次创建长篇 `正文/第N章_*.md` 时要求已有对应 `大纲/细纲_第N章.md`，首次创建短篇 `正文.md` 时要求已有 `小节大纲.md`；续写/改稿/导入迁移场景放行。
+- 已部署项目重新运行 `/story-setup` 后可刷新 `.codex/story-agents/`、`.codex/story-agent-references/` 与 `.story-deployed`；插件级 hook 随仓库更新加载，不写入用户项目目录。
 
 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`。
