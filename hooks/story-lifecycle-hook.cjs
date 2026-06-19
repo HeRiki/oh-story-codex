@@ -303,7 +303,7 @@ function getToolInput(input) {
 function extractPatchTargetPaths(text) {
   const paths = [];
   for (const line of String(text || "").split(/\r?\n/)) {
-    const match = line.match(/^\*\*\* (?:Add|Update) File: (.+)$/);
+    const match = line.match(/^\*\*\* (?:(?:Add|Update) File|Move to): (.+)$/);
     if (match && match[1].trim()) paths.push(match[1].trim());
   }
   return paths;

@@ -172,6 +172,18 @@ run_pretool_patch_add() {
     | node "$HOOK_FILE" pre-tool-use >/tmp/oh-story-hook-guard.out 2>/tmp/oh-story-hook-guard.err
 }
 
+run_pretool_patch_move() {
+  local root="$1"
+  local source="$2"
+  local target="$3"
+  local node_root="$root"
+  if command -v cygpath >/dev/null 2>&1; then
+    node_root="$(cygpath -m "$root")"
+  fi
+  printf '{"cwd":"%s","hook_event_name":"PreToolUse","tool_name":"functions.apply_patch","tool_input":{"patch":"*** Begin Patch\\n*** Update File: %s\\n*** Move to: %s\\n@@\\n 正文\\n*** End Patch\\n"}}' "$node_root" "$source" "$target" \
+    | node "$HOOK_FILE" pre-tool-use >/tmp/oh-story-hook-guard.out 2>/tmp/oh-story-hook-guard.err
+}
+
 guard_root="$(setup_prose_guard_fixture prose-guard)"
 guard_ec=0
 run_pretool_write "$guard_root" "长篇/正文/第1章_开篇.md" || guard_ec=$?
@@ -230,6 +242,28 @@ if [ "$patch_ec" -ne 0 ]; then
   exit 1
 fi
 echo "  OK allow: apply_patch add-file prose with outline"
+
+move_guard_root="$(setup_prose_guard_fixture prose-guard-move)"
+mkdir -p "$move_guard_root/草稿"
+touch "$move_guard_root/草稿/第3章.md"
+move_ec=0
+run_pretool_patch_move "$move_guard_root" "草稿/第3章.md" "长篇/正文/第3章_开篇.md" || move_ec=$?
+if [ "$move_ec" -ne 2 ]; then
+  echo "FAIL: prose guard should block apply_patch move-to prose without outline, got exit $move_ec"
+  cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+  exit 1
+fi
+echo "  OK block: apply_patch move-to prose without outline"
+
+touch "$move_guard_root/长篇/大纲/细纲_第3章.md"
+move_ec=0
+run_pretool_patch_move "$move_guard_root" "草稿/第3章.md" "长篇/正文/第3章_开篇.md" || move_ec=$?
+if [ "$move_ec" -ne 0 ]; then
+  echo "FAIL: prose guard should allow apply_patch move-to prose with outline, got exit $move_ec"
+  cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+  exit 1
+fi
+echo "  OK allow: apply_patch move-to prose with outline"
 
 echo ""
 echo "OK: Codex hook foreshadow and prose-outline guard behavior is valid"
