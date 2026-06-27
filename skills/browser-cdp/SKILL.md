@@ -2,7 +2,6 @@
 name: browser-cdp
 description: "Use this skill when you need to control a Chrome browser via CDP (Chrome DevTools Protocol) to reuse existing login sessions. Covers: launching Chrome in debug mode, opening URLs, waiting for page load, evaluating JavaScript, taking snapshots, and extracting auth tokens. Trigger phrases: browser automation, CDP, agent-browser, 浏览器操作, 操作浏览器, Chrome CDP, 复用登录态, extract token from browser."
 ---
-
 # Browser CDP 操作工具
 
 通过 CDP 协议控制 Chrome，复用已有登录态，执行浏览器自动化操作。
@@ -118,6 +117,43 @@ agent-browser --cdp 9222 type "<sel>" "<text>"
 
 - 关掉 debug Chrome 窗口即可（或 `pkill -9 -x 'Google Chrome'` / `taskkill /F /IM chrome.exe`）。
 - 登录态失效：`node {SKILL_DIR}/scripts/setup-cdp-chrome.js 9222 --reset --yes`（注意 `--yes` 同样需要先问用户）。
+
+---
+
+## 长时间任务注意事项
+
+长时间的 CDP 操作（如等待页面加载、大批量数据抓取）可能阻塞当前会话的命令执行。需要批量抓取或等待第三方页面时，优先加超时包装，避免命令长时间挂起。
+
+### 超时包装
+
+Windows 上对 CDP 命令使用 PowerShell Job 包装超时：
+
+```powershell
+$job = Start-Job { agent-browser --cdp 9222 eval "window.location.replace('https://www.qidian.com/rank/')" }
+Wait-Job $job -Timeout 30 | Out-Null
+if ($job.State -eq 'Running') { Stop-Job $job; Write-Output "⏱ CDP 操作超时（30s），请重试或手动打断" }
+else { Receive-Job $job }
+Remove-Job $job -Force
+```
+
+macOS / Linux 上使用 `timeout` 命令：
+
+```bash
+timeout 30 agent-browser --cdp 9222 eval "window.location.replace('https://www.qidian.com/rank/')" || echo "⏱ CDP 操作超时（30s），请重试或手动打断"
+```
+
+### 已知限制
+
+即使加了超时包装，以下场景仍可能出现问题：
+
+| 场景 | 风险 | 缓解 |
+|------|------|------|
+| 页面加载超时 | eval 命令等待永不返回 | 设置 30s 超时，超时后重试 |
+| 大批量数据抓取 | 多页翻页时累计等待过长 | 每页独立超时，失败后从断点继续 |
+| Chrome 进程僵死 | CDP 连接断开但进程未退出 | 用 `pkill` / `taskkill` 清理后重连 |
+| 网络波动 | 请求挂起无超时 | 超时后自动重试一次 |
+
+如遇到持续卡死的操作，停止当前命令后按断点继续；不要在无超时保护的命令里连续翻页抓取。
 
 ---
 

@@ -52,7 +52,8 @@
 - `agents_version: 12` → 旧版，需重新部署以获取拆文契约、基调枚举和标点格式修复
 - `agents_version: 13` → 旧版，需重新部署以获取 prompt-cache 优化、破折号过滤和标点规范化修复
 - `agents_version: 14` → 旧版，需重新部署以获取拆文到写作模块链、推理型一致性检查、自然分段和主语节奏规则
-- `agents_version: 15` → 当前版本
+- `agents_version: 15` → 旧版，需重新部署以获取 AI 句式检测、对话声线/文风自检、新名词锚点、封面裁剪兜底和版本提醒说明
+- `agents_version: 16` → 当前版本
 
 ## 版本变更
 
@@ -144,12 +145,21 @@
 - 刷新 agent reference bundle 中的 anti-ai-writing、banned-words、format-and-structure 等参考，保持 story-deslop / story-review / write skill 的标点规范一致。
 - 已部署项目重新运行 `/story-setup` 后可刷新 `.codex/story-agents/`、`.codex/story-agent-references/` 与 `.story-deployed`。
 
-### v15 (当前)
+### v15
 
 - `setup_skill_version` 升级到 `1.1.6`，`.story-deployed` 的 `agents_version` 升级到 `15`。
 - 同步上游 main（v0.6.16 后）：`story-long-analyze` Stage 2/3 增加「关键信息与扩写技法」「剧情/节奏.md」「剧情/情绪模块.md」等可复用写作模块，`story-import` 与 `story-long-write` 对应消费这些对标资产。
 - 刷新 `chapter-extractor`、`story-explorer`、`consistency-checker`、`narrative-writer` 等参考提示词：补推理型一致性检查、自然分段、主语节奏、解释腔/上帝感/安排感识别与情绪烈度检查。
 - Codex 插件级 PreToolUse hook 新增正文前置检查：首次创建长篇 `正文/第N章_*.md` 时要求已有对应 `大纲/细纲_第N章.md`，首次创建短篇 `正文.md` 时要求已有 `小节大纲.md`；续写/改稿/导入迁移场景放行。
 - 已部署项目重新运行 `/story-setup` 后可刷新 `.codex/story-agents/`、`.codex/story-agent-references/` 与 `.story-deployed`；插件级 hook 随仓库更新加载，不写入用户项目目录。
+
+### v16 (当前)
+
+- `setup_skill_version` 升级到 `1.1.7`，`.story-deployed` 的 `agents_version` 升级到 `16`。
+- 同步上游 v0.6.17/v0.6.18：新增 `check-ai-patterns.js` 确定性检测，覆盖“不是 A 而是 B”及跨句/相邻行否定翻转句式；`story-deslop`、`story-review`、长短篇写作流程都会在文件模式下提示复扫。
+- 刷新 `narrative-writer`、`consistency-checker`、`story-architect` 等参考提示词：补对话声线自检、文风漂移自检、新名词/设定首次出现的读者锚点、具体字数表达校验和标点节奏谱系。
+- 同步封面流程说明中的笔名强制收集与裁剪兜底，保留 Codex 当前图像能力入口，不引入旧运行时 API 写法。
+- 新增 `skills/story/VERSION` 作为主动版本检查的本地版本来源；检查更新只提示，不自动更新。
+- Codex 插件级 lifecycle hook 继续由本仓库插件加载，不由 `/story-setup` 写入项目内 hooks；本版补充 Windows/Git Bash 风格盘符路径解析，避免 `/d/...` 绝对路径绕过正文前置检查。
 
 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`。

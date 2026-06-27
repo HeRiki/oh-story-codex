@@ -18,6 +18,15 @@ if [ ! -d "$SKILLS_DIR" ]; then
   exit 1
 fi
 
+STATIC_TMP_DIR="$(mktemp -d)"
+cleanup_static_tmp() {
+  rm -rf "$STATIC_TMP_DIR"
+}
+trap cleanup_static_tmp EXIT
+
+ALL_SKILL_MD_BASENAMES="$STATIC_TMP_DIR/all-skill-md-basenames.txt"
+find "$SKILLS_DIR" -type f -name "*.md" -exec basename {} \; 2>/dev/null | sort -u > "$ALL_SKILL_MD_BASENAMES"
+
 TOTAL=0
 PASS=0
 FAIL=0
@@ -103,6 +112,9 @@ check_skill() {
   if [ ! -f "$skill_file" ]; then
     return
   fi
+
+  local skill_md_basenames="$STATIC_TMP_DIR/${skill_name}-md-basenames.txt"
+  find "$skill_dir" -type f -name "*.md" -exec basename {} \; 2>/dev/null | sort -u > "$skill_md_basenames"
 
   TOTAL=$((TOTAL + 1))
   local errors=0
@@ -271,9 +283,9 @@ check_skill() {
       local ref_dir="$(dirname "$src_file")"
       if [ -f "$ref_dir/$ref_name" ]; then
         found=true
-      elif find "$skill_dir" -type f -name "$base_name" -print -quit 2>/dev/null | grep -q .; then
+      elif grep -Fxq "$base_name" "$skill_md_basenames"; then
         found=true
-      elif [ "$is_scoped_ref" = false ] && find "$SKILLS_DIR" -type f -name "$base_name" -print -quit 2>/dev/null | grep -q .; then
+      elif [ "$is_scoped_ref" = false ] && grep -Fxq "$base_name" "$ALL_SKILL_MD_BASENAMES"; then
         found=true
       elif [ "$is_scoped_ref" = false ] && [ -f "$REPO_ROOT/$ref_name" ]; then
         found=true
@@ -341,9 +353,9 @@ check_skill() {
     local ref_dir="$(dirname "$src_file_path")"
     if [ -f "$ref_dir/$bname" ]; then
       found=true
-    elif find "$skill_dir" -type f -name "$bname" -print -quit 2>/dev/null | grep -q .; then
+    elif grep -Fxq "$bname" "$skill_md_basenames"; then
       found=true
-    elif find "$SKILLS_DIR" -type f -name "$bname" -print -quit 2>/dev/null | grep -q .; then
+    elif grep -Fxq "$bname" "$ALL_SKILL_MD_BASENAMES"; then
       found=true
     fi
     if [ "$found" = false ]; then
@@ -451,36 +463,12 @@ check_skill() {
   fi
 
   # Check 9: Runtime contamination from non-Codex skill formats
-  local forbidden_patterns=(
-    "Agent(subagent_type"
-    "subagent_type"
-    ".claude/agents"
-    ".claude/hooks"
-    ".claude/rules"
-    ".claude/settings"
-    "CLAUDE.md"
-    "Claude Code"
-    "OpenClaw"
-    "WebSearch"
-    "webReader"
-    "model: opus"
-    "model: sonnet"
-    "model: haiku"
-    "tools: [Read"
-    "disallowedTools:"
-    "maxTurns:"
-    "memory: project"
-    "用户用中文就用中文回复"
-    "所有输出使用中文"
-  )
   local contamination=()
-  local pattern
-  for pattern in "${forbidden_patterns[@]}"; do
-    while IFS= read -r hit; do
-      [ -z "$hit" ] && continue
-      contamination+=("$hit")
-    done < <(grep -RInF -- "$pattern" "$skill_dir" 2>/dev/null || true)
-  done
+  local forbidden_regex='Agent\(subagent_type|subagent_type|\.claude/(agents|hooks|rules|settings)|CLAUDE\.md|Claude Code|OpenClaw|OpenCode|\.opencode|WebSearch|webReader|model: (opus|sonnet|haiku)|tools: \[Read|disallowedTools:|maxTurns:|memory: project|用户用中文就用中文回复|所有输出使用中文'
+  while IFS= read -r hit; do
+    [ -z "$hit" ] && continue
+    contamination+=("$hit")
+  done < <(grep -RInE -- "$forbidden_regex" "$skill_dir" 2>/dev/null || true)
 
   if [ ${#contamination[@]} -eq 0 ]; then
     echo "  [PASS] no non-Codex contamination patterns"

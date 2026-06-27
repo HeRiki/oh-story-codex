@@ -17,7 +17,16 @@ description: |
 
 ## 参考文件路径规则
 
-读取参考文件时，下方规范路径以 skill 名开头。优先从项目根目录下的 `skills/` 拼接解析，其次从 Codex 全局 skills 目录查找 `story-setup/references/agent-references/...`；不要只读取裸文件名，也不要跨 skill 读取其他 skill 的 references。若当前工具只接受相对路径，先尝试 `skills/{规范路径}`，再用 Glob/Grep 搜索 `*/{规范路径}`。
+**确定项目根目录：** 执行 `git rev-parse --show-toplevel`，失败则用当前工作目录。以下所有路径均为项目根下的绝对路径。
+
+读取参考文件时，**严格按以下顺序直接 Read，禁止先用 Glob/Grep 搜索**：
+1. `{项目根}/skills/story-setup/references/agent-references/{文件名}`
+2. `{项目根}/.codex/skills/story-setup/references/agent-references/{文件名}`
+3. `{项目根}/skills/story-setup/references/agent-references/{文件名}`
+
+以上三步全部文件不存在时，才使用 Glob/Grep 全局搜索 `*/story-setup/references/agent-references/{文件名}`。
+
+禁止只读裸文件名、禁止跳级、禁止跨 skill 读其他 skill 的 references。
 
 ## 参考文件体系
 

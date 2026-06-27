@@ -1,17 +1,16 @@
 ---
 name: story-short-write
-description: |
-  短篇网文写作。辅助短篇小说创作，从构思到成稿，聚焦情绪拉扯与节奏把控。
-  触发方式：/story-short-write、/写短篇、「帮我写一篇短篇」「写个盐言故事」
+description: "短篇网文写作。辅助短篇小说创作，从构思到成稿，聚焦情绪拉扯与节奏把控。触发方式：/story-short-write、/写短篇、「帮我写一篇短篇」「写个盐言故事」。"
 ---
-
 # story-short-write：短篇网文写作
 
 你是短篇网文写作执行器。从构思到成稿，完成一篇完整的短篇小说。
 
-**执行规则：短篇以情绪为目标函数，所有内容为情绪服务。**
+**执行规则：短篇以情绪为目标，所有内容为情绪服务。**
 
 ---
+
+> Agent 兼容性：检查专业 agent 是否可用时，按 `.codex/story-agents/{agent}.md` → `.codex/agents/{agent}.toml` 的顺序查找。Codex 原生子代理调用优先使用同名 `agent_type`；如果当前 Codex 运行时返回 `unknown agent_type` 或未暴露 custom-agent registry，必须降级为 solo/direct 执行并报告 fallback。Codex 中按当前可用工具字段调用。
 
 ## 执行规则
 
@@ -102,7 +101,7 @@ description: |
 
 #### Agent 调用：story-architect
 
-构思阶段，如果项目已部署 story-architect agent（检查 `.codex/story-agents/story-architect.md` 是否存在），可 spawn `spawn_agent(name="story-architect", prompt: "项目目录：{dir}\n任务类型：短篇构思\n查询参数：{情绪目标+题材方向}")` 辅助框架设计。如 agent 不可用，由主线程直接执行。
+构思阶段，如果项目已部署 story-architect agent（优先检查 `.codex/story-agents/` 下的 `story-architect.md` 是否存在；不存在时检查 `.codex/agents/`），可 spawn `spawn_agent(name="story-architect", prompt: "项目目录：{dir}\n任务类型：短篇构思\n查询参数：{情绪目标+题材方向}")` 辅助框架设计。如 agent 不可用，由主线程直接执行。
 
 帮用户确定短篇的核心框架：
 
@@ -142,16 +141,16 @@ description: |
 
 详细步骤和模板见 `references/writing-workflow.md`。构思时从目标情绪反推剧情，不是从灵感正向构建。按顺序完成：
 
-1. 设计结构物件（1-2 个）→ 加载 `writing-craft.md`
+1. 设计贯穿道具（1-2 个）→ 加载 `writing-craft.md`
 2. 设计反派（如有）→ 加载 `villain-and-reveal.md`
 3. 确定揭露方式 → 同上
-4. 编写 小节大纲.md（格式见 writing-workflow.md）
+4. 编写 小节大纲.md（格式见 writing-workflow.md）：短篇只做轻量蓝图，每节包含结构段/五段功能、人物/关系变化、因果/逻辑链、结尾承接/钩子，不套长篇完整章节蓝图
 5. 反转信息差验证（公式见 writing-workflow.md）
 6. 伏笔回查清单（标准见 writing-workflow.md）
 
 #### Agent 调用：character-designer
 
-设计任务完成后，如果项目已部署 character-designer agent（检查 `.codex/story-agents/character-designer.md` 是否存在），可 spawn `spawn_agent(name="character-designer", prompt: "项目目录：{dir}\n任务类型：角色设定\n查询参数：{人设速写+关系}")` 辅助角色设定和语言风格档案。如 agent 不可用，由主线程直接执行。
+设计任务完成后，如果项目已部署 character-designer agent（优先检查 `.codex/story-agents/` 下的 `character-designer.md` 是否存在；不存在时检查 `.codex/agents/`），可 spawn `spawn_agent(name="character-designer", prompt: "项目目录：{dir}\n任务类型：角色设定\n查询参数：{人设速写+关系}")` 辅助角色设定和语言风格档案。如 agent 不可用，由主线程直接执行。
 
 ---
 
@@ -175,28 +174,28 @@ description: |
 
 > 术语说明：Phase 3 按「段」划分叙事结构（开头段/铺垫段/升级段/反转段/结尾段），每段包含若干「小节」（数字编号的 beat）。「场景」指写作时的具体画面。
 
-**准备层**（每个场景写前执行 2 步，是核心方法的落地：确认情绪目标 → 召回技法模块）：
+**写前准备**（每个场景写前执行 2 步，是核心方法的落地：确认情绪目标 → 召回技法模块）：
 - **步骤 1：记忆+召回**：① 本场景目标情绪词？② 借鉴哪个参考文件的哪个技法？③ 具体用在哪个段落？答不出 → 先回读参考再动笔。如有 `对标/` 或 `拆文库/` 结构化产出，按“对标上下文加载”规则检索与当前场景最相关的结构/情绪/反转/写作手法模块作为参考，并写入“拆文召回摘要”
   <!-- cross-book-recall:trigger:tempo-section -->
   - **多对标书时**：参 `references/cross-book-recall.md`，副对标/参考对标按阶段预算进入"副对标召回摘要"；正文只传摘要，不传副书文风或原文
 - **步骤 2：指令确认**：用一句话概括本场景写作意图（情绪+技法+适配段落），确认后开始写作
 
-**写作指令：按三维度织入逐场景写作，不是翻译大纲。每个场景让读者和主角一起经历。三个维度（发生、感知、反应）同时织入同一段连续正文——不按维度分段，不用"先写发生再补感知"的方式写作。织入后仍必须按戏剧单元/镜头断段：一段承载一个完整动作-信息变化或一条连续推理/氛围/情绪链，不按固定字数强拆。输出前做自然节奏重排：场景/一件事结束才分段；新动作、新线索、新对话、视线切换另起；完整推理、氛围铺陈、情绪变化可保留稍长段。高潮/打脸/反转压短，沉淀/推理/收束允许长一点，爽点 beat 写密、过场 beat 写疏，忌通篇同长度或同一阈值切段（见 writing-craft.md「疏密分配」）。主语节奏：段首或主语重置时可用主角名；同一动作链内优先代词/省略；关键转折再点名强调，避免连续句/段无必要重复主角名。叙述姿态锁深度限知此刻感知，不跳出解释因果/不剧透预告/不替读者总结升华（去说教·上帝感·安排感，见 anti-ai 模式8/Gate G）；情绪宁烈不温——冲突前置、爽点要狠要具体、台词带刺，敢写极端反应不点到为止（以克制为爽感的题材如虐文/世情除外，按 genre-catalog 走克制路线）。**
+**写作指令：按三维度揉进逐场景写作，不照搬大纲腔。每个场景让读者和主角一起经历。三个维度（发生、感知、反应）同时揉进同一段连续正文，不按维度分段，不用"先写发生再补感知"的方式写作。揉进后仍必须按戏剧单元/画面分段：一段承载一个完整动作-信息变化或一条连续推理/氛围/情绪链，不按固定字数强拆。输出前做自然节奏重排：场景/一件事结束才分段；新动作、新线索、新对话、视线切换另起；完整推理、氛围铺陈、情绪变化可保留稍长段。高潮/打脸/反转压短，沉淀/推理/收束允许长一点，爽点 beat 写密、过场 beat 写疏，忌通篇同长度或同一阈值切段（见 writing-craft.md「疏密分配」）。主语节奏：段首或主语重置时可用主角名；同一动作链内优先代词/省略；关键转折再点名强调，避免连续句/段无必要重复主角名。标点节奏：按语气标点谱系执行，避免通篇句号化，也禁止随机堆砌问号/感叹号；质问用问号，爆发处少量感叹；犹豫、未尽、打断或拖长用动作停顿、短句、换行处理，正文产物不使用 `……` / `——` / `—` / `--`。具体字数表达校验：评价台词、题字、信件、念头或弹幕时，只有统计口径明确、已用脚本逐字核对且故事确有必要，才使用“这五个字 / 短短四字 / 三个字一落 / 八个字砸下去”这类具体字数表达；不能确保字数计算正确时，改成“这句话一落”“这一句落下”“那几个字”“这行字”“话音落下”等非具体数字表达。叙述姿态锁深度限知此刻感知，不跳出解释因果/不剧透预告/不替读者总结升华（去说教·上帝感·安排感，见 anti-ai 模式8/Gate G）；情绪宁烈不温，冲突前置、爽点要狠要具体、台词带刺，敢写极端反应不点到为止（以克制为爽感的题材如虐文/世情除外，按 genre-catalog 走克制路线）。**
 
 #### Agent 调用：narrative-writer
 
-正文写作阶段默认由主会话按 2-3 节/批分批写正文，主会话输出是短篇正文的标准形态。不要要求单次 agent spawn 完成 8000+ 字全文。每批写完后先更新“已写小节摘要”（3-5 条：已揭示信息、情绪位置、未回收伏笔、下一批衔接句），下一批必须先读取该摘要和 `正文.md` 尾部 300-500 字再续写。只有在用户明确要求子代理、主会话上下文不足，或需要隔离一段试写时，才检查 `.codex/story-agents/narrative-writer.md` 并 spawn `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n输出文件：正文.md\n情绪目标：{从核心框架读取}\n小节大纲：小节大纲.md\n涉及角色：{从核心框架读取}\n主对标/拆文路径：{本次查找到的主对标 对标/{主对标书}/ 或 拆文库/{主对标书}/，没有则写 无}\n主拆文召回摘要：{本场景最相关的主对标结构/情绪/反转/写作手法模块；按场景相关性压缩，不写固定5条上限；没有则写 无}\n副对标召回摘要：{按 references/cross-book-recall.md 阶段预算筛选后的副对标/参考对标结构化摘要表；可含多本，但只传摘要，不传副书文风/原文；没有则写 无}\n格式硬约束：必须完全遵守 story-short-write/references/format-and-structure.md；全文小节标记统一，默认 ###1.、###2.；正文相邻段落之间只允许一个换行符 `\n`，不得出现空行/`\n\n`；对话独立成行，引号风格按项目/平台约定统一（默认半角双引号，盐言可用「」）；禁止使用 --- 分隔正文片段；禁止把自检/说明/审查报告写入正文.md。\n写作硬约束：按三维度织入写场景，但仍必须按戏剧单元/镜头断段；一段承载一个完整动作-信息变化或一条连续推理/氛围/情绪链，不按固定字数强拆。输出前做自然节奏重排：场景/一件事结束才分段；新动作、新线索、新对话、视线切换另起；完整推理、氛围铺陈、情绪变化可保留稍长段。高潮/打脸/反转压短，沉淀/推理/收束允许长一点，爽点 beat 写密、过场 beat 写疏，忌通篇同长度或同一阈值切段（见 writing-craft.md「疏密分配」）。主语节奏：段首或主语重置时可用主角名；同一动作链内优先代词/省略；关键转折再点名强调，避免连续句/段无必要重复主角名。叙述姿态锁深度限知此刻感知，不跳出解释因果/不剧透预告/不替读者总结升华（去说教·上帝感·安排感，见 anti-ai 模式8/Gate G）；情绪宁烈不温——冲突前置、爽点要狠要具体、台词带刺，敢写极端反应不点到为止（以克制为爽感的题材如虐文/世情除外，按 genre-catalog 走克制路线）。")`。无论由谁写作，最终写入 `正文.md` 前都必须按同一格式规范重排一次，保证主会话与子代理输出格式一致。
+正文写作阶段默认由主会话按 2-3 节/批分批写正文，主会话输出是短篇正文的标准形态。不要要求单次 agent spawn 完成 8000+ 字全文。每批写完后先更新“已写小节摘要”（3-5 条：已揭示信息、情绪位置、未回收伏笔、下一批衔接句），下一批必须先读取该摘要和 `正文.md` 尾部 300-500 字再续写。只有在用户明确要求子代理、主会话上下文不足，或需要隔离一段试写时，才优先检查 `.codex/story-agents/` 下的 `narrative-writer.md` 是否存在；不存在时检查 `.codex/agents/`。存在时 spawn `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n输出文件：正文.md\n情绪目标：{从核心框架读取}\n小节大纲：小节大纲.md（读取结构段/五段功能、人物/关系变化、因果/逻辑链、结尾承接/钩子；短篇只用轻量蓝图，不套长篇章节蓝图）\n涉及角色：{从核心框架读取}\n主对标/拆文路径：{本次查找到的主对标 对标/{主对标书}/ 或 拆文库/{主对标书}/，没有则写 无}\n主拆文召回摘要：{本场景最相关的主对标结构/情绪/反转/写作手法模块；按场景相关性压缩，不写固定5条上限；没有则写 无}\n副对标召回摘要：{按 references/cross-book-recall.md 阶段预算筛选后的副对标/参考对标结构化摘要表；可含多本，但只传摘要，不传副书文风/原文；没有则写 无}\n格式硬约束：必须完全遵守 story-short-write/references/format-and-structure.md；全文小节标记统一，默认 ###1.、###2.；正文相邻段落之间只允许一个换行符 `\n`，不得出现空行/`\n\n`；对话独立成行，引号风格按项目/平台约定统一（默认半角双引号，盐言可用「」）；禁止使用 --- 分隔正文片段；禁止把自检/说明/审查报告写入正文.md。\n写作硬约束：禁止先否定再肯定的翻转句式，含省略连接词、跨句或换行变体；按三维度揉进写场景，但仍必须按戏剧单元/画面分段；一段承载一个完整动作-信息变化或一条连续推理/氛围/情绪链，不按固定字数强拆。输出前做自然节奏重排：场景/一件事结束才分段；新动作、新线索、新对话、视线切换另起；完整推理、氛围铺陈、情绪变化可保留稍长段。高潮/打脸/反转压短，沉淀/推理/收束允许长一点，爽点 beat 写密、过场 beat 写疏，忌通篇同长度或同一阈值切段（见 writing-craft.md「疏密分配」）。主语节奏：段首或主语重置时可用主角名；同一动作链内优先代词/省略；关键转折再点名强调，避免连续句/段无必要重复主角名。标点节奏：按语气标点谱系执行，避免通篇句号化，也禁止随机堆砌问号/感叹号；质问用问号，爆发处少量感叹；犹豫、未尽、打断或拖长用动作停顿、短句、换行处理，正文产物不使用 `……` / `——` / `—` / `--`。具体字数表达校验：评价台词、题字、信件、念头或弹幕时，只有统计口径明确、已用脚本逐字核对且故事确有必要，才使用“这五个字 / 短短四字 / 三个字一落 / 八个字砸下去”这类具体字数表达；不能确保字数计算正确时，改成“这句话一落”“这一句落下”“那几个字”“这行字”“话音落下”等非具体数字表达。叙述姿态锁深度限知此刻感知，不跳出解释因果/不剧透预告/不替读者总结升华（去说教·上帝感·安排感，见 anti-ai 模式8/Gate G）；情绪宁烈不温，冲突前置、爽点要狠要具体、台词带刺，敢写极端反应不点到为止（以克制为爽感的题材如虐文/世情除外，按 genre-catalog 走克制路线）。")`。无论由谁写作，最终写入 `正文.md` 前都必须按同一格式规范重排一次，保证主会话与子代理输出格式一致。
 
 ⚠️ **硬约束：每节 ≥ 800 字 / 50-65 行**。
 题材例外：爽文、打脸、系统流等高信息密度题材可降至 ≥ 500 字/节（见 genre-writing-formulas.md 各题材速查表），但不得低于 500 字。
 写完每节后必须统计字数和行数。不足 800 字（高信息密度题材不足 500 字）的节不得跳过，必须补充更多子事件/对话来补足后再写下一节。整篇完成后总字数必须 ≥ 8000 字。
-**字数统计必须跨平台可执行：优先使用 Python 字符统计**：`for PYBIN in python3 python py; do "$PYBIN" -c "" 2>/dev/null && break; done; "$PYBIN" -c "from pathlib import Path; print(len(Path('文件路径').read_text(encoding='utf-8')))"`。**不要直接调 `python3`**——Windows 上 `python3` 会落到 Microsoft Store 占位程序、以 exit 49 静默失败；上面的探测会按 `python3→python→py` 选出真正可用的解释器。Windows / DeepSeek / Codex 组合下不要让模型自行估算字数；`wc -m` 仅作为 macOS/Linux 备选，禁止使用 `wc -c`（字节数）。如果当前 agent/工具环境没有 Bash/Python 权限，必须明确声明“未完成机器字数验证”，并按行数速算作为临时估计，不得声称已通过字数硬验证。
+**字数统计必须跨平台可执行：优先使用 Python 字符统计**：`for PYBIN in python3 python py; do "$PYBIN" -c "" 2>/dev/null && break; done; "$PYBIN" -c "from pathlib import Path; print(len(Path('文件路径').read_text(encoding='utf-8')))"`。**不要直接调 `python3`**，Windows 上 `python3` 会落到 Microsoft Store 占位程序、以 exit 49 静默失败；上面的探测会按 `python3→python→py` 选出真正可用的解释器。Windows / DeepSeek / Codex 组合下不要让模型自行估算字数；`wc -m` 仅作为 macOS/Linux 备选，禁止使用 `wc -c`（字节数）。如果当前 agent/工具环境没有 Bash/Python 权限，必须明确声明“未完成机器字数验证”，并按行数速算作为临时估计，不得声称已通过字数硬验证。
 **⚠️ 字数不足 = 章节未完成。禁止在字数未达标时结束章节。必须继续展开场景直到达标。**
 
 **节数守恒**：正文节数必须等于小节大纲规划节数。不得合并多节为一节。如果写作中发现某节不需要独立存在，应回到大纲阶段调整，而非在写作时偷减。
 
 **节长达标流程**：
-1. **写作时**：按三维度织入写每个子事件——发生、感知、反应织入同一段连续正文，不按维度分段写
+1. **写作时**：按三维度揉进写每个子事件——发生、感知、反应揉进同一段连续正文，不按维度分段写
 2. **字数不足时**（逐节统计后）：用以下方法补足（优先级从高到低）：
    - 补充更多子事件（回到小节大纲补充）
    - 加一轮对话（参考 writing-craft.md 对话权力模式）
@@ -214,9 +213,9 @@ description: |
 
 > **节长速算**：平均每行 15 字 × 55 行 ≈ 825 字。写到第 30 行时如果还不到 500 字，说明子事件数量不够，需要补充更多子事件或对话。
 
-每个小节按「三维度织入」写作（详见 writing-craft.md 第 8 节）：每个子事件将发生、感知、反应三个维度织入同一段连续正文，子事件合计 ≥150 字。维度织入不等于按维度分段——禁止"先写发生再补感知再补反应"的堆叠写法；也不等于一段到底——按新动作/新物件/新信息/新对话断段。长度只是诊断，先判断是否完整戏剧单元；混入多个动作/信息才拆，完整推理、氛围或情绪链可以保留稍长段。
+每个小节按「三维度揉进」写作（详见 writing-craft.md 第 8 节）：每个子事件将发生、感知、反应三个维度揉进同一段连续正文，子事件合计 ≥150 字。维度揉进不等于按维度分段——禁止"先写发生再补感知再补反应"的堆叠写法；也不等于一段到底，按新动作/新物件/新信息/新对话断段。长度只是诊断，先判断是否完整戏剧单元；混入多个动作/信息才拆，完整推理、氛围或情绪链可以保留稍长段。
 
-**写完后对照 小节大纲.md 检查**：每个子事件三个维度都织入了？本节情绪到位？伏笔/物件已植入？节长 <800 字 → 补充更多子事件/对话后再写下一节。
+**写完后对照 小节大纲.md 检查**：每个子事件三个维度都揉进了？本节情绪到位？伏笔/物件已植入？节长 <800 字 → 补充更多子事件/对话后再写下一节。
 
 按以下结构分段写：
 
@@ -229,7 +228,7 @@ description: |
 **开头零环境规则**（默认适用；悬疑、惊悚、灾难、强氛围题材可例外）：
 - 前 3 句禁止出现无事件承载的环境描写（灯光、天气、气味、温度、装修）
 - 前 3 句必须是：事件 / 对话 / 动作 / 信息炸弹，四种之一
-- 环境细节只能织入角色的动作和感知中自然带出，不能独立成句；例外题材中，环境也必须携带威胁、异常或信息差
+- 环境细节只能揉进角色的动作和感知中自然带出，不能独立成句；例外题材中，环境也必须携带威胁、异常或信息差
 - 检查方法：标出前 3 句的主语，如果主语是环境物件（灯光/走廊/房间/天气），重写
 
 开头技巧：
@@ -253,7 +252,7 @@ description: |
 - 每 2-3 个小节埋一个钩子（类型从 hooks-paragraph.md 选择）
 - 小节用数字分割，每小节推进一个情节点
 - 情绪强度逐节递增，不允许连续 2 节无情绪变化
-- **结构物件第 1 现必须在此段完成**
+- **贯穿道具第 1 次出现必须在此段完成**
 - **反派作恶按阶梯递增**（小恶→中恶，见 villain-and-reveal.md）
 
 #### 第三段：升级（占全文 20-30%）
@@ -271,14 +270,14 @@ description: |
 - 揭示后确保前面铺垫的线索可被回溯（读者能找到「原来如此」的伏笔）
 - 反转节的情绪冲击强度必须 > 前面所有节的最高值
 - **用证物/证人/偷听/剥洋葱揭露真相**（4 种方式见 villain-and-reveal.md）
-- **结构物件第 2 现必须在此段完成**（意义被颠覆）
+- **贯穿道具第 2 次出现必须在此段完成**（意义被颠覆）
 
 #### 第五段：结尾（占全文 5-10%）
 
 - 章末必须有钩子（悬念或余韵）
 - 用安静细节收尾（一个物件、一个动作、一句短话），不写大段抒情
 - 结尾方式见下表，参考 emotional-methods.md「余韵钝痛」
-- **结构物件第 3 现（回扣暴击）**
+- **贯穿道具第 3 次出现（回扣暴击）**
 
 结尾类型：
 
@@ -299,6 +298,7 @@ description: |
 - [ ] 节数 = 小节大纲规划节数（不得合并/省略）
 - [ ] 身体部位同一词全文 ≤ 5 次
 - [ ] 「像」≤ 10 处
+- [ ] `node scripts/check-ai-patterns.js --check 正文.md` 无高危 AI 句式命中
 
 **中文文本统计注意事项**：
 - `wc -c` 统计的是字节数，中文每字符 3 字节（UTF-8），不等于字数
@@ -314,12 +314,12 @@ description: |
 ### Phase 4：精修打磨
 
 加载 `references/writing-workflow.md` 中的精修清单完成检查。
-重点：开头钩子、情绪曲线、反转铺垫、每句话价值、格式规范、AI 腔排查。
+重点：开头钩子、情绪曲线、反转铺垫、每句话价值、格式规范、AI 腔排查。文件模式必须先运行 `node scripts/normalize-punctuation.js 正文.md`，再运行 `node scripts/check-ai-patterns.js --check 正文.md`；后者只报告不改写，命中时回到正文改掉并复扫到 0。
 
 #### Agent 调用：narrative-writer（去AI味）+ consistency-checker
 
 精修阶段，如果项目已部署对应 agent，可 spawn：
-- `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：去AI味+格式检查\n检查范围：{正文文件}")` — 执行去AI味（7 Gate）和格式合规检查
+- `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：去AI味+格式检查\n检查范围：{正文文件}\n必须检查：先否定再肯定的翻转句式；发现后直接改成后项或动作细节")` — 执行去AI味（7 Gate）和格式合规检查
 - `spawn_agent(name="consistency-checker", prompt: "项目目录：{dir}\n检查范围：{正文文件}\n检查类型：事实冲突+伏笔断线+角色属性不一致")` — 执行一致性检查
 
 如 agent 不可用，由主线程直接执行。
@@ -369,6 +369,8 @@ description: |
 | [references/emotional-arc-design.md](references/emotional-arc-design.md) | 设计情绪曲线时 |
 | [references/quality-checklist.md](references/quality-checklist.md) | 精修检查时 |
 | [references/banned-words.md](references/banned-words.md) | 禁用词表 |
+| [scripts/normalize-punctuation.js](scripts/normalize-punctuation.js) | Phase 4 文件模式确定性标点收尾 |
+| [scripts/check-ai-patterns.js](scripts/check-ai-patterns.js) | Phase 3 完成门槛与 Phase 4 复扫；只报告高危 AI 句式 |
 | [references/female-audience-writing.md](references/female-audience-writing.md) | 女频写作时 |
 | [references/character-basics.md](references/character-basics.md) | 人物基础设定 |
 | [references/character-design-methods.md](references/character-design-methods.md) | 人设方法 |
@@ -378,7 +380,7 @@ description: |
 | [references/genre-catalog.md](references/genre-catalog.md) | 题材框架 |
 | [references/genre-core-mechanics.md](references/genre-core-mechanics.md) | 核心梗设计 |
 | [references/genre-readers.md](references/genre-readers.md) | 读者心理 |
-| [references/state-tracking.md](references/state-tracking.md) | 状态追踪协议（Phase 3 准备层参考） |
+| [references/state-tracking.md](references/state-tracking.md) | 状态追踪协议（Phase 3 写前准备参考） |
 | [references/output-contract.md](references/output-contract.md) | Phase 2 对标上下文加载时（理解 analyze 产出格式与消费规范） |
 
 ### 按主题快速定位（横切主题）
@@ -395,9 +397,9 @@ description: |
 | 女频写作 | **`references/female-audience-writing.md`**（核心原则 / 文案结构体系 / 感情线写法深化） | `references/genre-writing-techniques.md`（女频读者心理与写作技法 / 感情线四阶段推进法）· `references/genre-readers.md`（读者心理） |
 | 题材公式 | **`references/genre-writing-formulas.md`**（各题材创作公式速查） | `references/genre-catalog.md`（题材框架）· `references/genre-core-mechanics.md`（核心梗设计） |
 | 开头 | **`references/opening-design.md`**（黄金一章 / 三大基点 / 题材开头模板；短篇：「前3章」读作开篇首节~前1/3、七步法按目标字数等比缩放） | `references/hooks-chapter.md`（开篇钩子类型） |
-| 格式与节奏 | **`references/format-and-structure.md`**（正文格式硬规范） | `references/writing-craft.md`（三维度织入）· `references/writing-workflow.md`（设计/精修工作流） |
+| 格式与节奏 | **`references/format-and-structure.md`**（正文格式硬规范） | `references/writing-craft.md`（三维度揉进）· `references/writing-workflow.md`（设计/精修工作流） |
 | 对话 | **`references/dialogue-mastery.md`**（对话技法主文件：差异化/潜台词/对话节奏） | `references/writing-craft.md`（对话权力博弈的结构化用法） |
-| 去AI味 | **`references/anti-ai-writing.md`**（AI指纹/核心规则/Show Don't Tell） | `references/banned-words.md`（禁用词扫描）· `references/quality-checklist.md`（成稿检查） |
+| 去AI味 | **`references/anti-ai-writing.md`**（AI指纹/核心规则/Show Don't Tell） | `references/banned-words.md`（禁用词扫描）· `scripts/check-ai-patterns.js`（AI句式复扫）· `references/quality-checklist.md`（成稿检查） |
 
 ---
 

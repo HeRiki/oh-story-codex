@@ -29,9 +29,12 @@ fi
 #   story-long-write's copy is adapted for long-form serialized 女频 (卷级感情节奏,
 #   多平台篇幅定位, 长线骨架题材). The two are intentionally divergent — NOT a managed
 #   sync copy (no sync-source frontmatter).
+# - AGENTS.md.tmpl: CLI-specific project instruction templates differ deliberately
+#   across CLI adapters and are validated by each adapter-specific check.
 IGNORE_NAMES="output-templates.md material-decomposition.md quality-checklist.md \
 genre-catalog.md genre-core-mechanics.md genre-readers.md \
-genre-writing-formulas.md genre-writing-techniques.md female-audience-writing.md"
+genre-writing-formulas.md genre-writing-techniques.md female-audience-writing.md \
+AGENTS.md.tmpl"
 
 # Analyst-divergent (basename): the story-short-analyze copy intentionally prepends the
 # "## 用作拆文标尺时" analyst-lens header, so it is dropped from the comparison set; all
@@ -46,7 +49,7 @@ echo "Shared File Consistency Check"
 echo "=============================="
 
 # Find all reference basenames that appear in 2+ skills
-dup_names="$(find "$SKILLS_DIR" -type f -path '*/references/*' ! -name '.gitkeep' -exec basename {} \; 2>/dev/null | sort | uniq -d)"
+dup_names="$(find "$SKILLS_DIR" -type f -path '*/references/*' ! -name '.gitkeep' ! -path '*/opencode/*' -exec basename {} \; 2>/dev/null | sort | uniq -d)"
 
 for base in $dup_names; do
   # Skip known intentional differences

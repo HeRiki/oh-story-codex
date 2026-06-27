@@ -30,6 +30,7 @@ echo "Protocol defines status values: $STATUS_ENUM"
 TMP_DIR=$(mktemp -d)
 cleanup() {
   rm -rf "$TMP_DIR"
+  rm -rf "$REPO_ROOT/.tmp-oh-story-msys-$$"
 }
 trap cleanup EXIT
 
@@ -264,6 +265,42 @@ if [ "$move_ec" -ne 0 ]; then
   exit 1
 fi
 echo "  OK allow: apply_patch move-to prose with outline"
+
+if command -v cygpath >/dev/null 2>&1; then
+  msys_guard_root="$REPO_ROOT/.tmp-oh-story-msys-$$/prose-guard-msys"
+  mkdir -p "$msys_guard_root/长篇/正文" "$msys_guard_root/长篇/大纲" "$msys_guard_root/短篇"
+  touch "$msys_guard_root/.story-deployed"
+  touch "$msys_guard_root/短篇/设定.md"
+  msys_node_root="$(cygpath -m "$msys_guard_root")"
+  msys_cwd="$(cygpath -u "$msys_node_root")"
+  case "$msys_cwd" in
+    /[A-Za-z]/*)
+      msys_ec=0
+      printf '{"cwd":"%s","hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"file_path":"长篇/正文/第4章_开篇.md"}}' "$msys_cwd" \
+        | node "$HOOK_FILE" pre-tool-use >/tmp/oh-story-hook-guard.out 2>/tmp/oh-story-hook-guard.err || msys_ec=$?
+      if [ "$msys_ec" -ne 2 ]; then
+        echo "FAIL: prose guard should resolve MSYS-style cwd and block missing outline, got exit $msys_ec"
+        cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+        exit 1
+      fi
+      echo "  OK block: MSYS-style cwd resolves story root"
+
+      touch "$msys_guard_root/长篇/大纲/细纲_第4章.md"
+      msys_abs_target="$(cygpath -u "$(cygpath -m "$msys_guard_root/长篇/正文/第4章_开篇.md")")"
+      msys_ec=0
+      run_pretool_write "$msys_guard_root" "$msys_abs_target" || msys_ec=$?
+      if [ "$msys_ec" -ne 0 ]; then
+        echo "FAIL: prose guard should resolve MSYS-style absolute target with outline, got exit $msys_ec"
+        cat /tmp/oh-story-hook-guard.out /tmp/oh-story-hook-guard.err
+        exit 1
+      fi
+      echo "  OK allow: MSYS-style absolute target with outline"
+      ;;
+    *)
+      echo "  SKIP: cygpath did not produce MSYS drive path for cwd ($msys_cwd)"
+      ;;
+  esac
+fi
 
 echo ""
 echo "OK: Codex hook foreshadow and prose-outline guard behavior is valid"

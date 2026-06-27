@@ -25,7 +25,7 @@ sync-policy: |
 ├── 拆文报告.md             # 人类可读综合报告（Stage 2-6 综合）
 ├── 情节节点.md             # Stage 2 情节节点清单
 ├── 写作手法.md             # Stage 4 写作手法分析
-└── _meta.json             # 管道元数据 + 结构计数（resume + Phase 7 门控数值依据）
+└── _meta.json             # 管道元数据 + 结构计数（resume + Phase 7 检查数值依据）
 ```
 
 **文件名约定**：`拆文报告.md / 情节节点.md / 写作手法.md` 由 `story-short-write` 硬编码
@@ -48,7 +48,7 @@ sync-policy: |
 ## `_meta.json` schema
 
 `_meta.json` 是管道元数据 + 结构计数。**不放分析内容**，只放数字和枚举——给 Phase 7
-门控做完整性校验用。分析叙事都在 `拆文报告.md` 里。
+检查做完整性校验用。分析叙事都在 `拆文报告.md` 里。
 
 ```jsonc
 {
@@ -85,13 +85,13 @@ sync-policy: |
 - `last_stage_in_progress` 为空 → 从 `max(stages_completed) + 1` 开始。
 - `stages_completed` 含 6 → 已完成，询问用户覆盖/取消。
 
-**Stage 6 = 内容写完 AND Phase 7 通过**。Phase 7 未过前 `last_stage_in_progress` 保持 `6`、`stages_completed` 不含 `6`；resume 时正文/structure_counts 已在盘上，只重跑 Phase 7 门控，不重写 Stage 6 正文。
+**Stage 6 = 内容写完 AND Phase 7 通过**。Phase 7 未过前 `last_stage_in_progress` 保持 `6`、`stages_completed` 不含 `6`；resume 时正文/structure_counts 已在盘上，只重跑 Phase 7 检查，不重写 Stage 6 正文。
 
 ---
 
-## Phase 7 门控接入点
+## Phase 7 检查接入点
 
-Stage 6 内容写完后、`stages_completed[6]` append 前，跑三道门控：
+Stage 6 内容写完后、`stages_completed[6]` append 前，跑三道检查：
 
 ### 7.1 拆文报告 AI 腔自检
 

@@ -1,10 +1,7 @@
 ---
 name: story-review
-description: |
-  多视角对抗式审查。full/lean 模式在已部署 reviewer agents 时并行 spawn；缺失/异常 agents 或 spawn 失败时自动降级 solo，参考文件不可读时使用内置 rubric fallback。
-  触发方式：/story-review、/审查、「审查一下」「帮我审一下」
+description: "多视角对抗式审查。full/lean 模式在已部署 reviewer agents 时并行 spawn；缺失/异常 agents 或 spawn 失败时自动降级 solo，参考文件不可读时使用内置 rubric fallback。触发方式：/story-review、/审查、「审查一下」「帮我审一下」。"
 ---
-
 # story-review：多视角对抗式审查
 
 你是审查协调器。你的职责是找出小说文本中的结构、角色、文字、设定问题，并给出可执行修改建议。
@@ -26,14 +23,17 @@ description: |
 
 1. **确定请求模式**：解析用户输入中的 `full`、`lean`、`solo`；未指定时目标模式为 `full`。
 2. **确认是否允许 spawn**：如果当前已经在子代理/Agent 内执行，不再递归 spawn，直接降级为 `solo`。
-3. **检查核心 Agent 部署状态**（只检查项目内 agents，不要假设一定存在）：
-   - full 必需：`.codex/story-agents/story-architect.md`、`.codex/story-agents/character-designer.md`、`.codex/story-agents/narrative-writer.md`、`.codex/story-agents/consistency-checker.md`
-   - lean 必需：`.codex/story-agents/story-architect.md`、`.codex/story-agents/consistency-checker.md`
-   - 对每个必需 Agent 文件，读取 frontmatter，确认 `name:` 与目标 agent 名称完全一致；frontmatter 缺失、不可解析或 name 不匹配时视为 malformed agent。
-   - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `12`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
+3. **检查核心 Agent 部署状态**（只检查 Codex 路径）：
+   - 优先检查 `.codex/story-agents/`，其次检查 `.codex/agents/`；两个目录任一满足必需文件即视为已部署。
+   - full 必需：`.codex/story-agents/` 下存在 `story-architect.md`、`character-designer.md`、`narrative-writer.md`、`consistency-checker.md`，或 `.codex/agents/` 下存在同名 `.toml`。
+   - lean 必需：`.codex/story-agents/` 下存在 `story-architect.md`、`consistency-checker.md`，或 `.codex/agents/` 下存在同名 `.toml`。
+   - 对每个必需 Agent 文件：
+     - **story-setup 参考提示词（`.codex/story-agents/`）**：读取 frontmatter，确认 `name:` 与 agent name 完全一致；frontmatter 缺失、不可解析或 name 不匹配时视为 malformed agent。
+     - **Codex 原生 agent（`.codex/agents/`）**：文件名为 `{agent}.toml`，TOML 必须可解析，且包含 `name`、`description`、`developer_instructions`；`name` 必须与目标 agent 完全一致。
+   - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `16`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
    - 如果目标模式所需任一文件缺失或 malformed，**不要尝试 spawn 缺失/异常 Agent**；自动降级为 `solo`，并在报告开头写明：`Fallback: missing agents -> solo` 或 `Fallback: malformed agents -> solo`，列出问题文件，建议用户运行 `/story-setup`。
 4. **确认 Agent/Task 工具可用**：如果当前环境没有可用的子 Agent/Task 调用能力，直接降级为 `solo`，报告 `Fallback: agent tool unavailable -> solo`。
-5. **运行时失败降级**：如果任何 Agent spawn 返回失败、目标 agent 名称不可用、frontmatter 运行时解析失败或子 Agent 无法启动，停止继续 spawn，改用 `solo` 重新审查，并报告 `Fallback: spawn failed -> solo` 与失败的 agent 名称；不要把部分成功的 Agent 结果当成 full/lean 结论。
+5. **运行时失败降级**：如果任何 Agent spawn 返回失败、`agent name` / `agent_type` 不可用、frontmatter/TOML 运行时解析失败或子 Agent 无法启动，停止继续 spawn，改用 `solo` 重新审查，并报告 `Fallback: spawn failed -> solo` 与失败的 agent name/agent_type；不要把部分成功的 Agent 结果当成 full/lean 结论。
 6. **确定实际模式**：报告中必须同时列出 `Requested Mode` 与 `Effective Mode`。
 7. **禁止把 `.active-book` 当作平台来源**：`.active-book` 只表示当前书名/目录名，不代表目标平台。
 
@@ -58,9 +58,10 @@ Rubric Source: file | embedded fallback
 ### 参考资料解析顺序
 
 可读取参考文件时，按以下顺序尝试：
-1. `{项目根}/skills/{规范路径}`（项目内安装）
-2. `{项目根}/skills/{规范路径}`（本仓库开发环境）
-3. 工具自身可访问的全局 skill 搜索路径中同名 `{skill-name}/...` 目录
+1. `{项目根}/skills/{规范路径}`（Codex 项目内安装）
+2. `{项目根}/.codex/skills/{规范路径}`（Codex 项目内安装）
+3. `{项目根}/skills/{规范路径}`（本仓库开发环境）
+4. 工具自身可访问的全局 skill 搜索路径中同名 `{skill-name}/...` 目录
 
 规范路径如下；禁止只写裸文件名，禁止跨 skill 误读其他 skill 的 references：
 
@@ -75,6 +76,7 @@ Rubric Source: file | embedded fallback
 | 审查禁用词 | `story-review/references/banned-words.md` |
 | 平台 rubric | `story-review/references/rubrics/{fanqie,qidian,zhihu}.md` |
 | 标点预检脚本 | `story-review/scripts/normalize-punctuation.js` |
+| AI句式预检脚本 | `story-review/scripts/check-ai-patterns.js` |
 
 ### 内置审查基准包（路径不可读时必用）
 
@@ -89,6 +91,8 @@ Rubric Source: file | embedded fallback
 - 对话质量：是否有潜台词、信息控制、角色差异；说明书式对话至少 S2。
 - 设定一致性：不违背已写规则、时间线、角色属性；明确事实冲突通常 S1。
 - 文字自然度：具体、可感、动作承载信息；AI 腔、陈词滥调、总结体按影响定 S2/S3。
+- 标点节奏：标点是否服务语气/人物声线；通篇句号化、随机堆砌问号/感叹号，或残留 `……`/`——` 硬造停顿，按影响定 S3/S2。
+- 具体字数表达校验：正文用“这五个字 / 短短四字 / 三个字一落 / 八个字砸下去”等具体字数表达评价台词、题字、信件、念头或弹幕时，必须能确认统计口径、机器核对结果和叙事必要；不能确保字数计算正确时，按文字自然度问题处理，建议改成“这句话一落”“那几个字”“话音落下”等非具体数字表达。
 - 格式可读性：段落短、对话独立、无多余空行；格式阻碍阅读按 S3，严重混乱按 S2。
 - 最小剧情循环：目标 → 阻碍 → 行动 → 代价/反馈 → 新期待；缺少目标/阻碍/反馈通常至少 S2。
 - 高潮构建：蓄能 → 假胜 → 崩解 → 反转/兑现；高潮直接平铺、无代价或无兑现通常 S2/S3。
@@ -132,16 +136,18 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
    - 知乎盐言 → 优先读取 `story-review/references/rubrics/zhihu.md`；不可读时使用内置知乎 fallback 摘要。
    - 未识别平台 → 优先读取 `story-review/references/quality-rubric.md`；不可读时使用内置通用网文内容 rubric，并报告 `Rubric: generic web-fiction` 与 `Rubric Source: file | embedded fallback`。
 5. **形成审查基准包摘要**：把已加载的文件内容或内置 fallback 摘要压缩为 5-12 条审查标准，后续 solo 和子 Agent 都必须使用这份摘要。
-6. **确定性标点预检（只报告，不修改）**：当审查范围包含本地正文文件路径时，运行本 skill 自带脚本：
+6. **确定性预检（只报告，不修改）**：当审查范围包含本地正文文件路径时，运行本 skill 自带脚本：
    ```bash
    node scripts/normalize-punctuation.js --check <正文文件...>
+   node scripts/check-ai-patterns.js --check <正文文件...>
    ```
-   - 将 `em-dash`、`double-hyphen`、`markdown-divider` 结果作为 `format` 或 `prose` findings 合并进报告。
+   - 将 `ellipsis`、`em-dash`、`double-hyphen`、`markdown-divider` 结果作为 `format` 或 `prose` findings 合并进报告；另外人工检查标点节奏是否通篇句号化或随机堆砌，脚本不替代语气判断。
+   - 将 `not-is-comparison` 结果作为 `prose` findings 合并进报告，修复建议写成：删否定铺垫，直接写后项，或改为动作/细节呈现。
    - `story-review` 不修改文件；需要自动修复时建议转 `/story-deslop`。
    - 默认 `--quote-mode keep`，不把知乎盐言短篇的 `「」` 当作问题；只有项目明确指定引号风格时才检查对应转换建议。
-   - 该脚本是 `story-review` 的本地副本，不引用其他 skill 的文件。
+   - 这些脚本都是 `story-review` 的本地副本，不引用其他 skill 的文件。
 
-**Phase 1.5：可选 story-explorer 预查询**。仅当 `Effective Mode` 仍为 `full`/`lean`、当前允许 spawn 且 Agent/Task 工具可用时，才可检查 `.codex/story-agents/story-explorer.md` 并 spawn `story-explorer` 预查设定摘要；`solo` 或子代理递归保护场景下不得 spawn，只能直接 Read/Grep。Prompt 示例：
+**Phase 1.5：可选 story-explorer 预查询**。仅当 `Effective Mode` 仍为 `full`/`lean`、当前允许 spawn 且 Agent/Task 工具可用时，才可检查 agent 目录（优先 `.codex/story-agents/`，再检查 `.codex/agents/`）下的 `story-explorer.md` 或 `story-explorer.toml` 并 spawn `story-explorer` 预查设定摘要；`solo` 或子代理递归保护场景下不得 spawn，只能直接 Read/Grep。Prompt 示例：
 
 ```text
 项目目录：{dir}
@@ -178,7 +184,7 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
 
 ## Phase 2：并行 Spawn Agent（full/lean 模式）
 
-使用 Agent 工具并行调用。每个 Agent 不继承父对话上下文，prompt 必须自包含项目路径、审查范围、文件路径、必要摘录、审查基准包摘要、Rubric Source 和统一 Findings Schema。
+使用 Agent/Task 工具并行调用（Codex 原生子代理使用 `agent_type`，Codex 参考提示词路径使用 `name`；实际字段以当前 CLI 暴露的工具为准）。每个 Agent 不继承父对话上下文，prompt 必须自包含项目路径、审查范围、文件路径、必要摘录、审查基准包摘要、Rubric Source 和统一 Findings Schema。
 
 **调用规则**：执行 Phase 0 后，只有实际模式仍是 full/lean 时才 spawn。不要 spawn 缺失 Agent。
 
@@ -233,6 +239,7 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   5. 对话是否有潜台词和信息控制？
   6. 爱情线好感度与 CP 行为是否匹配？（参照审查基准包摘要或可选 `story-setup` 角色关系参考）
   7. 好感度进度是否可感知？
+  8. 对话三症状（可选读 `story-setup/references/agent-references/dialogue-mastery.md` 自查项）：① 机械对话/问答式/句间无情绪承接；② 角色当「科普嘴」整段讲设定原理(Gate G 同样管台词)；③ 说话不分场合(高压/生死 beat 的玩笑、口头梗、插科打诨出戏)。命中按 S2/S3 报具体引用+改法。
 
   输出格式：
   VERDICT: APPROVE / CONCERNS / REJECT
@@ -257,9 +264,11 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   1. 是否存在禁用词/套话/陈词滥调？
   2. 是否出现 AI 写作指纹、8 种 AI 写作模式（含模式 8 解释腔/上帝视角/安排感）或章末总结体？
   3. 格式是否合规（按戏剧单元/镜头自然断段、无机械字数切分、无空行、对话独立成行、主语节奏自然）？
-  4. 节奏是否均匀（有无连续多节无情绪变化）？
-  5. 身体部位同一词是否超 5 次？
-  6. AI味分级（轻度/中度/重度）及证据。
+  4. 标点节奏是否匹配语气/人物声线：是否通篇句号化、随机堆砌问号/感叹号，或残留 `……`/`——` 硬造停顿？正文（含对话）里的破折号是否已清理？
+  5. 是否出现“这五个字 / 短短四字 / 三个字一落 / 八个字砸下去”等正文内具体字数表达？若统计口径不明、未见机器核对结果或无叙事必要，标为问题并建议改成非具体数字表达。
+  6. 节奏是否均匀（有无连续多节无情绪变化）？
+  7. 身体部位同一词是否超 5 次？
+  8. AI味分级（轻度/中度/重度）及证据。
 
   输出格式：
   VERDICT: APPROVE / CONCERNS / REJECT
@@ -300,7 +309,7 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
 
 1. 收集实际执行的 reviewer VERDICT 和 FINDINGS。
 2. 合并去重：按 `severity` 排序（S1 > S2 > S3 > S4），同级内按影响范围排序。
-3. **可选事实核查**：如果审查内容涉及需要验证的外部事实（历史年代、地理方位、职业细节等），只有在 `Effective Mode` 仍为 `full`/`lean`、当前不是子 Agent、Agent/Task 工具可用且 `.codex/story-agents/story-researcher.md` 已部署时，才可额外 spawn `story-researcher` 搜索验证；`solo`、missing/malformed/stale/spawn failed 降级或子代理递归保护场景下不得 spawn，只能在报告中标记“需人工事实核查”。
+3. **可选事实核查**：如果审查内容涉及需要验证的外部事实（历史年代、地理方位、职业细节等），只有在 `Effective Mode` 仍为 `full`/`lean`、当前不是子 Agent、Agent/Task 工具可用且 agent 目录（优先 `.codex/story-agents/`，再检查 `.codex/agents/`）下的 `story-researcher.md` 或 `story-researcher.toml` 已部署时，才可额外 spawn `story-researcher` 搜索验证；`solo`、missing/malformed/stale/spawn failed 降级或子代理递归保护场景下不得 spawn，只能在报告中标记“需人工事实核查”。
 4. **分歧呈现**：如果 reviewer 间有冲突意见，明确呈现分歧让用户裁决；不要自动妥协。
 5. 输出综合审查报告。报告必须列出实际模式、fallback 原因、使用的 rubric、Rubric Source、审查范围和证据不足项。
 
@@ -364,7 +373,7 @@ lean 模式只 spawn `story-architect` + `consistency-checker`。如果任一缺
 不 spawn Agent。先按 Phase 1 第 4 步识别目标平台并加载对应 rubric；即使是 solo，也必须用平台 rubric、`story-review/references/quality-rubric.md` 或内置审查基准包校准判断。
 
 solo 必须执行基础检查：
-1. 格式合规性检查（戏剧单元/镜头断段、无机械字数切分、无空行、对话格式、主语/角色名节奏）。
+1. 格式合规性检查（戏剧单元/画面分段、无机械字数切分、无空行、对话格式、主语/角色名节奏）。
 2. 简单的设定一致性 grep（角色名、属性、关键设定、伏笔关键词）+ 推理型一致性检查（规则边界、设定层级、跨章因果链、可滥用漏洞、代价一致性）。
 3. AI 味与禁用词检查（优先读取 `story-review/references/banned-words.md` 与 `story-review/references/anti-ai-writing.md`，不可读时使用内置 AI 味 / 禁用词 fallback 速查）。
 4. 通用网文内容评分（优先读取 `story-review/references/quality-rubric.md`，不可读时使用内置通用网文内容 rubric）。
@@ -390,6 +399,7 @@ Rubric Source: file | embedded fallback
 - [{x| }] 主语/角色名节奏自然：段首能建立主语，段中有代词/省略，关键转折再点名；连续句/段无必要重复同一主角名才算主语过密：通过/不通过；证据：...
 - [{x| }] 无段间空行：通过/不通过；证据：...
 - [{x| }] 对话独立成行：通过/不通过；证据：...
+- [{x| }] 具体字数表达已确认统计正确且有叙事必要；不能确认时已改成非具体数字表达：通过/不通过；证据：...
 - 违规位置：{列出}
 
 > checklist 约定：`[x]` 只表示通过，`[ ]` 表示未通过；不得出现“`[x] ... 不通过`”这种矛盾写法。

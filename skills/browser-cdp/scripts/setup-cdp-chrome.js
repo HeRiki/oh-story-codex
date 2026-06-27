@@ -351,7 +351,7 @@ async function ensureConsentToKill(pids) {
   if (pids.length === 0) return true;
   if (ARGS.flags.yes) return true;
 
-  // 非 TTY：拒绝静默杀进程，给调用方（Claude / 上层脚本）一个明确信号
+  // 非 TTY：拒绝静默杀进程，给调用方一个明确信号
   if (!process.stdin.isTTY) {
     err(`NEEDS_CONSENT: ${pids.length} running Chrome process(es) will be killed.`);
     err(`Pass --yes to confirm (after asking the user), or stop Chrome manually first.`);

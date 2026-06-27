@@ -2,20 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## v0.6.18
 
-> 同步上游 main（v0.6.16 后）：拆文到写作模块链、推理型一致性检查、自然分段/主语节奏规则，以及 Codex 插件级正文前置检查
+> 同步上游 v0.6.17/v0.6.18 与后续 main：AI 句式检测、对话/文风自检、新名词锚点、封面裁剪兜底、版本检查，以及 Codex 插件级 hook 路径修复
 
 ### 改进
 
-- **拆文到写作模块链**：同步 `story-long-analyze` 的「关键信息与扩写技法」「剧情/节奏.md」「剧情/情绪模块.md」产物，`story-import` 和 `story-long-write` 对应消费这些对标资产。
-- **写作自然度**：同步解释腔/上帝感/安排感识别、情绪烈度、自然分段、主语节奏和长短疏密规则。
-- **审查增强**：`story-review` / `consistency-checker` 增加推理型一致性检查，不只做字面 grep。
-- **story-setup**：`agents_version` 升级到 v15、`setup_skill_version` 升级到 `1.1.6`，提示已部署项目重新运行 `/story-setup` 刷新 `.codex/story-agents/` 与 reference bundle。
+- **AI 句式检测**：新增四份 `check-ai-patterns.js` 本地副本和 `scripts/test-ai-patterns.sh`，覆盖“不是 A 而是 B”及跨句/相邻行否定翻转句式；`story-deslop`、`story-review`、长短篇写作流程在文件模式下会提示预检和复扫。
+- **写作自然度**：同步对话声线、文风漂移自检、新名词/设定首次出现读者锚点、具体字数表达校验和标点节奏谱系。
+- **封面流程**：同步笔名强制收集、封面裁剪兜底与 GPT image model 环境变量说明，Codex 版继续走当前可用图像能力。
+- **版本检查**：新增 `skills/story/VERSION` 作为本地版本来源；`story` 可主动查询上游 release 并提示版本差异，不自动安装上游包。
+- **story-setup**：`agents_version` 升级到 v16、`setup_skill_version` 升级到 `1.1.7`，提示已部署项目重新运行 `/story-setup` 刷新 `.codex/story-agents/` 与 reference bundle。
 
 ### Codex 适配
 
-- 新增 Codex 插件级正文前置检查：首次创建长篇 `正文/第N章_*.md` 需要已有对应 `大纲/细纲_第N章.md`；首次创建短篇 `正文.md` 需要已有 `小节大纲.md`。续写、改稿和导入迁移场景放行。
+- Codex 插件级正文前置检查继续要求首次创建长篇 `正文/第N章_*.md` 前已有对应 `大纲/细纲_第N章.md`，首次创建短篇 `正文.md` 前已有 `小节大纲.md`；续写、改稿和导入迁移场景放行。
+- `hooks/story-lifecycle-hook.cjs` 增加 Windows/Git Bash 风格盘符路径解析，修复 `/d/...` 这类绝对路径会被 Windows Node 误解析成 `D:\d\...` 的边界。
+- `story-review` stale deployment 阈值升级到 v16，且只检查 Codex 路径 `.codex/story-agents/` 与 `.codex/agents/`。
+- 污染守卫补充 OpenCode/.opencode 与旧模型名残留检查，防止上游多端运行时说明进入 Codex skill。
 - 继续不恢复上游 `.claude/hooks`、`.claude/settings.local.json` 或 `settings-hooks.json` 项目内部署。
 
 ## v0.6.16

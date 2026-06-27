@@ -38,7 +38,7 @@ description: |
 | `references/templates/agents/*.md` | `.codex/story-agents/*.md` | story-setup managed | replace | 7 个角色提示词完整，frontmatter 只保留 Codex 可读字段 |
 | `references/agent-references/*.md` | `.codex/story-agent-references/*.md` | story-setup managed | replace | agent 模板引用的参考文件均有同名副本 |
 | `references/templates/上下文.md.tmpl` | `{书名}/追踪/上下文.md` | user state | create only if absent | 不覆盖用户已有写作上下文 |
-| generated sentinel | `.story-deployed` | story-setup managed | replace | 包含 `runtime: codex`、`agents_version: 15`、`setup_skill_version: 1.1.6` |
+| generated sentinel | `.story-deployed` | story-setup managed | replace | 包含 `runtime: codex`、`agents_version: 16`、`setup_skill_version: 1.1.7` |
 
 ### 2.1 部署 AGENTS.md
 
@@ -80,13 +80,13 @@ description: |
 ```text
 deployed_at: <date -u +"%Y-%m-%dT%H:%M:%SZ">
 runtime: codex
-agents_version: 15
-setup_skill_version: 1.1.6
+agents_version: 16
+setup_skill_version: 1.1.7
 resolver_strategy: codex-skill-reference
 references_dir: .codex/story-agent-references
 ```
 
-如果 `.story-deployed` 已存在但无 `agents_version` 或版本小于 15，提示用户重新运行 `/story-setup` 以更新 story agents/rules/reference bundle（具体变更见 `UPGRADING.md`）。
+如果 `.story-deployed` 已存在但无 `agents_version` 或版本小于 16，提示用户重新运行 `/story-setup` 以更新 story agents/rules/reference bundle（具体变更见 `UPGRADING.md`）。
 
 ## Phase 3：验证安装
 
@@ -94,7 +94,7 @@ references_dir: .codex/story-agent-references
 2. 检查 `.codex/story-rules/` 是否存在并包含规则文件。
 3. 检查 `.codex/story-agents/` 是否存在并包含 7 个角色提示词。
 4. 检查 `.codex/story-agent-references/` 是否存在，且包含所有 agent 模板引用的参考文件。
-5. 检查 `.story-deployed` 是否存在且 `runtime: codex`、`agents_version: 15`、`setup_skill_version: 1.1.6`。
+5. 检查 `.story-deployed` 是否存在且 `runtime: codex`、`agents_version: 16`、`setup_skill_version: 1.1.7`。
 6. 输出安装报告，列出已部署文件和已保留的用户原有配置。
 
 ## 模板占位符
@@ -121,8 +121,8 @@ references_dir: .codex/story-agent-references
 ## 重新部署
 
 - `.story-deployed` 不存在：全新安装，Phase 2 全部执行。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 15`：提示已部署，确认后重跑。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 15：提示需要重新部署以更新 story agents/rules/reference bundle，包含 agent 参考资料路径修复、短篇正文格式统一、日更续写 continuation 规则、伏笔降噪语义、v9 reference bundle、v10 写作 agent 文风沿用修复、v11 agent 枚举漂移修复、v12 Windows 字数统计解释器探测修复、v13 拆文契约/基调枚举/标点格式修复、v14 prompt-cache 优化/写作破折号过滤/标点规范化修复，以及 v15 拆文到写作模块链、推理型一致性检查、自然分段/主语节奏规则更新。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 16`：提示已部署，确认后重跑。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 16：提示需要重新部署以更新 story agents/rules/reference bundle，包含 agent 参考资料路径修复、短篇正文格式统一、日更续写 continuation 规则、伏笔降噪语义、v9 reference bundle、v10 写作 agent 文风沿用修复、v11 agent 枚举漂移修复、v12 Windows 字数统计解释器探测修复、v13 拆文契约/基调枚举/标点格式修复、v14 prompt-cache 优化/写作破折号过滤/标点规范化修复、v15 拆文到写作模块链、推理型一致性检查、自然分段/主语节奏规则更新，以及 v16 AI 句式检测、对话声线/文风自检、新名词锚点、封面裁剪兜底和版本提醒说明。
 - `.story-deployed` 存在但 runtime 不是 `codex`：按迁移处理，部署 Codex 目录，不删除原有旧运行时目录。
 
 ## Codex lifecycle hook
@@ -135,7 +135,7 @@ Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写�
 |---|---|
 | `references/templates/AGENTS.md.tmpl` | 项目根 `AGENTS.md` 模板 |
 | `references/templates/rules/` | 写作规则参考 |
-| `references/templates/agents/` | 7 个角色提示词参考，含 v15 拆文到写作模块链、推理型一致性检查、自然分段/主语节奏规则，v14 prompt-cache 优化、破折号过滤与标点规范化修复，v13 拆文契约、基调/主题枚举、文风锚点，以及 v12 Windows 字数统计解释器探测修复 |
+| `references/templates/agents/` | 7 个角色提示词参考，含 v16 AI 句式检测、对话声线/文风自检、新名词锚点与具体字数表达校验，v15 拆文到写作模块链、推理型一致性检查、自然分段/主语节奏规则，v14 prompt-cache 优化、破折号过滤与标点规范化修复，v13 拆文契约、基调/主题枚举、文风锚点，以及 v12 Windows 字数统计解释器探测修复 |
 | `references/agent-references/` | agent 模板自带的参考资料副本，避免跨 skill references |
 | `references/templates/上下文.md.tmpl` | 写作上下文模板 |
 | `UPGRADING.md` | 已部署项目重新运行 `/story-setup` 时的升级策略和版本说明 |

@@ -32,7 +32,7 @@ Codex 版中文网文写作技能包，由 `worldwonderer/oh-story-claudecode` �
 
 ## Demo
 
-本仓库同步保留上游 v0.6.16 demo，用于展示拆文产物和导入后的可续写工程结构。部分 demo 按上游原样包含原文备份或示例正文，用于验证拆文、导入和续写链路。
+本仓库继续保留已同步的 demo，用于展示拆文产物和导入后的可续写工程结构。部分 demo 按上游原样包含原文备份或示例正文，用于验证拆文、导入和续写链路。
 
 主要文件：
 
@@ -90,21 +90,18 @@ demo/让你管账号，你高燃混剪炸全网/
 
 这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
 
-## 升级到 v0.6.16 + 上游 main 同步
+## 升级到 v0.6.18
 
-如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本次同步将 `agents_version` 升级到 v15、`setup_skill_version` 升级到 `1.1.6`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本次同步将 `agents_version` 升级到 v16、`setup_skill_version` 升级到 `1.1.7`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
 
-本仓库已同步上游 v0.6.16，并继续同步上游 main 在 v0.6.16 之后的更新，重点包括：
+本仓库已同步上游 v0.6.17/v0.6.18 以及截至本次同步的 main 更新，重点包括：
 
-- **扫榜脚本实测修复**：番茄分批详情解析、点众书名/链接重写、七猫/刺猬猫链接回填、黑岩错误态细分，并补充全平台连通性自检和质量信号。
-- **晋江详情页采集**：补充收藏、营养液、积分、字数、状态等公开指标，支持 `--detail-limit` / `--list-only` 控量。
-- **番茄题材/标签扩采**：题材取 `categoryV2`，标签取简介开头 `【...】`，移除 SSR 无评分字段的错误声明。
-- **写作与拆解修复**：长篇写作流程自动过滤破折号，规范化器不再误伤合法破折号；拆解管道补材料合法性语境。
-- **prompt-cache 优化**：`story-deslop`、`narrative-writer`、`story-long-analyze` 减少提示词缓存未命中。
-- **拆文到写作模块链**：长篇拆文新增「关键信息与扩写技法」「剧情/节奏.md」「剧情/情绪模块.md」等可复用写作模块，导入和日更流程会优先消费这些对标资产。
-- **审查与写作规则**：补推理型一致性检查、自然分段、主语节奏、解释腔/上帝感/安排感识别与情绪烈度检查。
-- **Codex 正文前置检查**：插件级 `PreToolUse` hook 会在首次创建正文时检查对应细纲/小节大纲；续写、改稿和导入迁移场景放行。
-- **story-setup / story-review**：`agents_version` 升级到 v15，刷新相关 agent 模板和 reference bundle。
+- **AI 句式检测**：新增 `check-ai-patterns.js`，在 `story-deslop`、`story-review`、长短篇写作文件模式中检测“不是 A 而是 B”及跨句/相邻行否定翻转句式。
+- **写作自然度**：刷新对话声线、文风漂移自检、新名词/设定首次出现读者锚点、具体字数表达校验和标点节奏谱系。
+- **封面流程**：同步笔名强制收集与裁剪兜底说明，保留 Codex 当前图像生成入口。
+- **版本检查**：新增 `skills/story/VERSION`，`story` 可主动检查上游 release；只提示版本差异，不自动安装上游包。
+- **Codex 正文前置检查**：插件级 `PreToolUse` hook 继续在首次创建正文时检查对应细纲/小节大纲；本版补充 Windows/Git Bash 风格盘符路径解析，避免 `/d/...` 绝对路径绕过检查。
+- **story-setup / story-review**：`agents_version` 升级到 v16，刷新相关 agent 模板和 reference bundle，旧部署会降级 solo 并提示重新运行 `/story-setup`。
 - **Codex lifecycle hook**：继续保留插件级 hook，不恢复上游项目内 hook 部署，不写入 `.claude/hooks` 或 `.claude/settings.local.json`。
 
 Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。

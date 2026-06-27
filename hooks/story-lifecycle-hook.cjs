@@ -36,7 +36,7 @@ function isFile(target) {
 
 function findStoryRoot(startDir) {
   if (!startDir) return null;
-  let dir = path.resolve(startDir || process.cwd());
+  let dir = path.resolve(normalizeInputPath(startDir || process.cwd()));
   for (let i = 0; i <= MAX_WALK_DEPTH; i += 1) {
     if (isFile(path.join(dir, ".story-deployed"))) return dir;
     const parent = path.dirname(dir);
@@ -44,6 +44,30 @@ function findStoryRoot(startDir) {
     dir = parent;
   }
   return null;
+}
+
+function normalizeInputPath(targetPath) {
+  const text = String(targetPath || "");
+  if (process.platform !== "win32") return text;
+
+  const msysDrive = text.match(/^\/([a-zA-Z])(?:\/|$)(.*)$/);
+  if (msysDrive) {
+    const [, drive, rest] = msysDrive;
+    return `${drive.toUpperCase()}:\\${rest.replace(/\//g, "\\")}`;
+  }
+
+  const wslDrive = text.match(/^\/mnt\/([a-zA-Z])(?:\/|$)(.*)$/);
+  if (wslDrive) {
+    const [, drive, rest] = wslDrive;
+    return `${drive.toUpperCase()}:\\${rest.replace(/\//g, "\\")}`;
+  }
+
+  return text;
+}
+
+function resolveTargetPath(root, targetPath) {
+  const normalized = normalizeInputPath(targetPath);
+  return path.isAbsolute(normalized) ? path.resolve(normalized) : path.resolve(root, normalized);
 }
 
 function inputCwd(input) {
@@ -366,7 +390,7 @@ function hasMatchingOutline(outlineDir, chapterNumber) {
 
 function proseOutlineBlockReason(root, targetPath) {
   if (!targetPath) return "";
-  const absolute = path.isAbsolute(targetPath) ? path.resolve(targetPath) : path.resolve(root, targetPath);
+  const absolute = resolveTargetPath(root, targetPath);
   if (!insideRoot(root, absolute)) return "";
   if (isFile(absolute)) return "";
 

@@ -1,15 +1,7 @@
 ---
 name: story-short-analyze
-description: |
-  短篇网文拆文。拆解爆款短篇小说（番茄短篇 / 故事会 / 知乎盐选 / 追妻 / 世情 / 重生 /
-  虐渣等通俗题材）的故事核、结构、情感线、反转设计、写作手法、共鸣层次。
-  单一全量拆解管道：跑完 Stage 2-6 产出完整拆文报告，落盘到 `拆文库/{书名}/`，
-  下游 `story-short-write` 同时读拆文报告 + 情节节点 + 写作手法 + 原文 + _meta.json 写下一篇。
-  触发方式：/story-short-analyze、/短篇拆文、「拆短篇」「拆这篇短文」「短篇拆文」
-  「精细拆解短篇」「8000 字短篇拆解」「番茄短篇拆文」「故事会拆解」「盐言故事拆解」
-  「分析这篇短篇」——均进入同一管道。
+description: "短篇网文拆文。拆解爆款短篇小说（番茄短篇 / 故事会 / 知乎盐选 / 追妻 / 世情 / 重生 / 虐渣等通俗题材）的故事核、结构、情感线、反转设计、写作手法、共鸣层次。单一全量拆解管道：跑完 Stage 2-6 产出完整拆文报告，落盘到 拆文库/{书名}/，下游 story-short-write 同时读拆文报告 + 情节节点 + 写作手法 + 原文 + _meta.json 写下一篇。触发方式：/story-short-analyze、/短篇拆文、「拆短篇」「拆这篇短文」「短篇拆文」「精细拆解短篇」「8000 字短篇拆解」「番茄短篇拆文」「故事会拆解」「盐言故事拆解」「分析这篇短篇」——均进入同一管道。"
 ---
-
 # story-short-analyze：短篇网文拆文
 
 你是短篇小说结构分析师。
@@ -34,7 +26,7 @@ description: |
 **无文本时**：用户没有提供原文文件路径、也没有在对话中贴出原文，引导用户提供
 ——「请提供这篇短篇的原文文件路径，或直接把原文贴给我。」
 
-### 1.2 字数探针（长短篇路由）
+### 1.2 字数检查（长短篇路由）
 
 拿到原文后立刻数字数：
 
@@ -138,7 +130,7 @@ word_count = 全文字数
 ### 5 阶段管道
 
 **预期耗时提示**：短篇拆文通常 10-30 分钟；同类对比或平台适配会更久。若文本很短，
-先降采样提取关键节点，不要为满足节点数量硬拆。
+先只挑关键节点，不要为满足节点数量硬拆。
 
 | 阶段 | 名称 | 输入 | 输出 | 完成标志 |
 |------|------|------|------|----------|
@@ -166,9 +158,9 @@ word_count = 全文字数
 
 ---
 
-## Phase 7：门控验收（Stage 6 之后、写 stages_completed[6] 之前）
+## Phase 7：检查验收（Stage 6 之后、写 stages_completed[6] 之前）
 
-Stage 6 内容写完后，**不**立刻 append `6` 到 `stages_completed[]`。先跑三道门控：
+Stage 6 内容写完后，**不**立刻 append `6` 到 `stages_completed[]`。先跑三道检查：
 
 ### 7.1 拆文报告 AI 腔自检
 
@@ -180,7 +172,7 @@ Stage 6 内容写完后，**不**立刻 append `6` 到 `stages_completed[]`。�
   本身**的 AI 腔（不是源文——源文里有 AI 腔正常报告即可，但报告本身不能写成 AI 腔）。
 - **未命中** → 继续 7.2。
 
-> 守门员定位：本节门控的是「我们写的拆文报告」，不是「源文是不是 AI 写的」。
+> 守门员定位：本节检查「我们写的拆文报告」；不要评价「源文是否 AI 写的」。
 
 ### 7.2 `_meta.json.structure_counts` 数值校验
 
@@ -211,10 +203,10 @@ Stage 6 内容写完后，**不**立刻 append `6` 到 `stages_completed[]`。�
 
 ---
 
-## 质量门控概要
+## 质量检查概要
 
 各阶段完成后需通过质量检查。逐项 checklist 见
-[output-templates.md 质量门控必填字段](references/output-templates.md)。
+[output-templates.md 质量检查必填字段](references/output-templates.md)。
 
 质量标准的阈值、数值与计算方式的唯一权威定义见
 [material-decomposition.md 质量标准](references/material-decomposition.md)。
@@ -243,8 +235,8 @@ Stage 6 内容写完后，**不**立刻 append `6` 到 `stages_completed[]`。�
 
 | 文件 | 何时加载 |
 |------|----------|
-| [references/output-contract.md](references/output-contract.md) | 全程：Stage→文件映射 / `_meta.json` schema（含 structure_counts）/ 下游消费规范 / Phase 7 门控接入点 |
-| [references/output-templates.md](references/output-templates.md) | 拆文时：输出模板 + 结构库 + 质量门控（含 [BLOCK]/[WARN] 标注） |
+| [references/output-contract.md](references/output-contract.md) | 全程：Stage→文件映射 / `_meta.json` schema（含 structure_counts）/ 下游消费规范 / Phase 7 检查接入点 |
+| [references/output-templates.md](references/output-templates.md) | 拆文时：输出模板 + 结构库 + 质量检查（含 [BLOCK]/[WARN] 标注） |
 | [references/material-decomposition.md](references/material-decomposition.md) | 拆文方法论：情节节点提取 + 写作手法 + 情感线 + 节奏分析 + 共鸣分析 + 人物规则 + **质量标准唯一权威** |
 | [references/quality-checklist.md](references/quality-checklist.md) | 评估**源文**质量时：短篇拆书的质量自检清单（评估对象的好坏，不是评估拆文报告本身） |
 | [references/anti-ai-writing.md](references/anti-ai-writing.md) | Phase 7.1：扫描**拆文报告本身**的 AI 腔（不是源文滤镜） |
