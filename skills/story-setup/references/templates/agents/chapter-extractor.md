@@ -97,7 +97,8 @@ description: |
 >      "quote": "<string, ≤400 chars>",
 >      "themes": ["爱情|亲情|友情|权力|金钱|成长|复仇|悬念|搞笑|热血|日常|其他"],
 >      "tone": "紧张|轻松|悲伤|热血|爽|甜|温馨|恐怖|压抑|其他"}
->   ]
+>   ],
+>   "skipped_fragments": <integer>
 > }
 > ```
 > 无法符合时返回：`{"error": "<reason>"}`

@@ -101,7 +101,7 @@ AI味不按语法错误处理，也不需要"修正"。它属于风格问题：�
 node scripts/check-ai-patterns.js --check <正文文件...>
 ```
 
-- 将 `not-is-comparison` 结果并入 Gate B「句式套路」；脚本会覆盖同句、逗号/分号/冒号后、紧凑写法以及相邻行肯定翻转。
+- 将 `not-is-comparison` 结果并入 Gate B「句式套路」；脚本会覆盖同句、逗号/分号/冒号后、紧凑写法以及相邻行肯定翻转。`em-dash`（破折号按功能改写）也并入 Gate B；`period-stutter`（碎句号）、`long-paragraph`（长段落）作为节奏/格式提示。
 - 处理方式：删掉否定铺垫，直接写后项；或改成角色动作、物件细节、身体反应来呈现。
 - 若用户要求 `只检测 / 不要改`，保留为报告项；若执行去AI味，Phase 3 必须逐项改掉。
 
@@ -153,10 +153,18 @@ node scripts/check-ai-patterns.js --check <正文文件...>
 Phase 2 诊断完成后，按以下顺序选择执行路径：
 
 1. **已在 narrative-writer 子代理内**：直接 inline 执行 Gate A-G，不再 spawn（嵌套 spawn 会被静默降级）。
-2. **未在子代理内且 agent 目录（优先 `.codex/story-agents/`，再检查 `.codex/agents/`）下的 `narrative-writer.md` 或 `.codex/agents/narrative-writer.toml` 存在**：spawn `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：去AI味\n检查范围：{待处理的正文文件}\nAI味等级：{Phase 2 诊断结果}\n处理策略：{轻度/中度/重度对应的 Gate 范围}\n模式处理：按 references/anti-ai-writing.md 的问题模式目录执行；模式 8（解释腔/上帝视角/安排感）归入 Gate G，其余新增模式归入 Gate A-F 的对应处理。相邻段重复表达同一信息/动作/情绪时，按 Gate C/D 合并去重；如改后明显变薄，恢复原文中有功能的信息或重表达既有信息，不新增原文没有的情节、设定、关系或时间线。")`。
+2. **未在子代理内且 agent 目录（优先 `.codex/story-agents/`，再检查 `.codex/agents/`）下的 `narrative-writer.md` 或 `.codex/agents/narrative-writer.toml` 存在**：spawn `spawn_agent(name="narrative-writer", prompt: "项目目录：{dir}\n任务描述：去AI味\n检查范围：{待处理的正文文件}\nAI味等级：{Phase 2 诊断结果}\n处理策略：{轻度/中度/重度对应的 Gate 范围}\n删除优先：每条 AI 味项先判能否删除——删后不丢伏笔/钩子/角色/情节/必要信息/必要转折的直接删，会丢才进 Gate 润色；删除服从比例上限与字数下限，跌破下限改降AI重写。\n模式处理：按 references/anti-ai-writing.md 的问题模式目录执行；模式 8（解释腔/上帝视角/安排感）归入 Gate G，其余新增模式归入 Gate A-F 的对应处理。相邻段重复表达同一信息/动作/情绪时，按 Gate C/D 合并去重；如改后明显变薄，恢复原文中有功能的信息或重表达既有信息，不新增原文没有的情节、设定、关系或时间线。")`。
 3. **agent 不存在或 spawn 失败**：主线程 inline 执行。
 
-以下为各 Gate 的详细规则（无论 agent 还是主线程执行，均须遵循）：
+#### 删除优先判断（先于各 Gate）
+
+每条被标记项先判能否删除，再考虑润色——很多 AI 味句是废话（解释、注水、凑数），润色后照样冗余。
+
+1. 删掉后是否丢失伏笔、钩子、角色特征、情节推进、必要信息或必要转折？都不丢则直接删，不进 Gate。
+2. 丢任意一项 → 保留信息进对应 Gate 改写（只删"怎么说"的 AI 味，不删"说什么"）。
+3. 删除服从既有"过度去AI味保护"与 Phase 2 比例上限：不整段删、不删剧情功能；若删后跌破字数下限，改为降AI重写，不删完再用新废话凑字。
+
+以下为各 Gate 的详细规则（删不掉的标记项按此润色；无论 agent 还是主线程执行，均须遵循）：
 
 #### 门禁 A：禁用词替换
 
@@ -312,16 +320,18 @@ AI写作的结尾特征：总想总结、升华、点题。
 
 ### Phase 3.5：确定性收尾（文件模式）
 
-当输入是正文文件路径，且 Phase 3 已落盘修改后，先运行本 skill 自带标点脚本，再做 AI 句式复扫：
+当输入是正文文件路径，且 Phase 3 已落盘修改后，**先**做句式/段落复扫，**再**做机械标点兜底（破折号要按功能改写，故先于机械替换报出）：
 
 ```bash
-node scripts/normalize-punctuation.js <正文文件...>
 node scripts/check-ai-patterns.js --check <正文文件...>
+node scripts/check-degeneration.js --check <正文文件...>
+node scripts/normalize-punctuation.js <正文文件...>
 ```
 
 作用边界：
-- `normalize-punctuation.js` 处理正文里的 `……`、破折号 `——`/`—`、双连字符 `--` 和独立行 `---`；默认不改变引号风格，也不把有功能的 `？` / 少量 `！` 改成句号。
-- `check-ai-patterns.js` 只报告高危 AI 句式，不自动改写；复扫仍有命中时，回到 Gate B 改掉后再跑一次。
+- `check-ai-patterns.js` 报告四类需按语义/功能改写的问题：① 高危 AI 对比句式；② 破折号（按功能改写：打断→动作/短句，拖长音→省略或动作，插入说明→逗号/冒号，**不要一律改句号**）；③ 碎句号（连续短叙述句无呼吸→按目标句长合并成中长句）；④ 长段落（>200 字→按镜头/动作/视线断段）。①② 必须回 Gate B 改掉、复扫到 0；③④ 是提示，确属问题就改、justified 长推理段可留。只报告不改写。
+- `check-degeneration.js` 报告模型退化（逐字复读/打转、末尾截断、占位符、工程词泄漏 `细纲`/`情节点` 等），每条带 `severity: blocking|advisory`。blocking 是退化信号，去AI味改不掉，应回去重新生成那一段再 deslop；advisory（tier2 章节/歧义词）只提示。
+- `normalize-punctuation.js` 机械兜底：清除残留的 `……`、漏网破折号 `——`/`—`、双连字符 `--` 和独立行 `---`；默认不改变引号风格，也不把有功能的 `？` / 少量 `！` 改成句号。
 - 知乎盐言短篇可保留 `「」`；只有用户或项目明确要求时，才给标点脚本加 `--quote-mode ascii` 或 `--quote-mode yan`。
 - 对话中表示被打断或拖长的 `——` 不再作为例外保留；脚本会改成句号、逗号、动作可承接的断句或中文连接词。无功能标点堆砌由人工 Gate D/E 判断处理。
 - 这些脚本都是 `story-deslop` 的本地副本，不引用其他 skill 的文件。
@@ -389,7 +399,8 @@ node scripts/check-ai-patterns.js --check <正文文件...>
 | [references/banned-words.md](references/banned-words.md) | 检测和替换禁用词时 |
 | [references/anti-ai-writing.md](references/anti-ai-writing.md) | **去AI味完整指南**：预防+三遍法+范例 |
 | [scripts/normalize-punctuation.js](scripts/normalize-punctuation.js) | 文件模式落盘后做确定性标点收尾；默认保留引号风格 |
-| [scripts/check-ai-patterns.js](scripts/check-ai-patterns.js) | 文件模式 Phase 1 预检与 Phase 3.5 复扫；只报告高危 AI 句式，不自动改写 |
+| [scripts/check-ai-patterns.js](scripts/check-ai-patterns.js) | 文件模式 Phase 1 预检与 Phase 3.5 复扫；报告高危 AI 句式 + 破折号/碎句号/长段落，只报告不改写 |
+| [scripts/check-degeneration.js](scripts/check-degeneration.js) | 文件模式 Phase 3.5 复扫；报告模型退化（复读/截断/占位符/工程词泄漏），blocking 需重新生成，只报告不改写 |
 
 ---
 

@@ -16,13 +16,17 @@
 
 这些文件由 story-setup 管理，不含用户自定义内容：
 - `.codex/story-agents/` — 所有 story agent 参考提示词
+- `.codex/agents/` — Codex custom agent TOML
+- `.codex/hooks/story_codex_hook.py` — Codex 项目级 hook adapter
 - `.codex/story-rules/` — 所有写作规则参考
 - `.codex/story-agent-references/` — story agent 参考资料副本
+- `.codex/skills/story-setup/references/agent-references/` — Codex custom agents 的主参考资料副本
 
 ### 需合并（不覆盖）
 
 这些文件可能含用户自定义内容：
 - `AGENTS.md` — 按 section 合并，用户独有 section 保留
+- `.codex/hooks.json` — hooks 按 command 去重 append，用户已有其他配置保留
 
 ### 不碰
 
@@ -32,7 +36,7 @@
 - `.active-book` — 用户活跃书目
 - 短篇项目的 `追踪/` — setup/hooks 不应为短篇自动创建
 
-> Codex 插件级 lifecycle hooks 由本仓库 `.codex-plugin/plugin.json` 和 `hooks/hooks.json` 加载，不由 `story-setup` 写入用户项目目录。
+> Codex 插件级 lifecycle hooks 由本仓库 `.codex-plugin/plugin.json` 和 `hooks/hooks.json` 加载；`story-setup` 另可部署项目级 `.codex/hooks.json` 与 `.codex/hooks/story_codex_hook.py`，用于把写作项目自己的 hook 配置随项目落盘。
 
 ## 版本检测
 
@@ -52,7 +56,7 @@
 - `agents_version: 12` → 旧版，需重新部署以获取拆文契约、基调枚举和标点格式修复
 - `agents_version: 13` → 旧版，需重新部署以获取 prompt-cache 优化、破折号过滤和标点规范化修复
 - `agents_version: 14` → 旧版，需重新部署以获取拆文到写作模块链、推理型一致性检查、自然分段和主语节奏规则
-- `agents_version: 15` → 旧版，需重新部署以获取 AI 句式检测、对话声线/文风自检、新名词锚点、封面裁剪兜底和版本提醒说明
+- `agents_version: 15` → 旧版，需重新部署以获取 AI 句式检测、对话声线/文风自检、新名词锚点、封面裁剪兜底、Codex custom agents 和项目级 hooks
 - `agents_version: 16` → 当前版本
 
 ## 版本变更
@@ -155,11 +159,10 @@
 
 ### v16 (当前)
 
-- `setup_skill_version` 升级到 `1.1.7`，`.story-deployed` 的 `agents_version` 升级到 `16`。
-- 同步上游 v0.6.17/v0.6.18：新增 `check-ai-patterns.js` 确定性检测，覆盖“不是 A 而是 B”及跨句/相邻行否定翻转句式；`story-deslop`、`story-review`、长短篇写作流程都会在文件模式下提示复扫。
-- 刷新 `narrative-writer`、`consistency-checker`、`story-architect` 等参考提示词：补对话声线自检、文风漂移自检、新名词/设定首次出现的读者锚点、具体字数表达校验和标点节奏谱系。
-- 同步封面流程说明中的笔名强制收集与裁剪兜底，保留 Codex 当前图像能力入口，不引入旧运行时 API 写法。
-- 新增 `skills/story/VERSION` 作为主动版本检查的本地版本来源；检查更新只提示，不自动更新。
-- Codex 插件级 lifecycle hook 继续由本仓库插件加载，不由 `/story-setup` 写入项目内 hooks；本版补充 Windows/Git Bash 风格盘符路径解析，避免 `/d/...` 绝对路径绕过正文前置检查。
+- `setup_skill_version` 升级到 `1.2.5`，`.story-deployed` 的 `agents_version` 保持 `16`。
+- 同步上游 v0.6.19-v0.6.21：短篇参考栈重构、长篇章节定位与张弛、模型退化检测、AI 句式检测增强、Codex custom agents 和项目级 hooks。
+- 新增 `.codex/agents/*.toml`：由 `scripts/generate-codex-agents.py` 从角色提示词模板确定性生成。
+- 新增 `.codex/hooks.json` 与 `.codex/hooks/story_codex_hook.py`：提供正文前置检查、compact 上下文提示、Stop 阶段正文兜底复扫和跨批连续性提示。
+- `skills/story/VERSION` 更新到 `0.6.21`；检查更新只提示，不自动更新。
 
-已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`。
+已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`、`.codex/skills/story-setup/references/agent-references/` 和项目级 hooks。

@@ -177,17 +177,7 @@ Stage 6 内容写完后，**不**立刻 append `6` 到 `stages_completed[]`。�
 ### 7.2 `_meta.json.structure_counts` 数值校验
 
 按 [references/output-contract.md](references/output-contract.md) 「Phase 7.2」表
-逐项检查 `_meta.json` 里 Stage 6 写入的结构计数：
-
-| 字段 | 最低值 |
-|------|--------|
-| `structure_counts.beats` | ≥ 4 |
-| `structure_counts.hooks` | ≥ 3 |
-| `structure_counts.setup_clues` | ≥ 3 |
-| `structure_counts.character_archetypes` | ≥ 2 |
-| `structure_counts.reusable_structures` | ≥ 3 |
-| `structure_counts.reversal_type` | 在枚举内（视角/身份/动机/时间线/信息/认知） |
-| `genre_detected` | 非空 |
+逐项检查 `_meta.json` 里 Stage 6 写入的结构计数。阈值与 carve-out 以 output-contract.md 为准（单一权威，不在此重复内联表以免漂移）——特别注意两条合法产出态：`reversal_type` 枚举**含「无反转」**（甜宠/喜剧/报应型）；`reversal_type=无反转` 时 **`setup_clues` 跳过该行、不计入阻断**。
 
 任一项不达标 → 阻断；列出未达标字段，提示用户回到对应 Stage 补足。
 

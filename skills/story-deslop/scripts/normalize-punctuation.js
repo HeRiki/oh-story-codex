@@ -167,7 +167,7 @@ function normalizePausePunctuation(line, lineNo) {
   while ((match = pattern.exec(original)) !== null) {
     output += original.slice(lastIndex, match.index);
     const token = match[0];
-    const replacement = choosePauseReplacement(original, match.index, token.length);
+    const replacement = choosePauseReplacement(original, match.index, token.length, token);
     output += replacement;
     findings.push({
       line: lineNo,
@@ -199,7 +199,7 @@ function getPauseType(token) {
   return 'ellipsis';
 }
 
-function choosePauseReplacement(text, start, length) {
+function choosePauseReplacement(text, start, length, token) {
   const before = previousNonSpace(text, start - 1);
   const after = nextNonSpace(text, start + length);
   const rest = text.slice(start + length).trimStart();
@@ -208,7 +208,7 @@ function choosePauseReplacement(text, start, length) {
   if (before === '') return '';
   // 紧跟开引号/开括号的停顿符号属于句首边界，删空即可，避免产出 `「，…」` 或 `「。」`。
   if (isOpeningDelimiter(before)) return '';
-  if (/\d/.test(before) && /\d/.test(after)) return '到';
+  if (/\d/.test(before) && /\d/.test(after) && !isEllipsisToken(token)) return '到';
   if (isClosingQuote(after)) return isSentencePunctuation(before) ? '' : '。';
 
   if (!after) return isSentencePunctuation(before) ? '' : '。';
@@ -216,6 +216,10 @@ function choosePauseReplacement(text, start, length) {
   if (/^(因为|原来|这是|那是|也就是|换句话|说白了|所谓|答案|原因|结果|真相|问题在于)/.test(rest)) return '：';
   if (/(原因|答案|真相|结果|结论|问题|选择|意思)$/.test(text.slice(0, start).trim())) return '：';
   return '，';
+}
+
+function isEllipsisToken(token) {
+  return token.includes('…') || token.includes('.');
 }
 
 function previousNonSpace(text, index) {

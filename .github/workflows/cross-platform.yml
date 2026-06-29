@@ -6,6 +6,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -15,8 +18,16 @@ jobs:
         run: bash scripts/check-hook-regex-sync.sh
       - name: Check shared-file consistency
         run: bash scripts/check-shared-files.sh
+      - name: AI-pattern detector regression
+        run: bash scripts/test-ai-patterns.sh
+      - name: Degeneration detector regression
+        run: bash scripts/test-degeneration.sh
       - name: Check story-setup deployment
         run: bash scripts/check-story-setup-deployment.sh
+      - name: Check Codex adapter
+        run: bash scripts/check-codex-adapter.sh
+      - name: Test Codex hook adapter
+        run: bash scripts/test-codex-hooks.sh
       - name: Guard against bare python3 invocations
         run: bash scripts/check-python-invocation.sh
       - name: Portable char-count (real interpreter)
@@ -40,6 +51,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - name: AI-pattern detector regression
+        shell: bash
+        run: bash scripts/test-ai-patterns.sh
+      - name: Degeneration detector regression
+        shell: bash
+        run: bash scripts/test-degeneration.sh
+      - name: Check Codex adapter
+        shell: bash
+        run: bash scripts/check-codex-adapter.sh
+      - name: Test Codex hook adapter
+        shell: bash
+        run: bash scripts/test-codex-hooks.sh
       - name: Setup Chrome
         uses: browser-actions/setup-chrome@v1
         with:
@@ -50,8 +73,7 @@ jobs:
         run: node -e "const { sleep } = require('./skills/story-short-scan/scripts/cdp-utils.js'); const t0 = Date.now(); sleep(100); console.log('slept', Date.now()-t0, 'ms');"
       - name: Verify setup script dry-run
         run: node skills/browser-cdp/scripts/setup-cdp-chrome.js 9222 --dry-run
-      # Run under Git Bash (shell: bash on windows-latest), matching how Codex users
-      # often run shell probes on Windows; this is where python3 Store aliases fail.
+      # Run under Git Bash (shell: bash on windows-latest), matching common Windows use.
       - name: Portable char-count (real interpreter)
         shell: bash
         run: bash scripts/test-charcount-portable.sh
@@ -69,6 +91,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - name: AI-pattern detector regression
+        run: bash scripts/test-ai-patterns.sh
+      - name: Degeneration detector regression
+        run: bash scripts/test-degeneration.sh
+      - name: Check Codex adapter
+        run: bash scripts/check-codex-adapter.sh
+      - name: Test Codex hook adapter
+        run: bash scripts/test-codex-hooks.sh
       - name: Setup Chrome
         uses: browser-actions/setup-chrome@v1
         with:

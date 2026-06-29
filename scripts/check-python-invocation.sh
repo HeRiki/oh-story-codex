@@ -8,7 +8,9 @@
 #
 # 本守卫拦截一切「裸调用」形态：python3 紧跟空白再接任意参数（-c / -m / <<  /
 # 脚本路径 / 引号等）。探测列表 `python3 python py` 与说明文字（python3 后紧跟
-# 反斜杠引号、破折号、箭头等，无空白）不受影响。
+# 反斜杠引号、破折号、箭头等，无空白）不受影响。cmd.exe 的 commandWindows 不支持
+# POSIX for-loop，允许 `python -c ... || py -c ... || python3 -c ... || exit /b 0`
+# 这种显式回退链（python3 放最后，避开 Windows Store alias 返回 0 的问题）。
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
@@ -25,8 +27,19 @@ ALLOW='python3 python py'
 echo "Python Invocation Guard"
 echo "======================="
 
-# skills/ 文档 + 部署模板 hook（CI scripts 自身允许用任意写法，不扫）
-hits="$(grep -rnE "$PATTERN" "$REPO_ROOT/skills" 2>/dev/null | grep -vF "$ALLOW" || true)"
+# skills/ 文档（CI scripts 自身允许用任意写法，不扫）
+hits="$(
+  grep -rnE "$PATTERN" "$REPO_ROOT/skills" 2>/dev/null \
+    | awk -v allow="$ALLOW" '
+        {
+          rest = $0
+          if (index(rest, allow) > 0) next
+          gsub(/python -c [^|]*\|\| py -c [^|]*\|\| python3 -c [^|]*\|\| exit \/b 0/, "", rest)
+          if (rest ~ /python3[[:space:]]+[^[:space:]]/) print $0
+        }
+      ' \
+    || true
+)"
 
 if [ -n "$hits" ]; then
   echo "FAIL: 发现裸调 python3（Windows 上会 exit 49）："
@@ -41,19 +54,16 @@ fi
 echo "OK: 未发现裸调 python3"
 echo
 
-# 第二道守卫：部署型 hook 内嵌 python 不准用文本模式 stdout 输出（print(/sys.stdout.write）。
-# Windows 中文系统 python stdout 默认 cp936，文本模式会把中文路径编成 GBK，与脚本里的 UTF-8
-# 字面量字节不一致，让守卫静默失效（issue #164）。要把值交给 shell 必须直写 UTF-8 字节：
-#   sys.stdout.buffer.write(value.encode("utf-8"))
-# `print(` 不会误命中 `printf `（无括号）；`sys.stdout.write(` 不会命中允许的
-# `sys.stdout.buffer.write(`（中间多了 .buffer）。
-HOOKS_DIR="$REPO_ROOT/skills/story-setup/references/templates/hooks"
+# 第二道守卫：Codex 项目 hook 不准用文本模式 stdout 输出（print(/sys.stdout.write）。
+# Windows 中文系统 python stdout 默认 cp936，文本模式会把中文路径编成 GBK。要把值交给
+# Codex hook stdout 必须直写 UTF-8 字节：sys.stdout.buffer.write(value.encode("utf-8"))。
+HOOK_PY="$REPO_ROOT/skills/story-setup/references/codex/hooks/story_codex_hook.py"
 TEXT_STDOUT='print\(|sys\.stdout\.write\('
 
 echo "Hook stdout-encoding Guard"
 echo "=========================="
-if [ -d "$HOOKS_DIR" ]; then
-  enc_hits="$(grep -rnE "$TEXT_STDOUT" "$HOOKS_DIR" --include='*.sh' 2>/dev/null || true)"
+if [ -f "$HOOK_PY" ]; then
+  enc_hits="$(grep -nE "$TEXT_STDOUT" "$HOOK_PY" 2>/dev/null || true)"
 else
   enc_hits=""
 fi

@@ -23,7 +23,11 @@ scripts/
 ├── static-check.sh                    # frontmatter + 引用路径 + 死文件 + 交叉引用
 ├── check-hook-regex-sync.sh           # Codex lifecycle hook 伏笔状态检测行为
 ├── check-shared-files.sh              # 跨 skill 同名副本一致性
-└── check-story-setup-deployment.sh    # story-setup Codex 部署契约完整性
+├── check-story-setup-deployment.sh    # story-setup Codex 部署契约完整性
+├── check-codex-adapter.sh             # Codex 插件与项目级适配面检查
+├── test-ai-patterns.sh                # AI 句式检测器回归
+├── test-degeneration.sh               # 模型退化检测器回归
+└── test-codex-hooks.sh                # Codex 项目级 hooks 回归
 ```
 
 每个 skill 由一个 `SKILL.md`（入口）和 `references/` 目录（知识库）组成。
@@ -66,9 +70,13 @@ PR 自动运行 `.github/workflows/cross-platform.yml`。static-check job 跑以
 - `scripts/check-hook-regex-sync.sh` — Codex lifecycle hook 伏笔状态检测行为
 - `scripts/check-shared-files.sh` — 跨 skill 同名副本字节一致性
 - `scripts/check-story-setup-deployment.sh` — story-setup Codex 部署契约完整性
+- `scripts/check-codex-adapter.sh` — Codex 插件 manifest、根 hook、项目级 hooks/custom agents 检查
+- `scripts/test-ai-patterns.sh` — AI 句式检测器回归
+- `scripts/test-degeneration.sh` — 模型退化检测器回归
+- `scripts/test-codex-hooks.sh` — Codex 项目级 hook 回归
 - 采集脚本和本地规范化脚本 `node --check` 语法校验
 
-另有 Windows / macOS job 验证 CDP 工具加载与 setup 脚本 dry-run。
+另有 Windows / macOS job 验证 detector、Codex hook、CDP 工具加载与 setup 脚本 dry-run。
 
 提交前建议本地全部跑一遍：
 
@@ -77,6 +85,10 @@ bash scripts/static-check.sh
 bash scripts/check-hook-regex-sync.sh
 bash scripts/check-shared-files.sh
 bash scripts/check-story-setup-deployment.sh
+bash scripts/check-codex-adapter.sh
+bash scripts/test-ai-patterns.sh
+bash scripts/test-degeneration.sh
+bash scripts/test-codex-hooks.sh
 ```
 
 ## 共享文件规范

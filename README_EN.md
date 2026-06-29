@@ -68,7 +68,7 @@ For local skill usage, copy the required skill directories into `$CODEX_HOME/ski
 
 Each `SKILL.md` keeps only the frontmatter required by Codex skill discovery: `name` and `description`. `agents/openai.yaml` provides UI metadata and does not drive the core workflow.
 
-`story-setup` deploys 7 story-agent reference prompts into `.codex/story-agents/` and a local reference bundle into `.codex/story-agent-references/` inside a writing project. They are not Claude-style auto-registered subagents. Codex reads them as role instructions by default; use `spawn_agent` only when the user explicitly asks for multi-agent delegation.
+`story-setup` deploys 7 story-agent reference prompts into `.codex/story-agents/`, Codex custom agents into `.codex/agents/*.toml`, and local reference bundles into `.codex/story-agent-references/` plus `.codex/skills/story-setup/references/agent-references/`. Codex custom agents require the project `.codex/` layer to be trusted and are most reliable after a fresh session; when unavailable, writing skills fall back to solo/direct execution.
 
 | Reference prompt | Purpose |
 |---|---|
@@ -90,23 +90,23 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 | `Stop` | Does not write logs by default; when `STORY_SESSION_LOG=1`, appends a lightweight session log to existing `追踪/session-log.txt` |
 | `PostToolUse` | After `git commit`, reminds maintainers to check README, AGENTS.md, or `追踪/上下文.md` updates |
 
-These are Codex plugin hooks, not Claude `.claude/hooks`. The script entry point is `hooks/story-lifecycle-hook.cjs`.
+These are Codex plugin hooks. The script entry point is `hooks/story-lifecycle-hook.cjs`. `story-setup` can also deploy project-level `.codex/hooks.json` and `.codex/hooks/story_codex_hook.py` for outline-before-prose checks, compact context hints, and Stop-time prose backstop scans.
 
-## Upgrading to v0.6.18
+## Upgrading to v0.6.21
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This sync bumps `agents_version` to v16 and `setup_skill_version` to `1.1.7`, refreshing `.codex/story-agents/`, `.codex/story-rules/`, and `.codex/story-agent-references/`.
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This sync keeps `agents_version: 16` and bumps `setup_skill_version` to `1.2.5`, refreshing `.codex/story-agents/`, `.codex/agents/`, `.codex/hooks.json`, `.codex/hooks/story_codex_hook.py`, `.codex/story-rules/`, and the reference bundles.
 
-This repository has synced upstream v0.6.17/v0.6.18 plus the current upstream `main` updates included in this port. Main changes:
+This repository has synced upstream v0.6.19-v0.6.21 plus the current upstream `main` updates included in this port. Main changes:
 
-- **AI-pattern detection**: adds `check-ai-patterns.js` for deterministic checks of Chinese negative-to-positive AI prose patterns across `story-deslop`, `story-review`, and long/short writing file workflows.
-- **Prose naturalness**: refreshes dialogue voice checks, style-drift checks, first-use anchors for new terms/settings, concrete character-count expression checks, and punctuation rhythm rules.
-- **Cover workflow**: syncs pen-name collection and crop fallback guidance while keeping the Codex image-generation entrypoint.
-- **Version checks**: adds `skills/story/VERSION`; `story` can check the upstream release and report version differences. It does not auto-install the upstream package.
-- **Codex prose preflight**: the plugin-level `PreToolUse` hook still checks for matching outlines before first prose creation. This version also handles Windows/Git Bash drive-style absolute paths such as `/d/...`.
-- **story-setup / story-review**: `agents_version` is now v16, refreshing related agent templates and the reference bundle. Stale deployments fall back to solo review and suggest rerunning `/story-setup`.
-- **Codex lifecycle hooks**: remain plugin-level hooks. This port does not restore upstream project-local hook deployment and does not write `.claude/hooks` or `.claude/settings.local.json`.
+- **Short-form reference stack**: `story-short-write` drops stale long-form references and adds `short-format.md`, `short-craft.md`, `short-deslop.md`, plus four short-form genre style packs.
+- **Long-form outline improvements**: adds benchmark rhythm transfer, chapter positioning, and pressure/release guidance so every chapter does not collapse into the same high-pressure beat.
+- **Degeneration detection**: adds `check-degeneration.js` for repeated loops, truncation, placeholders, refusal phrases, engineering terms leaking into prose, and mojibake.
+- **AI-pattern detection upgrades**: expands `check-ai-patterns.js` with sentence stutter, long paragraph, and functional em-dash rewrite findings.
+- **Codex project hooks**: `story-setup` can deploy `.codex/hooks.json` and `.codex/hooks/story_codex_hook.py` for outline guards, compact context hints, Stop-time prose scans, and continuity hints.
+- **Codex custom agents**: adds `references/codex/agents/*.toml`, generated deterministically from role prompt templates by `scripts/generate-codex-agents.py`.
+- **Version checks**: `skills/story/VERSION` is now `0.6.21`; `story` reports upstream version differences but does not auto-install the upstream package.
 
-Codex lifecycle hooks are loaded by this repository's plugin mechanism, not written into the user's project by `/story-setup`. Reopen the session after upgrading the plugin to use the new hook behavior.
+Codex plugin lifecycle hooks are loaded by this repository's plugin mechanism. Project-level hooks are written by `/story-setup`. Reopen the session after upgrading the plugin to use the new plugin hook behavior; rerun `/story-setup` to refresh project-level hooks and custom agents.
 
 ## Project File Structure
 

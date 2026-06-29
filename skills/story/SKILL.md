@@ -64,7 +64,7 @@ description: "网络小说工具箱主入口。根据用户需求自动路由到
 
 ## 版本更新检查
 
-用户问"有没有新版本""检查更新""升级"时执行。**只通知，不自动安装；不要用上游原版包覆盖本 Codex 移植版。**
+用户问"有没有新版本""检查更新""升级"时执行。**只通知，更不更新由用户定，不自动安装。**
 
 1. **当前版本**：读本 skill 同目录的 `VERSION` 文件；缺失则视为未知。
 2. **最新版本**：优先 `gh release view --json tagName,name,url -R worldwonderer/oh-story-claudecode` 取 `tagName`；无 gh 用 `curl -fsS --max-time 5 https://api.github.com/repos/worldwonderer/oh-story-claudecode/releases/latest` 取 `.tag_name`（jq 或 grep）。查不到 → 告知"暂时拉不到最新版本，可手动看 [Releases](https://github.com/worldwonderer/oh-story-claudecode/releases)"，不报错。
@@ -72,5 +72,5 @@ description: "网络小说工具箱主入口。根据用户需求自动路由到
 4. **告知**：
    - 已最新 → 「已是最新版 vX.Y.Z」。
    - 有新版 → 列出 当前 vA → 上游最新 vB + [Releases](https://github.com/worldwonderer/oh-story-claudecode/releases)/[CHANGELOG](https://github.com/worldwonderer/oh-story-claudecode/blob/main/CHANGELOG.md)（能拿到 release notes 就附本次要点）。
-   - 明确说明：这是上游版本提示，本仓是非官方 Codex 移植版，不能直接安装上游原版包覆盖；需要等本仓维护者同步并发布 Codex 版，或在本仓执行上游同步流程。
-   - 如果用户确认已更新到新的 Codex 版包，提示：已部署过的项目在项目根重跑 `/story-setup`（Codex 中用 `$story-setup`）同步 agents/rules/references，并**新开一个会话**让新版 skill 和 hooks 重新加载。
+     - 明确说明：本仓是非官方 Codex 移植版，不能自动安装上游原包覆盖当前 Codex 版。
+     - 如用户要升级本仓，提示在本仓维护流程中同步上游、转换为 Codex 口径、运行验证后再提交发布。

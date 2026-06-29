@@ -23,14 +23,14 @@ description: "多视角对抗式审查。full/lean 模式在已部署 reviewer a
 
 1. **确定请求模式**：解析用户输入中的 `full`、`lean`、`solo`；未指定时目标模式为 `full`。
 2. **确认是否允许 spawn**：如果当前已经在子代理/Agent 内执行，不再递归 spawn，直接降级为 `solo`。
-3. **检查核心 Agent 部署状态**（只检查 Codex 路径）：
-   - 优先检查 `.codex/story-agents/`，其次检查 `.codex/agents/`；两个目录任一满足必需文件即视为已部署。
-   - full 必需：`.codex/story-agents/` 下存在 `story-architect.md`、`character-designer.md`、`narrative-writer.md`、`consistency-checker.md`，或 `.codex/agents/` 下存在同名 `.toml`。
-   - lean 必需：`.codex/story-agents/` 下存在 `story-architect.md`、`consistency-checker.md`，或 `.codex/agents/` 下存在同名 `.toml`。
-   - 对每个必需 Agent 文件：
-     - **story-setup 参考提示词（`.codex/story-agents/`）**：读取 frontmatter，确认 `name:` 与 agent name 完全一致；frontmatter 缺失、不可解析或 name 不匹配时视为 malformed agent。
-     - **Codex 原生 agent（`.codex/agents/`）**：文件名为 `{agent}.toml`，TOML 必须可解析，且包含 `name`、`description`、`developer_instructions`；`name` 必须与目标 agent 完全一致。
-   - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `16`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
+3. **检查核心 Agent 部署状态**（检查项目内 agents，同时兼容 Codex）：
+   - 优先检查 `.codex/story-agents/`，再检查 `.codex/agents/`；两个目录任一存在即视为可能已部署。
+    - full 必需：`story-architect`、`character-designer`、`narrative-writer`、`consistency-checker`。
+    - lean 必需：`story-architect`、`consistency-checker`。
+    - 对每个必需 Agent 文件：
+      - **Codex agent（`.codex/story-agents/`）**：读取 frontmatter，确认 `name:` 与 agent name 完全一致；frontmatter 缺失、不可解析或 name 不匹配时视为 malformed agent。
+      - **Codex agent（`.codex/agents/`）**：文件名为 `{agent}.toml`，TOML 必须可解析，且包含 `name`、`description`、`developer_instructions`；`name` 必须与目标 agent 完全一致。
+    - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `16`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
    - 如果目标模式所需任一文件缺失或 malformed，**不要尝试 spawn 缺失/异常 Agent**；自动降级为 `solo`，并在报告开头写明：`Fallback: missing agents -> solo` 或 `Fallback: malformed agents -> solo`，列出问题文件，建议用户运行 `/story-setup`。
 4. **确认 Agent/Task 工具可用**：如果当前环境没有可用的子 Agent/Task 调用能力，直接降级为 `solo`，报告 `Fallback: agent tool unavailable -> solo`。
 5. **运行时失败降级**：如果任何 Agent spawn 返回失败、`agent name` / `agent_type` 不可用、frontmatter/TOML 运行时解析失败或子 Agent 无法启动，停止继续 spawn，改用 `solo` 重新审查，并报告 `Fallback: spawn failed -> solo` 与失败的 agent name/agent_type；不要把部分成功的 Agent 结果当成 full/lean 结论。
@@ -60,8 +60,9 @@ Rubric Source: file | embedded fallback
 可读取参考文件时，按以下顺序尝试：
 1. `{项目根}/skills/{规范路径}`（Codex 项目内安装）
 2. `{项目根}/.codex/skills/{规范路径}`（Codex 项目内安装）
-3. `{项目根}/skills/{规范路径}`（本仓库开发环境）
-4. 工具自身可访问的全局 skill 搜索路径中同名 `{skill-name}/...` 目录
+3. `{项目根}/.codex/skills/{规范路径}`（Codex 项目内安装）
+4. `{项目根}/skills/{规范路径}`（本仓库开发环境）
+5. 工具自身可访问的全局 skill 搜索路径中同名 `{skill-name}/...` 目录
 
 规范路径如下；禁止只写裸文件名，禁止跨 skill 误读其他 skill 的 references：
 
@@ -126,10 +127,12 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
    - 优先把文件路径、章节名、行号范围传给 reviewer，不要把整本或大量章节完整复制进每个 prompt。
    - 单文件或短片段可附 300-1200 字关键摘录。
    - 多章/整卷/整本审查必须分批：按章节或文件组拆分，每批输出独立 findings，再综合。
+   - **跨批连续性（分批必做）**：审每一批前，先读 `追踪/伏笔.md` 里「已埋未回收 / 未埋」且预计回收章 ≤ 本批末章的开放项，连同上一批 findings 摘要，作为「继承的开放项」注入本批 reviewer / consistency-checker prompt（与既有「已知角色」并列）——这样审 200-300 时能看见 1-200 埋下、本批本该兑现却悬空的钩子/伏笔/未完成剧情，跨批不断线。审完把本批新发现、且不在 `伏笔.md` 里的开放钩子补登记进 `追踪/伏笔.md`（续写/import 工程常见 reviewer 先于写手发现）。
+   - **乱序/重叠审查提醒**：若已审过靠后的范围（如先审 300-400），之后审靠前的范围（200-300）时，只有当本批**新增/改动了一个开放项、且其预计兑现章落在已审过的靠后范围内**，才提醒用户「200-300 的改动可能影响已审的 300-400」，并让用户选择复审受影响章节 / 全量复审 / 仅记为待办——**默认记为待办，不盲目全量重跑**。无具体跨范围依赖时不提醒。
 3. **读取相关支撑材料**：正文、相关设定、角色档案、大纲、追踪/上下文、伏笔文件；缺失时在报告中标记证据不足。
 4. **识别目标平台并加载 rubric**：
    - 优先使用用户显式指定的平台。
-   - 其次读取项目文档里的 `目标平台` / `平台` 字段，例如 `设定/`、`大纲/`、`概要.md`、`项目简介.md`、`拆文报告` 等。
+   - 其次读取项目文档里的 `目标平台` / `平台` 字段，例如 `设定/题材定位.md`、`大纲/`、`拆文报告` 等。
    - 不要把 `.active-book` 当作平台来源；它只能辅助定位当前书名目录。
    - 番茄小说 → 优先读取 `story-review/references/rubrics/fanqie.md`；不可读时使用内置番茄 fallback 摘要。
    - 起点 → 优先读取 `story-review/references/rubrics/qidian.md`；不可读时使用内置起点 fallback 摘要。
@@ -140,9 +143,11 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
    ```bash
    node scripts/normalize-punctuation.js --check <正文文件...>
    node scripts/check-ai-patterns.js --check <正文文件...>
+   node scripts/check-degeneration.js --check <正文文件...>
    ```
-   - 将 `ellipsis`、`em-dash`、`double-hyphen`、`markdown-divider` 结果作为 `format` 或 `prose` findings 合并进报告；另外人工检查标点节奏是否通篇句号化或随机堆砌，脚本不替代语气判断。
-   - 将 `not-is-comparison` 结果作为 `prose` findings 合并进报告，修复建议写成：删否定铺垫，直接写后项，或改为动作/细节呈现。
+   - 将 `ellipsis`、`double-hyphen`、`markdown-divider` 结果作为 `format` findings 合并进报告。`em-dash` 破折号只采用 `check-ai-patterns.js` 的语义改写建议（见下条）；`normalize-punctuation.js` 报的同一位置 `em-dash` 在合并时去重丢弃，避免同处出现「机械替换」与「按功能改写」两条相互冲突的 finding。另外人工检查标点节奏是否通篇句号化或随机堆砌，脚本不替代语气判断。
+   - 将 `not-is-comparison` 结果作为 `prose` findings 合并进报告，修复建议写成：删否定铺垫，直接写后项，或改为动作/细节呈现。`check-ai-patterns.js` 是 `em-dash` 的归口来源：破折号按功能改写（打断→动作 beat/短句，拖长音→省略或动作，插入说明→逗号/冒号，**不要一律改句号**）；它另报告 `period-stutter`（碎句号→按目标句长合并成中长句）与 `long-paragraph`（>200 字→按镜头/动作/视线断段），一并并入 `prose` findings。脚本对每条 finding 标 `severity`：`blocking`（not-is-comparison/em-dash）建议按 S2、`advisory`（碎句号/长段落）按 S4 处理。
+   - `check-degeneration.js` 报告模型退化（逐字复读/截断/占位符/工程词泄漏），每条带 `severity: blocking|advisory`：blocking（复读/截断/tier1 工程词）作为 S1/S2 `prose` findings，修复建议是「重新生成该段，不是改写」；advisory（tier2 章节/歧义词）作为 S4。
    - `story-review` 不修改文件；需要自动修复时建议转 `/story-deslop`。
    - 默认 `--quote-mode keep`，不把知乎盐言短篇的 `「」` 当作问题；只有项目明确指定引号风格时才检查对应转换建议。
    - 这些脚本都是 `story-review` 的本地副本，不引用其他 skill 的文件。
@@ -200,6 +205,7 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   审查基准包摘要：{Phase 1 形成的 rubric / fallback 摘要，必须内联}
   Rubric Source: file | embedded fallback
   相关文件路径：{设定/大纲/细纲文件路径}
+  继承的开放项（分批审查必填，无则写「无」）：{从 追踪/伏笔.md 提取的、预计回收章 ≤ 本批末章的已埋未回收/未埋钩子，连同上一批 findings 摘要}
   可选补充参考：如项目已部署 story-setup reference bundle，可读取 `story-setup/references/agent-references/quality-checklist.md`、`story-setup/references/agent-references/plot-core-methods.md`；若不可读，不影响审查。
   检查项：
   1. 这一章是否推进了故事主题？
@@ -211,10 +217,12 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   7. 高潮场景是否用了蓄能→假胜→崩解结构？（参照审查基准包摘要里的高潮构建原则）
   8. 伏笔密度、连载期待和结构信息量是否合理？（伏笔密度通常只作为 S4 结构风险，除非已造成理解混乱）
   9. 按平台 rubric 或通用内容 rubric 逐项对照，标记 PASS/FAIL。
+  10. 继承的开放项里，本批本该兑现的钩子/伏笔是否落空？
 
   输出格式：
   VERDICT: APPROVE / CONCERNS / REJECT
   FINDINGS: 必须使用统一 Findings Schema，severity 必须是 S1/S2/S3/S4。
+  INHERITED_ITEMS: 逐条列继承的开放项 + 已检查 / 未能检查；本批本该兑现却落空的列为 finding。
   RECOMMENDATIONS: [修改建议]
   ```
 
@@ -286,6 +294,7 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   项目路径：{项目根}
   审查范围：{文件路径/章节/必要摘录}
   已知角色：{从设定文件提取角色列表}
+  继承的开放项（分批审查必填，无则写「无」）：{从 追踪/伏笔.md 提取的、预计回收章 ≤ 本批末章的已埋未回收/未埋伏笔，连同上一批 findings 摘要}
   审查基准包摘要：{Phase 1 形成的 rubric / fallback 摘要，必须内联}
   Rubric Source: file | embedded fallback
   可选补充参考：如项目已部署 story-setup reference bundle，可读取 `story-setup/references/agent-references/quality-checklist.md`；若不可读，不影响事实冲突扫描。
@@ -295,10 +304,12 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   3. 伏笔状态是否前后一致（已埋/计划回收/已回收/断线）？
   4. 时间线是否自洽？
   5. 术语、身份、地点、能力边界是否前后一致？
+  6. 继承的开放项里，本批本该回收的伏笔是否仍悬空？
 
   输出格式：
   VERDICT: APPROVE / CONCERNS / REJECT
   FINDINGS: 必须使用统一 Findings Schema，severity 必须是 S1/S2/S3/S4；category 只能使用 consistency / factual / format / causal / rule_boundary。
+  INHERITED_ITEMS: 逐条列继承的开放项 + 已检查 / 未能检查；本批新发现、不在 伏笔.md 的开放钩子单列，供主会话回写 追踪/伏笔.md。
   FACTUAL_RECONCILIATION: [仅列需统一的事实来源或需人工裁决项，不写文学创作建议]
   REASONING_CHAINS: [仅列推理型 finding 的前提/规则 -> 触发事件 -> 矛盾点 -> 需裁决问题]
   ```

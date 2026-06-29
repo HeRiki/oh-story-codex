@@ -87,8 +87,8 @@ CDP 能打开真实页面拿到完整正文；联网搜索 只返回摘要节选
 ### 第二步：检查 CDP 可用性
 
 ```bash
-# 检查 CDP 端口是否在监听
-lsof -i :9222 -sTCP:LISTEN 2>/dev/null | grep -q LISTEN && echo "CDP_AVAILABLE" || echo "CDP_UNAVAILABLE"
+# 跨平台检查 CDP：请求 http://127.0.0.1:{cdp_port}/json/version
+# 成功返回 JSON 视为可用；失败时降级，不依赖平台特定端口扫描命令。
 ```
 
 - `CDP_AVAILABLE` → 使用 CDP 主链路
@@ -114,7 +114,8 @@ lsof -i :9222 -sTCP:LISTEN 2>/dev/null | grep -q LISTEN && echo "CDP_AVAILABLE" 
 
 ```bash
 # Google 搜索（默认）
-agent-browser --cdp {cdp_port} eval "window.location.replace('https://www.google.com/search?'+new URLSearchParams({q:'{搜索词}'}).toString())"
+# 先校验 cdp_port 为 1-65535 的数字；搜索词必须通过 JSON 编码传入，禁止直接拼接到 JS 字符串。
+agent-browser --cdp {cdp_port} eval 'const q = JSON.parse(process.env.STORY_SEARCH_QUERY_JSON); window.location.replace("https://www.google.com/search?"+new URLSearchParams({q}).toString())'
 agent-browser --cdp {cdp_port} wait 5000
 ```
 
@@ -146,7 +147,11 @@ agent-browser --cdp {cdp_port} eval 'JSON.stringify(Array.from(document.querySel
 
 ```bash
 # 用提取到的真实 URL 导航（不要构造 URL；从搜索结果 DOM 中提取）
-agent-browser --cdp {cdp_port} eval "window.location.replace('{提取到的URL}')"
+# 仅允许从搜索结果提取且通过宿主侧安全校验的 http/https URL；URL 必须 JSON 编码后传入浏览器上下文。
+# 先在宿主侧规范化 URL、解析 DNS，并拒绝 loopback/link-local/private/unspecified/reserved 地址
+# （含 IPv6、0.0.0.0、169.254.*、整数/八进制/十六进制 IPv4 和 DNS 解析结果）。
+# 只有宿主侧校验通过后，才把校验后的规范 URL 写入 STORY_TARGET_URL_JSON；如果无法完成上述校验，不得导航到目标页面。
+agent-browser --cdp {cdp_port} eval 'const target = JSON.parse(process.env.STORY_TARGET_URL_JSON); const u = new URL(target); if (!["http:", "https:"].includes(u.protocol)) throw new Error("unsupported URL scheme"); window.location.replace(u.href)'
 agent-browser --cdp {cdp_port} wait 5000
 
 # 验证页面加载
@@ -213,6 +218,11 @@ CDP 不可用时使用：
 ## 输出格式
 
 写入 `{project_dir}/参考资料/{topic}.md`：
+
+写入前必须做路径安全检查：
+- 将 `project_dir` 解析为绝对规范路径，并确认输出目录位于该项目目录内
+- 将 `{topic}` 清洗为安全文件名（移除 `/`、`\`、`..`、控制字符、Windows 保留字符和保留设备名）
+- 只创建新文件；如果目标文件已存在，追加唯一后缀或返回 `partial/failed`，不得覆盖已有文件
 
 ```markdown
 # {研究主题}

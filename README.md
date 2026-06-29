@@ -66,7 +66,7 @@ demo/让你管账号，你高燃混剪炸全网/
 
 每个 `SKILL.md` 的 frontmatter 只保留 `name` 和 `description`，适配 Codex 的 skill 发现规则。`agents/openai.yaml` 提供 UI 元数据，不参与核心工作流。
 
-`story-setup` 会把 7 个 story agent 参考提示词部署到写作项目的 `.codex/story-agents/`，并把 agent 参考资料副本部署到 `.codex/story-agent-references/`。它们不是 Claude 式自动注册子代理；Codex 默认读取这些文件作为角色说明，只有用户明确要求多代理/委派时才使用 `spawn_agent`。
+`story-setup` 会把 7 个 story agent 参考提示词部署到写作项目的 `.codex/story-agents/`，把 Codex custom agents 部署到 `.codex/agents/*.toml`，并把 agent 参考资料副本部署到 `.codex/story-agent-references/` 与 `.codex/skills/story-setup/references/agent-references/`。Codex custom agents 需要项目 `.codex/` 被 trust，并在新会话中才会稳定可用；不可用时各写作 skill 会降级 solo/direct。
 
 | 参考提示词 | 用途 |
 |---|---|
@@ -88,23 +88,23 @@ demo/让你管账号，你高燃混剪炸全网/
 | `Stop` | 默认不写日志；设置 `STORY_SESSION_LOG=1` 时向已有 `追踪/session-log.txt` 追加轻量会话日志 |
 | `PostToolUse` | 检测到 `git commit` 后提示检查 README、AGENTS.md 或 `追踪/上下文.md` 是否需要同步 |
 
-这些是 Codex 插件 hooks，不是 Claude 的 `.claude/hooks`。脚本入口为 `hooks/story-lifecycle-hook.cjs`。
+这些是 Codex 插件 hooks，脚本入口为 `hooks/story-lifecycle-hook.cjs`。`story-setup` 还会按需部署项目级 `.codex/hooks.json` 与 `.codex/hooks/story_codex_hook.py`，用于项目随附的正文前置检查、compact 上下文提示和 Stop 阶段正文兜底复扫。
 
-## 升级到 v0.6.18
+## 升级到 v0.6.21
 
-如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本次同步将 `agents_version` 升级到 v16、`setup_skill_version` 升级到 `1.1.7`，用于刷新 `.codex/story-agents/`、`.codex/story-rules/` 和 `.codex/story-agent-references/`。
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本次同步保持 `agents_version: 16`，并将 `setup_skill_version` 升级到 `1.2.5`，用于刷新 `.codex/story-agents/`、`.codex/agents/`、`.codex/hooks.json`、`.codex/hooks/story_codex_hook.py`、`.codex/story-rules/` 和 reference bundle。
 
-本仓库已同步上游 v0.6.17/v0.6.18 以及截至本次同步的 main 更新，重点包括：
+本仓库已同步上游 v0.6.19-v0.6.21 以及截至本次同步的 main 更新，重点包括：
 
-- **AI 句式检测**：新增 `check-ai-patterns.js`，在 `story-deslop`、`story-review`、长短篇写作文件模式中检测“不是 A 而是 B”及跨句/相邻行否定翻转句式。
-- **写作自然度**：刷新对话声线、文风漂移自检、新名词/设定首次出现读者锚点、具体字数表达校验和标点节奏谱系。
-- **封面流程**：同步笔名强制收集与裁剪兜底说明，保留 Codex 当前图像生成入口。
-- **版本检查**：新增 `skills/story/VERSION`，`story` 可主动检查上游 release；只提示版本差异，不自动安装上游包。
-- **Codex 正文前置检查**：插件级 `PreToolUse` hook 继续在首次创建正文时检查对应细纲/小节大纲；本版补充 Windows/Git Bash 风格盘符路径解析，避免 `/d/...` 绝对路径绕过检查。
-- **story-setup / story-review**：`agents_version` 升级到 v16，刷新相关 agent 模板和 reference bundle，旧部署会降级 solo 并提示重新运行 `/story-setup`。
-- **Codex lifecycle hook**：继续保留插件级 hook，不恢复上游项目内 hook 部署，不写入 `.claude/hooks` 或 `.claude/settings.local.json`。
+- **短篇参考栈重构**：`story-short-write` 删除长篇继承残留，新增 `short-format.md`、`short-craft.md`、`short-deslop.md` 和 4 个短篇题材包。
+- **长篇大纲补强**：引入对标节奏迁移、章节定位与张弛规则，避免每章都写成同一种高压短篇节奏。
+- **退化检测**：新增 `check-degeneration.js`，在长短篇写作、审查和去 AI 味流程中检测复读、截断、占位、拒绝语、工程词泄漏和乱码。
+- **AI 句式检测增强**：`check-ai-patterns.js` 扩展碎句号、长段落和破折号功能性改写建议。
+- **Codex project hooks**：`story-setup` 可部署 `.codex/hooks.json` 与 `.codex/hooks/story_codex_hook.py`，支持正文前置检查、compact 上下文提示、Stop 阶段正文兜底复扫和跨批连续性提示。
+- **Codex custom agents**：新增 `references/codex/agents/*.toml`，由 `scripts/generate-codex-agents.py` 从角色提示词模板确定性生成。
+- **版本检查**：`skills/story/VERSION` 更新到 `0.6.21`；`story` 只提示上游版本差异，不自动安装上游包。
 
-Codex lifecycle hook 由本仓库插件机制加载，不由 `/story-setup` 写入用户项目目录。升级插件版本后，重新打开会话即可获得新版 hook 行为。
+Codex 插件 lifecycle hook 由本仓库插件机制加载；项目级 hook 由 `/story-setup` 写入用户写作项目。升级插件版本后，重新打开会话可获得新版插件 hook 行为；重新运行 `/story-setup` 可刷新项目级 hook 和 custom agents。
 
 ## 项目文件结构
 

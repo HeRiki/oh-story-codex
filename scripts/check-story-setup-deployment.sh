@@ -1,100 +1,176 @@
-#!/bin/bash
-# check-story-setup-deployment.sh — Codex 版 story-setup 部署契约检查
-#
-# v0.6.18 同步了 AI 句式检测、对话/文风自检、版本提醒和正文前置守卫。
-# Codex 移植版保留这些可检查约束，但部署目标必须仍是 AGENTS.md
-# 与 .codex/ 目录，不能恢复旧运行时项目内 hooks/settings 写入。
-
+#!/usr/bin/env bash
+# check-story-setup-deployment.sh — Codex-only story-setup deployment contract.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SKILL_DIR="$REPO_ROOT/skills/story-setup"
+SKILL_FILE="$SKILL_DIR/SKILL.md"
+UPGRADING_FILE="$SKILL_DIR/UPGRADING.md"
+CODEX_DIR="$SKILL_DIR/references/codex"
+AGENT_TEMPLATES="$SKILL_DIR/references/templates/agents"
+RULES_DIR="$SKILL_DIR/references/templates/rules"
+AGENT_REFS_DIR="$SKILL_DIR/references/agent-references"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
 
-SETUP_SKILL="$REPO_ROOT/skills/story-setup/SKILL.md"
-UPGRADING="$REPO_ROOT/skills/story-setup/UPGRADING.md"
-PLUGIN_JSON="$REPO_ROOT/.codex-plugin/plugin.json"
-HOOKS_JSON="$REPO_ROOT/hooks/hooks.json"
-HOOK_SCRIPT="$REPO_ROOT/hooks/story-lifecycle-hook.cjs"
-AGENT_DIR="$REPO_ROOT/skills/story-setup/references/templates/agents"
-REFERENCE_DIR="$REPO_ROOT/skills/story-setup/references/agent-references"
+fail() { echo "FAIL: $*" >&2; exit 1; }
+assert_file() { [ -f "$1" ] || fail "required file missing: $1"; }
+assert_dir() { [ -d "$1" ] || fail "required directory missing: $1"; }
+assert_grep() { grep -Eq "$1" "$2" || fail "$3 ($2)"; }
 
-fail() {
-  echo "FAIL: $*" >&2
-  exit 1
-}
+PYBIN=""
+for candidate in python3 python py; do
+  if "$candidate" -c 'import sys; raise SystemExit(sys.version_info < (3, 10))' >/dev/null 2>&1; then
+    PYBIN="$candidate"
+    break
+  fi
+done
+[ -n "$PYBIN" ] || fail "Python 3.10+ is required for story-setup deployment checks"
 
-require_file() {
-  [ -f "$1" ] || fail "required file missing: $1"
-}
+echo "Story setup deployment check"
+echo "============================"
+echo "Repo: $REPO_ROOT"
 
-require_file "$SETUP_SKILL"
-require_file "$UPGRADING"
-require_file "$PLUGIN_JSON"
-require_file "$HOOKS_JSON"
-require_file "$HOOK_SCRIPT"
+cd "$REPO_ROOT"
+
+assert_file "$SKILL_FILE"
+assert_file "$UPGRADING_FILE"
+assert_file "$CODEX_DIR/AGENTS.md.tmpl"
+assert_file "$CODEX_DIR/hooks/hooks.json"
+assert_file "$CODEX_DIR/hooks/story_codex_hook.py"
+assert_dir "$CODEX_DIR/agents"
+assert_dir "$AGENT_TEMPLATES"
+assert_dir "$RULES_DIR"
+assert_dir "$AGENT_REFS_DIR"
 
 for required in \
-  "AGENTS.md" \
-  ".codex/story-agents" \
-  ".codex/story-rules" \
-  ".codex/story-agent-references" \
-  "references/agent-references/" \
-  "agents_version: 16" \
-  "setup_skill_version: 1.1.7" \
-  "runtime: codex"; do
-  if ! grep -qF "$required" "$SETUP_SKILL"; then
-    fail "story-setup SKILL.md missing Codex deployment requirement: $required"
-  fi
+  'runtime: codex' \
+  'agents_version: 16' \
+  'setup_skill_version: 1.2.5' \
+  'references/codex/AGENTS.md.tmpl' \
+  'references/codex/agents/' \
+  'references/codex/hooks/hooks.json' \
+  'references/codex/hooks/story_codex_hook.py' \
+  '.codex/agents/' \
+  '.codex/hooks.json' \
+  '.codex/skills/story-setup/references/agent-references/' \
+  '.codex/story-agent-references/'; do
+  grep -Fq -- "$required" "$SKILL_FILE" \
+    || fail "story-setup SKILL.md missing deployment contract: $required ($SKILL_FILE)"
 done
+echo "  OK deployment contract anchors"
 
-for forbidden in \
-  ".claude/hooks" \
-  ".claude/settings.local.json" \
-  ".claude/agents" \
-  ".claude/rules" \
-  "CLAUDE.md" \
-  "settings-hooks.json" \
-  "target_cli: claude-code"; do
-  if grep -qF "$forbidden" "$SETUP_SKILL" "$UPGRADING"; then
-    fail "story-setup docs contain forbidden old-runtime deployment text: $forbidden"
-  fi
-done
+agent_count="$(find "$AGENT_TEMPLATES" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' ')"
+[ "$agent_count" = "7" ] || fail "expected 7 story agent markdown templates, got $agent_count"
+toml_count="$(find "$CODEX_DIR/agents" -maxdepth 1 -type f -name '*.toml' | wc -l | tr -d ' ')"
+[ "$toml_count" = "7" ] || fail "expected 7 Codex TOML agents, got $toml_count"
+rule_count="$(find "$RULES_DIR" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' ')"
+[ "$rule_count" -ge "4" ] || fail "expected at least 4 story rule files, got $rule_count"
+echo "  OK managed file counts"
 
-if ! grep -qF '"hooks": "./hooks/hooks.json"' "$PLUGIN_JSON"; then
-  fail "plugin manifest must load Codex lifecycle hooks via hooks/hooks.json"
-fi
+"$PYBIN" -m json.tool "$CODEX_DIR/hooks/hooks.json" >/dev/null
+"$PYBIN" - <<'PY'
+from pathlib import Path
+for name in (
+    'skills/story-setup/references/codex/hooks/story_codex_hook.py',
+    'scripts/generate-codex-agents.py',
+):
+    compile(Path(name).read_text(encoding='utf-8'), name, 'exec')
+PY
+echo "  OK Codex hook JSON/Python syntax"
 
-if ! node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$HOOKS_JSON" >/dev/null 2>&1; then
-  fail "hooks/hooks.json is not valid JSON"
-fi
+"$PYBIN" "$REPO_ROOT/scripts/generate-codex-agents.py" \
+  --source "$AGENT_TEMPLATES" \
+  --dest "$TMP_DIR/agents" >/dev/null
+diff -qr "$TMP_DIR/agents" "$CODEX_DIR/agents" >/dev/null \
+  || fail "Codex TOML agents are stale; run scripts/generate-codex-agents.py"
+echo "  OK generated Codex agents are deterministic"
 
-node --check "$HOOK_SCRIPT" >/dev/null || fail "hook script has syntax errors"
+"$PYBIN" - <<'PY'
+import json
+import re
+from pathlib import Path
 
-[ -d "$AGENT_DIR" ] || fail "agent template directory missing"
-[ -d "$REFERENCE_DIR" ] || fail "agent reference bundle missing"
+try:
+    import tomllib
+except ModuleNotFoundError:
+    tomllib = None
 
-agent_count="$(find "$AGENT_DIR" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' ')"
-[ "$agent_count" = "7" ] || fail "expected 7 story agent templates, got $agent_count"
+expected = {
+    'chapter-extractor', 'character-designer', 'consistency-checker',
+    'narrative-writer', 'story-architect', 'story-explorer', 'story-researcher',
+}
+found = set()
+
+def parse_generated_toml(text, path):
+    data = {}
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        raw = lines[i]
+        if not raw.strip():
+            i += 1
+            continue
+        m = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$', raw)
+        assert m, f'{path}: invalid TOML line {i + 1}: {raw!r}'
+        key, value = m.group(1), m.group(2)
+        if value == '"""':
+            block = []
+            i += 1
+            while i < len(lines) and lines[i] != '"""':
+                block.append(lines[i])
+                i += 1
+            assert i < len(lines), f'{path}: unterminated multiline string for {key}'
+            data[key] = "\n".join(block)
+            i += 1
+            continue
+        if value.startswith('"') or value.startswith('['):
+            data[key] = json.loads(value)
+            i += 1
+            continue
+        raise AssertionError(f'{path}: unsupported TOML value for {key}: {value!r}')
+    return data
+
+def read_agent(path):
+    text = path.read_text(encoding='utf-8')
+    if tomllib is not None:
+        return tomllib.loads(text)
+    return parse_generated_toml(text, path)
+
+for path in Path('skills/story-setup/references/codex/agents').glob('*.toml'):
+    data = read_agent(path)
+    assert data.get('name'), path
+    assert data.get('description'), path
+    assert data.get('developer_instructions'), path
+    found.add(data['name'])
+assert found == expected, found
+PY
+echo "  OK Codex agent TOML schema"
 
 missing_refs=0
-while IFS= read -r ref_path; do
-  [ -z "$ref_path" ] && continue
-  ref_name="$(basename "$ref_path")"
-  if [ ! -f "$REFERENCE_DIR/$ref_name" ]; then
+while IFS= read -r ref; do
+  [ -z "$ref" ] && continue
+  ref_name="$(basename "$ref")"
+  if [ ! -f "$AGENT_REFS_DIR/$ref_name" ]; then
     echo "MISSING reference bundle file: $ref_name" >&2
     missing_refs=$((missing_refs + 1))
   fi
 done < <(
-  grep -RhoE 'story-setup/references/agent-references/[a-z0-9_-]+\.md' "$AGENT_DIR" "$REFERENCE_DIR" 2>/dev/null | sort -u
+  grep -RhoE 'story-setup/references/agent-references/[A-Za-z0-9_-]+\.md' \
+    "$AGENT_TEMPLATES" "$AGENT_REFS_DIR" "$CODEX_DIR/agents" 2>/dev/null | sort -u
 )
-
 [ "$missing_refs" -eq 0 ] || fail "$missing_refs referenced agent reference files are missing"
+echo "  OK agent reference bundle integrity"
 
-if grep -RInE '(^tools: \[Read|^disallowedTools:|^model:|^memory:|subagent_type|WebSearch|webReader|Claude Code|OpenClaw|OpenCode|AskUserQuestion|\.opencode)' "$AGENT_DIR" "$REFERENCE_DIR" >/tmp/story-setup-contamination.$$ 2>/dev/null; then
+if grep -RInE '(OpenCode|OpenClaw|AskUserQuestion|WebSearch|webReader|\.opencode|opencode|\.claude|CLAUDE\.md|settings-hooks\.json|target_cli: claude-code|npx skills add|\b(haiku|sonnet|opus)\b)' \
+  "$SKILL_FILE" "$UPGRADING_FILE" "$AGENT_TEMPLATES" "$CODEX_DIR" >/tmp/story-setup-contamination.$$ 2>/dev/null; then
   cat /tmp/story-setup-contamination.$$ >&2
   rm -f /tmp/story-setup-contamination.$$
-  fail "old-runtime agent/frontmatter contamination detected"
+  fail "old-runtime contamination detected in story-setup surface"
 fi
 rm -f /tmp/story-setup-contamination.$$
+echo "  OK no old-runtime contamination"
 
+echo ""
 echo "OK: story-setup deployment contract is Codex-safe"

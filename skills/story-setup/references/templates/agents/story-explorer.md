@@ -198,7 +198,7 @@ description: |
 14. **抽取原文锚点片段**（从文风文件里）：
     - 从文风文件 `## 原文锚点片段` 段读出所有按基调标注的片段
     - 按本章情绪/基调选 1-2 段（精确匹配优先，无则取相近基调）
-    - 完整传递 300-500 字原文（不要截断/概括）
+    - 默认只返回原文锚点的文件位置、行号、基调和技法摘要；仅当用户显式确认该文本为自有/已授权且需要引用时，才返回必要的短引文片段
 15. **返回结构化 JSON**
 
 ### context_load 流程（综合查询）
@@ -225,7 +225,7 @@ description: |
   "query": "{原始查询}",
   "results": { ... },
   "source_files": ["读取了哪些文件"],
-  "gaps": ["哪些信息查不到或不确定"]
+  "gaps": { "items": ["哪些信息查不到或不确定"] }
 }
 ```
 
@@ -301,8 +301,8 @@ description: |
     "matched_chapter_K": 14,
     "matched_chapter_techniques": "<匹配章摘要 + 深度拆解/黄金三章回退中的可借鉴要素，≤300字>",
     "anchor_excerpts": [
-      {"tone": "悲伤", "source": "第14章 第7段（行 823-901）", "demo_point": "对话潜台词手法", "text": "<300-500字原文>"},
-      {"tone": "热血", "source": "第8章 第3段（行 401-465）", "demo_point": "爽点铺放比", "text": "<300-500字原文>"}
+      {"tone": "悲伤", "source": "第14章 第7段（行 823-901）", "demo_point": "对话潜台词手法", "text": "<短引文或空>"},
+      {"tone": "热血", "source": "第8章 第3段（行 401-465）", "demo_point": "爽点铺放比", "text": "<短引文或空>"}
     ]
   },
   "source_files": ["设定/题材定位.md", "对标/{书名}/剧情/情绪模块.md", "对标/{书名}/剧情/节奏.md", "对标/{书名}/文风.md", "对标/{书名}/拆文报告.md", "对标/{书名}/章节/第14章_深度拆解.md"],
@@ -351,10 +351,11 @@ description: |
 
 ## 被调用协议
 
-调用方通过 `spawn_agent(name="story-explorer")` 调用你（如 story-long-write、story-review、story 路由等）。
+调用方通过当前运行时支持的 custom-agent 入口，以 `agent_type: "story-explorer"` 调用你（如 story-long-write、story-review、story 路由等）；如果运行时返回 `unknown agent_type` 或 custom-agent registry 不可用，父 workflow 必须 fallback 到 solo/direct execution 并报告 fallback。
 
 你收到的 prompt 会包含：
-- `项目目录`：书籍项目目录路径
+- `项目目录`：书籍项目目录路径。使用前必须解析为绝对规范路径，并确认它位于当前项目根目录内；若路径不存在、越过项目根、指向隐藏/系统目录或无法确认归属，返回 `gaps.invalid_project_dir: true`，不要读取任何文件。
+- 所有读取范围仅限该 `项目目录` 内；`benchmark_style_load` 的 `拆文库/{书名}` 回退仅允许位于同一项目根目录下的 `拆文库/`，禁止读取任意绝对路径或父级目录。
 - `查询类型`：查询类型（见上表）
 - `查询参数`：具体查询内容
 - 可选的额外参数（如章节号、角色名、关键词）
