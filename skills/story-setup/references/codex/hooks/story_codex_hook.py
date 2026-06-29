@@ -466,7 +466,7 @@ def extract_prose_targets_from_command(command: str) -> list[str]:
 def extract_apply_patch_targets(command: str) -> list[str]:
     targets: list[str] = []
     for line in command.splitlines():
-        m = re.match(r"^\*\*\* (?:Add|Update) File: (.+)$", line.strip())
+        m = re.match(r"^\*\*\* (?:(?:Add|Update) File|Move to): (.+)$", line.strip())
         if m:
             targets.append(m.group(1).strip())
     return targets

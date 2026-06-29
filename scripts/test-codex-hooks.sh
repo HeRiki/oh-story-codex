@@ -87,6 +87,8 @@ out="$(run_hook pre-tool-prose-guard '{"tool_name":"functions.apply_patch","tool
 assert_denied "$out" "namespaced apply_patch long prose without outline"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"functions.apply_patch","tool_input":{"patch":"*** Begin Patch\n*** Add File: book/正文/第002章_patch_field.md\n+正文\n*** End Patch\n"}}')"
 assert_denied "$out" "namespaced apply_patch patch field long prose without outline"
+out="$(run_hook pre-tool-prose-guard '{"tool_name":"functions.apply_patch","tool_input":{"patch":"*** Begin Patch\n*** Update File: draft.md\n*** Move to: book/正文/第002章_move_patch.md\n@@\n-草稿\n+正文\n*** End Patch\n"}}')"
+assert_denied "$out" "namespaced apply_patch move-to long prose without outline"
 : > "$ROOT/book/正文/第009章_已存在.md"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第009章_已存在.md","content":"改稿"}}')"
 assert_empty "$out" "existing prose rewrite"
