@@ -27,7 +27,8 @@ scripts/
 ├── check-codex-adapter.sh             # Codex 插件与项目级适配面检查
 ├── test-ai-patterns.sh                # AI 句式检测器回归
 ├── test-degeneration.sh               # 模型退化检测器回归
-└── test-codex-hooks.sh                # Codex 项目级 hooks 回归
+├── test-codex-hooks.sh                # Codex 项目级 hooks 回归
+└── test-codex-cli-e2e.sh              # 真实 Codex CLI repo skill 发现 smoke
 ```
 
 每个 skill 由一个 `SKILL.md`（入口）和 `references/` 目录（知识库）组成。
@@ -77,6 +78,7 @@ PR 自动运行 `.github/workflows/cross-platform.yml`。static-check job 跑以
 - 采集脚本和本地规范化脚本 `node --check` 语法校验
 
 另有 Windows / macOS job 验证 detector、Codex hook、CDP 工具加载与 setup 脚本 dry-run。
+`scripts/test-codex-cli-e2e.sh` 需要本机已安装 `codex` CLI，作为发布前本地真实 CLI smoke 运行，不列入默认 GitHub Actions。
 
 提交前建议本地全部跑一遍：
 
@@ -89,6 +91,7 @@ bash scripts/check-codex-adapter.sh
 bash scripts/test-ai-patterns.sh
 bash scripts/test-degeneration.sh
 bash scripts/test-codex-hooks.sh
+bash scripts/test-codex-cli-e2e.sh
 ```
 
 ## 共享文件规范

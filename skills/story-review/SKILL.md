@@ -17,6 +17,8 @@ description: "多视角对抗式审查。full/lean 模式在已部署 reviewer a
 - `/story-review solo` → 不 spawn Agent，由当前会话执行基础审查。
 - 未指定 → 默认 full，并在报告里写明最终实际执行模式。
 
+> AI味 / 文字自然度这一维度只有 `narrative-writer` 审，仅 full 模式覆盖。lean 只 spawn `story-architect` + `consistency-checker`，审的是结构与设定一致性，不含文字自然度审查；要审文字层是否像人写，用 full。
+
 ---
 
 ## Phase 0：预检与降级（必须先执行）
@@ -24,13 +26,15 @@ description: "多视角对抗式审查。full/lean 模式在已部署 reviewer a
 1. **确定请求模式**：解析用户输入中的 `full`、`lean`、`solo`；未指定时目标模式为 `full`。
 2. **确认是否允许 spawn**：如果当前已经在子代理/Agent 内执行，不再递归 spawn，直接降级为 `solo`。
 3. **检查核心 Agent 部署状态**（检查项目内 agents，同时兼容 Codex）：
-   - 优先检查 `.codex/story-agents/`，再检查 `.codex/agents/`；两个目录任一存在即视为可能已部署。
-    - full 必需：`story-architect`、`character-designer`、`narrative-writer`、`consistency-checker`。
-    - lean 必需：`story-architect`、`consistency-checker`。
+   - 优先检查 `.codex/story-agents/`，检查 `.codex/agents/`；三个目录任一存在即视为已部署
+    - full 必需：Codex 为 `story-architect.md`、`character-designer.md`、`narrative-writer.md`、`consistency-checker.md`；Codex 为同名 `.toml`
+    - lean 必需：Codex 为 `story-architect.md`、`consistency-checker.md`；Codex 为同名 `.toml`
     - 对每个必需 Agent 文件：
       - **Codex agent（`.codex/story-agents/`）**：读取 frontmatter，确认 `name:` 与 agent name 完全一致；frontmatter 缺失、不可解析或 name 不匹配时视为 malformed agent。
+   - **Codex legacy agent（`.codex/story-agents/`）**：文件名即 agent 名，读取提示词正文确认角色边界和 fallback 规则可用；frontmatter 缺失或不可解析时不阻塞，改查 `.codex/agents/`。
+   - **Codex custom agent（`.codex/agents/*.toml`）**：TOML 必须包含 `name`、`description`、`developer_instructions`；解析失败视为 malformed。
       - **Codex agent（`.codex/agents/`）**：文件名为 `{agent}.toml`，TOML 必须可解析，且包含 `name`、`description`、`developer_instructions`；`name` 必须与目标 agent 完全一致。
-    - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `16`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
+    - 如果 `.story-deployed` 存在且 `agents_version` 缺失或小于 `17`，视为 stale deployment；不要 spawn，降级 `solo`，建议用户重新运行 `/story-setup`。
    - 如果目标模式所需任一文件缺失或 malformed，**不要尝试 spawn 缺失/异常 Agent**；自动降级为 `solo`，并在报告开头写明：`Fallback: missing agents -> solo` 或 `Fallback: malformed agents -> solo`，列出问题文件，建议用户运行 `/story-setup`。
 4. **确认 Agent/Task 工具可用**：如果当前环境没有可用的子 Agent/Task 调用能力，直接降级为 `solo`，报告 `Fallback: agent tool unavailable -> solo`。
 5. **运行时失败降级**：如果任何 Agent spawn 返回失败、`agent name` / `agent_type` 不可用、frontmatter/TOML 运行时解析失败或子 Agent 无法启动，停止继续 spawn，改用 `solo` 重新审查，并报告 `Fallback: spawn failed -> solo` 与失败的 agent name/agent_type；不要把部分成功的 Agent 结果当成 full/lean 结论。
@@ -142,11 +146,12 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
 6. **确定性预检（只报告，不修改）**：当审查范围包含本地正文文件路径时，运行本 skill 自带脚本：
    ```bash
    node scripts/normalize-punctuation.js --check <正文文件...>
-   node scripts/check-ai-patterns.js --check <正文文件...>
+   node scripts/check-ai-patterns.js --check --fail-on=blocking <正文文件...>
    node scripts/check-degeneration.js --check <正文文件...>
    ```
    - 将 `ellipsis`、`double-hyphen`、`markdown-divider` 结果作为 `format` findings 合并进报告。`em-dash` 破折号只采用 `check-ai-patterns.js` 的语义改写建议（见下条）；`normalize-punctuation.js` 报的同一位置 `em-dash` 在合并时去重丢弃，避免同处出现「机械替换」与「按功能改写」两条相互冲突的 finding。另外人工检查标点节奏是否通篇句号化或随机堆砌，脚本不替代语气判断。
-   - 将 `not-is-comparison` 结果作为 `prose` findings 合并进报告，修复建议写成：删否定铺垫，直接写后项，或改为动作/细节呈现。`check-ai-patterns.js` 是 `em-dash` 的归口来源：破折号按功能改写（打断→动作 beat/短句，拖长音→省略或动作，插入说明→逗号/冒号，**不要一律改句号**）；它另报告 `period-stutter`（碎句号→按目标句长合并成中长句）与 `long-paragraph`（>200 字→按镜头/动作/视线断段），一并并入 `prose` findings。脚本对每条 finding 标 `severity`：`blocking`（not-is-comparison/em-dash）建议按 S2、`advisory`（碎句号/长段落）按 S4 处理。
+   - `check-ai-patterns.js` 的 findings 合并进 `prose`：blocking（`not-is-comparison` / `em-dash`）按 S2，建议删否定铺垫、直接写后项，或按破折号功能改成动作/短句/逗号/冒号。
+   - 其余 prose findings 统一按 S4：只指出读感风险，不替代人工判断；功能性写法标 `[需复核]` 并保留。完整类别和修法见 `anti-ai-writing.md`。
    - `check-degeneration.js` 报告模型退化（逐字复读/截断/占位符/工程词泄漏），每条带 `severity: blocking|advisory`：blocking（复读/截断/tier1 工程词）作为 S1/S2 `prose` findings，修复建议是「重新生成该段，不是改写」；advisory（tier2 章节/歧义词）作为 S4。
    - `story-review` 不修改文件；需要自动修复时建议转 `/story-deslop`。
    - 默认 `--quote-mode keep`，不把知乎盐言短篇的 `「」` 当作问题；只有项目明确指定引号风格时才检查对应转换建议。
@@ -269,14 +274,16 @@ full/lean 模式下，主会话必须把“审查基准包摘要”直接写进�
   AI 味 / 禁用词摘要：{从 anti-ai-writing、banned-words 或内置 fallback 提取，必须内联}
   可选补充参考：如项目已部署 story-setup reference bundle，可读取 `story-setup/references/agent-references/anti-ai-writing.md`、`story-setup/references/agent-references/banned-words.md`、`story-setup/references/agent-references/quality-checklist.md`；若不可读，不影响审查。
   检查项：
-  1. 是否存在禁用词/套话/陈词滥调？
+  1. 是否存在禁用词/套话/陈词滥调，或“像/好像/仿佛/如同”式比喻成片堆叠？
   2. 是否出现 AI 写作指纹、8 种 AI 写作模式（含模式 8 解释腔/上帝视角/安排感）或章末总结体？
   3. 格式是否合规（按戏剧单元/镜头自然断段、无机械字数切分、无空行、对话独立成行、主语节奏自然）？
   4. 标点节奏是否匹配语气/人物声线：是否通篇句号化、随机堆砌问号/感叹号，或残留 `……`/`——` 硬造停顿？正文（含对话）里的破折号是否已清理？
   5. 是否出现“这五个字 / 短短四字 / 三个字一落 / 八个字砸下去”等正文内具体字数表达？若统计口径不明、未见机器核对结果或无叙事必要，标为问题并建议改成非具体数字表达。
   6. 节奏是否均匀（有无连续多节无情绪变化）？
-  7. 身体部位同一词是否超 5 次？
-  8. AI味分级（轻度/中度/重度）及证据。
+  7. 是否存在删掉无损的任务卡点或流程细节？若只是水/局部节奏问题标 S3；明显拖垮主线推进标 S2。
+  8. 身体部位同一词是否超 5 次？
+  9. AI味分级（轻度/中度/重度）及证据。
+  10. 去 AI 补充复核：是否有作者解释总结/意义尾巴；是否连续堆精致戏剧反应短语；是否把已有手机/屏幕/公告/规则/证据载体改成叙述者解释；是否把任务卡点当成自然感或凑字数手段；是否机械删除了有功能的生活化/角色化比喻或短篇主观审判句。
 
   输出格式：
   VERDICT: APPROVE / CONCERNS / REJECT

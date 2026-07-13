@@ -92,19 +92,18 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 
 These are Codex plugin hooks. The script entry point is `hooks/story-lifecycle-hook.cjs`. `story-setup` can also deploy project-level `.codex/hooks.json` and `.codex/hooks/story_codex_hook.py` for outline-before-prose checks, compact context hints, and Stop-time prose backstop scans.
 
-## Upgrading to v0.6.21
+## Upgrading to v0.6.22
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This sync keeps `agents_version: 16` and bumps `setup_skill_version` to `1.2.5`, refreshing `.codex/story-agents/`, `.codex/agents/`, `.codex/hooks.json`, `.codex/hooks/story_codex_hook.py`, `.codex/story-rules/`, and the reference bundles.
+If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This sync bumps `agents_version` to `17` and `setup_skill_version` to `1.2.6`, refreshing `.codex/story-agents/`, `.codex/agents/`, `.codex/hooks.json`, `.codex/hooks/story_codex_hook.py`, `.codex/story-rules/`, and the reference bundles.
 
-This repository has synced upstream v0.6.19-v0.6.21 plus the current upstream `main` updates included in this port. Main changes:
+This repository has synced upstream v0.6.22 plus the current upstream `main` updates included in this port. Main changes:
 
-- **Short-form reference stack**: `story-short-write` drops stale long-form references and adds `short-format.md`, `short-craft.md`, `short-deslop.md`, plus four short-form genre style packs.
-- **Long-form outline improvements**: adds benchmark rhythm transfer, chapter positioning, and pressure/release guidance so every chapter does not collapse into the same high-pressure beat.
-- **Degeneration detection**: adds `check-degeneration.js` for repeated loops, truncation, placeholders, refusal phrases, engineering terms leaking into prose, and mojibake.
-- **AI-pattern detection upgrades**: expands `check-ai-patterns.js` with sentence stutter, long paragraph, and functional em-dash rewrite findings.
-- **Codex project hooks**: `story-setup` can deploy `.codex/hooks.json` and `.codex/hooks/story_codex_hook.py` for outline guards, compact context hints, Stop-time prose scans, and continuity hints.
-- **Codex custom agents**: adds `references/codex/agents/*.toml`, generated deterministically from role prompt templates by `scripts/generate-codex-agents.py`.
-- **Version checks**: `skills/story/VERSION` is now `0.6.21`; `story` reports upstream version differences but does not auto-install the upstream package.
+- **Long-form genre prose cards**: `story-long-write` adds `genre-prose-cards/`; `narrative-writer` recalls cards from `设定/题材定位.md` while preventing card names, tags, confidence, and compliance self-checks from leaking into prose.
+- **Short-form submission layer**: `story-short-write` adds `submission-craft.md` for Zhihu Yanxuan, mini-program, and Fanqie submission tone, opening copy, and paywall-break planning.
+- **Analysis formula upgrades**: `chapter-extractor` adds `chapter_formula` so long-form analysis captures emotional flow, rhythm ratio, chapter-ending hooks, and foreshadowing.
+- **AI-pattern detection upgrades**: `check-ai-patterns.js` adds task-block, action-chain, abstract-summary, cliche/metaphor/reasoning-density findings as advisory signals, not a replacement for human review.
+- **Codex CLI E2E**: adds `scripts/test-codex-cli-e2e.sh`, which uses a real Codex CLI in an isolated HOME to verify repo skills, custom agents, and hook deployment.
+- **Version checks**: `skills/story/VERSION` is now `0.6.22`; `story` reports upstream version differences but does not auto-install the upstream package over this Codex port.
 
 Codex plugin lifecycle hooks are loaded by this repository's plugin mechanism. Project-level hooks are written by `/story-setup`. Reopen the session after upgrading the plugin to use the new plugin hook behavior; rerun `/story-setup` to refresh project-level hooks and custom agents.
 

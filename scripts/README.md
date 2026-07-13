@@ -23,6 +23,7 @@
 | `test-ai-patterns.sh` | 确定性 AI 句式检测器 `check-ai-patterns.js` 回归 | CI |
 | `test-degeneration.sh` | 模型退化检测器 `check-degeneration.js` 回归 | CI |
 | `test-codex-hooks.sh` | Codex hook 合成 stdin/stdout 契约、正文前置检查、Stop 兜底与连续性提示 | CI |
+| `test-codex-cli-e2e.sh` | 隔离 HOME 后用真实 Codex CLI 检查 repo 13 个 skills、custom agents 与 hooks 发现结果 | 发布前本地 smoke；需已安装 `codex` |
 | `test-charcount-portable.sh` | 跨平台字符统计命令在三平台 + Windows 的正确性 | CI（调 check-python-invocation） |
 
 ## 代码生成 / 同步

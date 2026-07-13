@@ -55,12 +55,12 @@ description: "长篇网文扫榜。分析起点、番茄、晋江等平台排行
 
 **采集流程**：
 1. 选择平台脚本；起点直接运行 `scripts/qidian-rank-scraper.js`，番茄/七猫/晋江等按需启动 browser-cdp
-2. 等待列表元素或 SSR 数据加载，逐条提取字段（排名、书名、作者、题材、字数、推荐/在读数等）
+2. 等待列表元素或 SSR 数据加载，逐条提取字段（排名、书名、作者、题材、字数、推荐/在读数等），判断翻页（起点通常单页50-100条，番茄按题材逐页cap≈20）
 3. 需要补充数据时（标签、简介、最新更新），进入详情页提取
 4. 按规范格式写入 Markdown 文件
 5. 多榜单/多题材时，逐组采集并保存
 
-**输出规范**：详见 [references/scan-output-format.md](references/scan-output-format.md)，包含各平台字段定义、输出模板、文件命名规范。
+**输出规范**：详见 [references/scan-output-format.md](references/scan-output-format.md)，包含各平台字段定义、输出模板。
 
 **起点采集目标**（优先运行 `node scripts/qidian-rank-scraper.js --type {榜单} --outdir {输出目录}`；默认 `--mode auto` 会先用 `https://m.qidian.com` 移动端 SSR，PC/CDP 只作回退）：
 
@@ -75,6 +75,7 @@ description: "长篇网文扫榜。分析起点、番茄、晋江等平台排行
 | 畅销榜 | qidian.com/rank/hotsales/ | 真金白银投票 |
 | 阅读指数榜 | qidian.com/rank/readindex/ | 阅读量综合指标 |
 | 收藏榜 | qidian.com/rank/collect/ | 读者关注热度 |
+| 原创推荐榜 | qidian.com/rank/recom/ | |
 
 **番茄采集目标**：
 
@@ -92,7 +93,7 @@ node scripts/fanqie-rank-scraper.js --channel 1 --type 2 --outdir {输出目录}
 node scripts/fanqie-rank-scraper.js --channel all --top 15 --outdir {输出目录}   # 男女频，每题材前 15 本
 ```
 
-> **番茄采集后必查文件头 `数据质量`**：标 `[标题解析异常]` 或书名大量显示 `（标题待解析）`，说明详情页解码失败（多为页面结构变动或被登录/验证页拦截）。先在已登录 Chrome 里手动打开任一 `https://fanqienovel.com/page/{bookId}` 确认页面正常，再重采；控制台报 `CDP 无响应` 则先按 browser-cdp 重启 Chrome。排查细节见 [references/scan-output-format.md](references/scan-output-format.md)。
+> **番茄采集后必查文件头 `数据质量`**，异常排查步骤见 [references/scan-output-format.md](references/scan-output-format.md)。
 
 **七猫采集目标**：
 
@@ -114,7 +115,7 @@ node scripts/jjwxc-rank-scraper.js --type 12 --top 15 --detail-limit 60  # 调�
 node scripts/jjwxc-rank-scraper.js --type 12 --list-only                 # 只采列表（快，无核心指标）
 ```
 
-> **晋江硬性要求**：列表页只有书名+作者，无法支撑分析，必须进详情页。脚本已自动从书名 anchor 取 `novelid` → `onebook.php?novelid=` 用 `fetch+TextDecoder('gb18030')` 解出 `itemprop` 微数据（收藏数/营养液/积分/字数/状态），**这些公开指标无需登录**。受 `--top`（每频道）+ `--detail-limit`（总量）约束以控制时长；列表全量保留，仅 top 本补详情。文件头标注详情命中率，全部无收藏数时标 `[详情解析异常/登录态缺失]`。
+> **晋江硬性要求**：必须有详情页核心指标（收藏数/营养液/积分/字数），脚本默认已补采；采集要点见 [references/scan-output-format.md](references/scan-output-format.md)。
 
 **文件命名**：`{平台}{榜单名称}_{YYYYMMDD}.md`，例：`起点新人签约新书榜_20260425.md`
 
@@ -312,8 +313,6 @@ node scripts/jjwxc-rank-scraper.js --type 12 --list-only                 # 只�
 | 直接开写 | story-long-write | `/story-long-write` |
 | 更适合短篇 | story-short-scan | `/story-short-scan` |
 
-> **选题决策.md 交接**：Phase 4 产出的 `选题决策.md` 写在扫榜输出目录（扫榜常在没有小说项目时进行）。开书时把它搬到小说项目根目录，story-long-write Phase 1 会自动读取；拆文（story-long-analyze）会在汇总报告产出后回填对应选题的"能爆的原因"。
-
 ## 参考资料
 
 按需加载以下文件：
@@ -324,7 +323,7 @@ node scripts/jjwxc-rank-scraper.js --type 12 --list-only                 # 只�
 | [references/reader-profiling.md](references/reader-profiling.md) | 需要分析目标读者画像时 |
 | [references/genre-trends.md](references/genre-trends.md) | 查看题材趋势候选、切入约束和样本校验规则时 |
 | [references/publishing-guide.md](references/publishing-guide.md) | 平台适配+推荐机制校验+数据指标+简介设计 |
-| [references/scan-output-format.md](references/scan-output-format.md) | 脚本/CDP 采集字段定义+输出模板+文件命名规范 |
+| [references/scan-output-format.md](references/scan-output-format.md) | 脚本/CDP 采集字段定义+输出模板 |
 | [scripts/cdp-utils.js](scripts/cdp-utils.js) | CDP 公共工具函数（ab/sleep/evalJSON/safeStr/scrollLoad/getArg），各采集脚本共用 |
 | [scripts/fanqie-rank-scraper.js](scripts/fanqie-rank-scraper.js) | 番茄榜单采集，详情页多策略解码（书名/作者/题材/评分/标签/简介）绕过字体反爬，分批请求防超时，带连通性自检+标题解析率质量标注，配合 browser-cdp 使用 |
 | [scripts/qidian-rank-scraper.js](scripts/qidian-rank-scraper.js) | 起点榜单采集（畅销/月票/新书等），默认移动端 SSR 提取，PC/CDP 回退 |

@@ -90,19 +90,18 @@ demo/让你管账号，你高燃混剪炸全网/
 
 这些是 Codex 插件 hooks，脚本入口为 `hooks/story-lifecycle-hook.cjs`。`story-setup` 还会按需部署项目级 `.codex/hooks.json` 与 `.codex/hooks/story_codex_hook.py`，用于项目随附的正文前置检查、compact 上下文提示和 Stop 阶段正文兜底复扫。
 
-## 升级到 v0.6.21
+## 升级到 v0.6.22
 
-如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本次同步保持 `agents_version: 16`，并将 `setup_skill_version` 升级到 `1.2.5`，用于刷新 `.codex/story-agents/`、`.codex/agents/`、`.codex/hooks.json`、`.codex/hooks/story_codex_hook.py`、`.codex/story-rules/` 和 reference bundle。
+如果你已经在写作项目中运行过 `/story-setup`，升级 skill 后建议在项目根目录重新运行一次 `/story-setup`。本次同步将 `agents_version` 升级到 `17`，并将 `setup_skill_version` 升级到 `1.2.6`，用于刷新 `.codex/story-agents/`、`.codex/agents/`、`.codex/hooks.json`、`.codex/hooks/story_codex_hook.py`、`.codex/story-rules/` 和 reference bundle。
 
-本仓库已同步上游 v0.6.19-v0.6.21 以及截至本次同步的 main 更新，重点包括：
+本仓库已同步上游 v0.6.22 以及截至本次同步的 main 更新，重点包括：
 
-- **短篇参考栈重构**：`story-short-write` 删除长篇继承残留，新增 `short-format.md`、`short-craft.md`、`short-deslop.md` 和 4 个短篇题材包。
-- **长篇大纲补强**：引入对标节奏迁移、章节定位与张弛规则，避免每章都写成同一种高压短篇节奏。
-- **退化检测**：新增 `check-degeneration.js`，在长短篇写作、审查和去 AI 味流程中检测复读、截断、占位、拒绝语、工程词泄漏和乱码。
-- **AI 句式检测增强**：`check-ai-patterns.js` 扩展碎句号、长段落和破折号功能性改写建议。
-- **Codex project hooks**：`story-setup` 可部署 `.codex/hooks.json` 与 `.codex/hooks/story_codex_hook.py`，支持正文前置检查、compact 上下文提示、Stop 阶段正文兜底复扫和跨批连续性提示。
-- **Codex custom agents**：新增 `references/codex/agents/*.toml`，由 `scripts/generate-codex-agents.py` 从角色提示词模板确定性生成。
-- **版本检查**：`skills/story/VERSION` 更新到 `0.6.21`；`story` 只提示上游版本差异，不自动安装上游包。
+- **长篇题材正文提示卡**：`story-long-write` 新增 `genre-prose-cards/` 题材腔调卡，`narrative-writer` 按 `设定/题材定位.md` 召回题材卡，同时禁止卡名、标签、置信度和合规自评进入正文。
+- **短篇投稿层**：`story-short-write` 新增 `submission-craft.md`，补齐知乎盐选、小程序、番茄三路投稿基调、导语门面和付费点卡点。
+- **拆文公式补强**：`chapter-extractor` 新增 `chapter_formula` 逐章写法公式，长篇拆文输出补充情绪流向、节奏配比、章尾卡点和伏笔。
+- **去 AI 味检测增强**：`check-ai-patterns.js` 增加任务卡点、动作链、抽象总结、套词/比喻/解释链密度等提示，继续作为辅助信号，不替代人工通读。
+- **Codex CLI E2E**：新增 `scripts/test-codex-cli-e2e.sh`，在隔离 HOME 下用真实 Codex CLI 检查 repo skills、custom agents 和 hooks 部署结果。
+- **版本检查**：`skills/story/VERSION` 更新到 `0.6.22`；`story` 只提示上游版本差异，不自动安装上游原包覆盖本仓 Codex 移植版。
 
 Codex 插件 lifecycle hook 由本仓库插件机制加载；项目级 hook 由 `/story-setup` 写入用户写作项目。升级插件版本后，重新打开会话可获得新版插件 hook 行为；重新运行 `/story-setup` 可刷新项目级 hook 和 custom agents。
 

@@ -46,8 +46,8 @@ assert_dir "$AGENT_REFS_DIR"
 
 for required in \
   'runtime: codex' \
-  'agents_version: 16' \
-  'setup_skill_version: 1.2.5' \
+  'agents_version: 17' \
+  'setup_skill_version: 1.2.6' \
   'references/codex/AGENTS.md.tmpl' \
   'references/codex/agents/' \
   'references/codex/hooks/hooks.json' \

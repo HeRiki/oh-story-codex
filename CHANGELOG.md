@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.6.22
+
+> 长篇题材正文提示卡 + 短篇投稿层 + 全套件文档瘦身（#226 / #227 / #228）
+
+### 新增
+
+- **题材正文提示卡（#226，合并 #222/#223/#224）**：`story-long-write` 新增 `genre-prose-cards/` 32 张番茄题材腔调卡 + 索引召回规范；写作时按 `设定/题材定位.md` 匹配召回单卡进写手，anti-leak 硬约束保证卡名/题材标签/置信度/条目/合规自评一律不进正文；narrative-writer 与 Codex custom agents 同步接入召回与按题材细化的文风指纹/Gate G 规则，chapter-extractor 模板新增 `chapter_formula` 逐章写法公式产物。
+- **短篇投稿层（#227）**：`story-short-write` 新增 `submission-craft.md`——知乎盐选/小程序/番茄三路平台基调矩阵（视角、矛盾演进、章末钩子、结局质感）、导语门面单独打磨（四维骨架+黄金三角，150-220 字）、付费点卡脖子断点与反推法排细纲；`story-short-analyze` 拆解时顺带记录投稿层进拆文报告。合并前盲评 A/B 四维全胜（register +0.55、structure +0.58）。
+- **deslop 任务卡点与比喻密度（#218）**：任务卡点只在改变信息/情绪/关系/代价/选择压力/伏笔/钩子承接时使用；新增 `metaphor-density-tic` advisory（像/仿佛/如同高密度堆叠检测）；朱雀定位为辅助信号，去 AI 味不越剧情边界。
+- **generic Web AI 部署（#216）**：保留上游 generic 文件模式的可迁移思路；在本仓 Codex 移植版中，`story-setup` 仍以 Codex 为主目标，继续部署 `.codex/agents/*.toml`、`.codex/hooks.json`、项目 `AGENTS.md` 与 reference bundle。
+
+### 改进
+
+- **长篇工作流防失控（#225）**：裸调用 `story-long-write` 不再自动进入正文/日更模式；开书流程默认停在大纲；日更批量有界；narrative-writer 只扩写细纲计划内情节点，不足时返回 `outline_underfilled` 欠账报告交主会话补纲；理顺 setup → import → long-write 的续写工程顺序。
+- **全套件文档瘦身（#228）**：13 个 skill 系统审计后删除可证行为不变的冗余——逐字/同义重复、过期目录、失效行号锚、维护性注释、跨体裁死段、悬空指针，53 文件净 −32.9KB；同名副本组全部字节同步；Σ 字数预算契约、anti-leak、hook 锚点零触碰。
+- **deslop 防检测器博弈（#220 / #221）**：吸收社区反 AI 思路但不做讨好检测器的硬规则；新增 `action-list-tic` advisory（监控镜头式动作链）；外部检测器明确为自检参考、不替代人工通读；恢复朱雀 AIGC 检测 CLI 致谢。
+
+### 发布准备
+
+- 版本号升级到 `0.6.22`（`.codex-plugin/plugin.json` + `skills/story/VERSION`）。`.story-deployed` 的 `agents_version` 升级到 `17`、`setup_skill_version` 升级到 `1.2.6`；本版含 narrative-writer / chapter-extractor 部署模板更新（题材卡召回 + anti-leak + 大纲边界与 chapter_formula），已部署项目需重新运行 `/story-setup` 并新开会话获取。`UPGRADING.md` 新增 v17 条目，`README` / `README_EN` 更新 v0.6.22 版本说明。
+
 ## v0.6.21
 
 > 短篇写作参考栈瘦身：删掉长篇继承残留，建立短篇专属 format/craft/deslop/题材包体系（#206）
@@ -28,7 +49,7 @@ All notable changes to this project will be documented in this file.
 
 ### 发布准备
 
-- 版本号升级到 `0.6.20`（`.codex-plugin/plugin.json` + `skills/story/VERSION`）。本版同步更新 `agent-references/quality-checklist.md` 与 `outline-methods.md` 的章节定位豁免，并在 `story-architect` spawn prompt 注入「章节定位契约」；未 bump `agents_version`（本版无 agent 模板结构变更，agent-references 内容在新项目部署或下次重部署自然生效）。
+- 版本号升级到 `0.6.20`（`.codex-plugin/plugin.json` + `skills/story/VERSION`）。本版同步更新 `agent-references/quality-checklist.md` 与 `outline-methods.md` 的章节定位豁免，并在 `story-architect` spawn prompt 注入「章节定位契约」；未 bump `agents_version`（本版无 agent 模板结构变更，agent-references 内容在新项目部署或下次重部署自然生效）。`README` / `README_EN` 更新 v0.6.20 版本说明。
 
 ## v0.6.19
 
@@ -36,7 +57,7 @@ All notable changes to this project will be documented in this file.
 
 ### 新增
 
-- **Codex 项目级适配（#186, #189）**：`$story-setup` 部署 `.codex/agents/*.toml`（由角色提示词模板经 `generate-codex-agents.py` 生成）与 `.codex/hooks.json`；本仓作为 Codex 插件时仍通过 `.codex-plugin/plugin.json` 暴露 `skills/` 和根 lifecycle hook。`check-codex-adapter.sh` 加固插件 manifest、项目级 hooks、custom agents 与生成器漂移守卫。
+- **Codex 项目级适配（#186, #189）**：`$story-setup` 部署 `.codex/agents/*.toml`（由角色提示词模板经 `generate-codex-agents.py` 生成）与 `.codex/hooks.json`；本仓作为 Codex 插件时通过 `.codex-plugin/plugin.json` 暴露 `skills/` 和根 lifecycle hook。`check-codex-adapter.sh` 加固插件 manifest、项目级 hooks、custom agents 与生成器漂移守卫。
 - **自定义文风优先于对标文风（#194）**：每章写作前先读 `设定/文风.md`，含实质内容即进入「自定义文风模式」——它作权威风格基（句长 / 软标点 / 对话潜台词 / 情绪交替），对标 / 拆文 `文风.md` 降为参考（原文锚点 + 句长兜底）；`narrative-writer` 文风指纹新增「来源」字段，用户新增/改 `设定/文风.md` 后用新来源刷新句长带快照、不再被旧对标永久压住（三端模板 + `上下文.md.tmpl`）。
 - **模型退化 + 工程词泄漏检测器（#173）**：新增 `check-degeneration.js`（4 份字节同步），确定性检测弱模型退化——逐字复读/打转、末尾截断、占位/拒绝语（`作为AI`/`我无法续写`/`（此处省略）`/乱码 �）、工程词漏进正文（`细纲`/`情节点`/`本章`/`下一章` 等）；每条 finding 带 `severity: blocking|advisory`（blocking 即重写、tier2 章节/歧义词只提示，对话行里的 tier1 工程词降级 advisory）。接入 `story-long-write`/`story-deslop`/`story-review`/`story-short-write` 收尾复扫，`story-review` 子 Agent prompt 补「继承的开放项」做跨批连续性。
 - **碎句号/长段落检测 + 破折号按功能改写（#188）**：`check-ai-patterns.js`（4 份字节同步）新增碎句号（连续短叙述句无呼吸）、长段落（>200 字按镜头断段）检测，与破折号按功能改写建议（打断→动作 beat/短句、拖长音→省略或动作、插入说明→逗号/冒号，不一律改句号）；每条 finding 带 `severity`，混合行（叙述 + 引号内物件）不再被一个引号整行豁免，`story-review` 指定 em-dash 归口 `check-ai-patterns.js` 并与 normalize 去重。

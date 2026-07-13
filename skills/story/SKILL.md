@@ -29,6 +29,10 @@ description: "网络小说工具箱主入口。根据用户需求自动路由到
 | 查故事资料 | 查角色、查伏笔、查进度、查设定、什么状态、写到哪了 | spawn `story-explorer` agent（结构化 prompt：`项目目录：{dir}\n查询类型：{根据意图选择}\n查询参数：{用户查询}`）；agent 不可用时见下方「查询降级」 |
 | 查资料 | 查资料、帮我查资料、调研、搜索一下、搜一下 | spawn `story-researcher` agent；agent 不可用时见下方「查询降级」 |
 
+### 导入续写顺序
+
+用户问"导入续写先 setup 还是 import"时，直接回答：**推荐先 `/story-setup`，新开/刷新会话后 `/story-import`，最后 `/story-long-write 日更` 或 `/story-long-write 写第N章`**。如果用户已经直接触发 `/story-import`，按 story-import 自带环境检测继续：未 setup 时让用户选择先去 setup 或继续串行导入。
+
 ## 路由流程
 
 1. 分析用户请求，提取意图关键词
@@ -71,6 +75,6 @@ description: "网络小说工具箱主入口。根据用户需求自动路由到
 3. **比较**：去掉 `v` 前缀按语义版本比（major.minor.patch）。`gh release` 默认取 latest 稳定版，不含 pre-release。
 4. **告知**：
    - 已最新 → 「已是最新版 vX.Y.Z」。
-   - 有新版 → 列出 当前 vA → 上游最新 vB + [Releases](https://github.com/worldwonderer/oh-story-claudecode/releases)/[CHANGELOG](https://github.com/worldwonderer/oh-story-claudecode/blob/main/CHANGELOG.md)（能拿到 release notes 就附本次要点）。
-     - 明确说明：本仓是非官方 Codex 移植版，不能自动安装上游原包覆盖当前 Codex 版。
-     - 如用户要升级本仓，提示在本仓维护流程中同步上游、转换为 Codex 口径、运行验证后再提交发布。
+   - 有新版 → 列出 当前 vA → 最新 vB + [Releases](https://github.com/worldwonderer/oh-story-claudecode/releases)/[CHANGELOG](https://github.com/worldwonderer/oh-story-claudecode/blob/main/CHANGELOG.md)（能拿到 release notes 就附本次要点），再直接询问用户「现在更新吗？」：
+     - 选更新 → 提示用户从本仓 Codex 移植版仓库同步/安装最新版本；完成后提示：已部署过的项目在项目根重跑 `$story-setup` 同步 hooks/agents/references，并**新开一个会话**让 agents 重新注册。
+     - 选先不 → 不动，告知随时可再来。

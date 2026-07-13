@@ -22,8 +22,6 @@ description: "小说封面生成。根据书名、作者名自动分析题材风
 | `BOOK_DIR` | ✅ | — | 输出目录，建议 `./covers/<书名>` |
 | `REF_IMAGE` | | — | 参考图本地路径或 URL；设置后走 `images/edits` 图生图 |
 
-> 备注：`gpt-image-2` 始终返回 base64，请求体不要带 `response_format`（旧 DALL-E 参数，gpt-image 系列不支持）。
-
 ---
 
 ## 生成流程
@@ -33,7 +31,7 @@ description: "小说封面生成。根据书名、作者名自动分析题材风
 必填：书名、作者名（笔名）、目标平台、输出目录 `BOOK_DIR`（建议 `./covers/<书名>`，调用前 export）
 选填：参考图 `REF_IMAGE`（本地路径或 URL，设置后切换到图生图）、风格偏好、尺寸
 
-> **书名和笔名是封面必需信息**：缺任一必须先用 直接向用户确认 问用户补全，不得编造或留空。
+> **书名和笔名是封面必需信息**：缺任一必须先直接询问用户补全，不得编造或留空。
 
 **按目标平台定封面尺寸**：番茄上传 600×800 是 **3:4**（不是 2:3），出图比例不对、平台二次裁剪就会切掉书名/笔名。
 
@@ -139,7 +137,7 @@ Professional book cover, high detail digital painting, portrait [平台比例：
 
 ### Step 3：调用 API 并保存
 
-`gpt-image-2` 始终返回 base64，请求体不要带 `response_format`。`$PROMPT` 为 Step 2 拼出的完整提示词。
+`gpt-image-2` 始终返回 base64，请求体不要带 `response_format`（旧 DALL-E 参数，gpt-image 系列不支持）。`$PROMPT` 为 Step 2 拼出的完整提示词。
 
 两种调用方式二选一：未设置 `REF_IMAGE` → 走「文生图」；设置了 → 走「图生图」。
 

@@ -45,7 +45,7 @@ description: |
 | `references/agent-references/*.md` | `.codex/story-agent-references/*.md` | story-setup managed | replace | legacy 参考提示词可读 |
 | `references/agent-references/*.md` | `.codex/skills/story-setup/references/agent-references/*.md` | story-setup managed | replace | Codex custom agents 的项目内主参考路径完整 |
 | `references/templates/上下文.md.tmpl` | `{书名}/追踪/上下文.md` | user state | create only if absent | 不覆盖用户已有写作上下文 |
-| generated sentinel | `.story-deployed` | story-setup managed | replace | 包含 `runtime: codex`、`agents_version: 16`、`setup_skill_version: 1.2.5` |
+| generated sentinel | `.story-deployed` | story-setup managed | replace | 包含 `runtime: codex`、`agents_version: 17`、`setup_skill_version: 1.2.6` |
 
 ### 2.1 部署 AGENTS.md
 
@@ -104,13 +104,13 @@ description: |
 ```text
 deployed_at: <date -u +"%Y-%m-%dT%H:%M:%SZ">
 runtime: codex
-agents_version: 16
-setup_skill_version: 1.2.5
+agents_version: 17
+setup_skill_version: 1.2.6
 resolver_strategy: codex-project-reference
 references_dir: .codex/skills/story-setup/references/agent-references
 ```
 
-如果 `.story-deployed` 已存在但无 `agents_version` 或版本小于 16，提示用户重新运行 `/story-setup` 以更新 story agents、Codex custom agents、hooks、rules 和 reference bundle（具体变更见 `UPGRADING.md`）。
+如果 `.story-deployed` 已存在但无 `agents_version` 或版本小于 17，提示用户重新运行 `/story-setup` 以更新 story agents、Codex custom agents、hooks、rules 和 reference bundle（具体变更见 `UPGRADING.md`）。
 
 ## Phase 3：验证安装
 
@@ -120,7 +120,7 @@ references_dir: .codex/skills/story-setup/references/agent-references
 4. 检查 `.codex/agents/` 是否存在并包含 7 个 TOML custom agents，且 TOML 可解析。
 5. 检查 `.codex/hooks.json` 和 `.codex/hooks/story_codex_hook.py` 是否存在，JSON/Python 语法有效。
 6. 检查 `.codex/story-agent-references/` 和 `.codex/skills/story-setup/references/agent-references/` 是否存在，且包含所有 agent 模板引用的参考文件。
-7. 检查 `.story-deployed` 是否存在且 `runtime: codex`、`agents_version: 16`、`setup_skill_version: 1.2.5`。
+7. 检查 `.story-deployed` 是否存在且 `runtime: codex`、`agents_version: 17`、`setup_skill_version: 1.2.6`。
 8. 输出安装报告，列出已部署文件、已保留的用户原有配置、需要 trust 的 `.codex/` 配置，以及“新开 Codex 会话后 custom agents 才稳定可用”的提示。
 
 ## 模板占位符
@@ -148,8 +148,8 @@ references_dir: .codex/skills/story-setup/references/agent-references
 ## 重新部署
 
 - `.story-deployed` 不存在：全新安装，Phase 2 全部执行。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 16`：提示已部署，确认后重跑。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 16：提示需要重新部署以更新 Codex custom agents、hooks、rules 和 reference bundle。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 17`：提示已部署，确认后重跑。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 17：提示需要重新部署以更新 Codex custom agents、hooks、rules 和 reference bundle。
 - `.story-deployed` 存在但 runtime 不是 `codex`：按迁移处理，部署 Codex 目录，不删除用户原有目录。
 
 ## Codex lifecycle hook

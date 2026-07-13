@@ -57,7 +57,8 @@
 - `agents_version: 13` → 旧版，需重新部署以获取 prompt-cache 优化、破折号过滤和标点规范化修复
 - `agents_version: 14` → 旧版，需重新部署以获取拆文到写作模块链、推理型一致性检查、自然分段和主语节奏规则
 - `agents_version: 15` → 旧版，需重新部署以获取 AI 句式检测、对话声线/文风自检、新名词锚点、封面裁剪兜底、Codex custom agents 和项目级 hooks
-- `agents_version: 16` → 当前版本
+- `agents_version: 16` → 旧版，需重新部署以获取题材正文提示卡召回、chapter_formula 逐章写法公式和新版部署模板
+- `agents_version: 17` → 当前版本
 
 ## 版本变更
 
@@ -157,7 +158,7 @@
 - Codex 插件级 PreToolUse hook 新增正文前置检查：首次创建长篇 `正文/第N章_*.md` 时要求已有对应 `大纲/细纲_第N章.md`，首次创建短篇 `正文.md` 时要求已有 `小节大纲.md`；续写/改稿/导入迁移场景放行。
 - 已部署项目重新运行 `/story-setup` 后可刷新 `.codex/story-agents/`、`.codex/story-agent-references/` 与 `.story-deployed`；插件级 hook 随仓库更新加载，不写入用户项目目录。
 
-### v16 (当前)
+### v16
 
 - `setup_skill_version` 升级到 `1.2.5`，`.story-deployed` 的 `agents_version` 保持 `16`。
 - 同步上游 v0.6.19-v0.6.21：短篇参考栈重构、长篇章节定位与张弛、模型退化检测、AI 句式检测增强、Codex custom agents 和项目级 hooks。
@@ -166,3 +167,12 @@
 - `skills/story/VERSION` 更新到 `0.6.21`；检查更新只提示，不自动更新。
 
 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`、`.codex/skills/story-setup/references/agent-references/` 和项目级 hooks。
+
+### v17 (当前)
+
+- `setup_skill_version` 升级到 `1.2.6`，`.story-deployed` 的 `agents_version` 升级到 `17`。
+- 同步上游 v0.6.22：长篇新增题材正文提示卡召回，短篇新增投稿层，去 AI 味检测补充任务卡点、动作链和比喻密度提示。
+- 刷新 `narrative-writer` 与 `chapter-extractor` 部署模板：写作前按 `设定/题材定位.md` 召回题材卡，正文禁止泄漏卡名/题材标签/置信度/合规自评；拆文阶段新增 `chapter_formula` 逐章写法公式。
+- `skills/story/VERSION` 更新到 `0.6.22`；检查更新只提示，不自动覆盖本仓 Codex 移植版。
+
+已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/agents/`、`.codex/story-rules/`、`.codex/story-agent-references/`、`.codex/skills/story-setup/references/agent-references/` 和项目级 hooks；部署后新开 Codex 会话让 custom agents 重新注册。

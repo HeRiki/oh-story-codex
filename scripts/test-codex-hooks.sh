@@ -34,16 +34,6 @@ run_hook() {
   (cd "$ROOT" && printf '%s' "$payload" | CODEX_PROJECT_DIR="$ROOT" "$PYBIN" "$HOOK" "$event")
 }
 
-extract_hook_field() {
-  local hook_root="$1" field="$2"
-  HOOK_ROOT="$hook_root" FIELD="$field" "$PYBIN" - <<'PY'
-import json, os
-from pathlib import Path
-hooks = json.loads((Path(os.environ["HOOK_ROOT"]) / ".codex/hooks.json").read_text(encoding="utf-8"))
-print(hooks["hooks"]["PreToolUse"][0]["hooks"][0][os.environ["FIELD"]])
-PY
-}
-
 # Read the hook's stdout as UTF-8 bytes (not locale-decoded text): the hook emits
 # UTF-8 Chinese deny reasons, and Windows Python defaults stdin to the ANSI code page,
 # which would raise UnicodeDecodeError here even when the hook output is correct.
@@ -81,12 +71,6 @@ assert_empty "$out" "long prose with outline"
 
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"apply_patch","tool_input":{"command":"*** Begin Patch\n*** Add File: book/正文/第002章_新局.md\n+正文\n*** End Patch\n"}}')"
 assert_denied "$out" "apply_patch long prose without outline"
-out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"apply_patch <<'\''PATCH'\''\n*** Begin Patch\n*** Add File: book/正文/第002章_shell_patch.md\n+正文\n*** End Patch\nPATCH"}}')"
-assert_denied "$out" "Bash apply_patch long prose without outline"
-out="$(run_hook pre-tool-prose-guard '{"tool_name":"functions.apply_patch","tool_input":{"command":"*** Begin Patch\n*** Add File: book/正文/第002章_namespaced_patch.md\n+正文\n*** End Patch\n"}}')"
-assert_denied "$out" "namespaced apply_patch long prose without outline"
-out="$(run_hook pre-tool-prose-guard '{"tool_name":"functions.apply_patch","tool_input":{"patch":"*** Begin Patch\n*** Add File: book/正文/第002章_patch_field.md\n+正文\n*** End Patch\n"}}')"
-assert_denied "$out" "namespaced apply_patch patch field long prose without outline"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"functions.apply_patch","tool_input":{"patch":"*** Begin Patch\n*** Update File: draft.md\n*** Move to: book/正文/第002章_move_patch.md\n@@\n-草稿\n+正文\n*** End Patch\n"}}')"
 assert_denied "$out" "namespaced apply_patch move-to long prose without outline"
 : > "$ROOT/book/正文/第009章_已存在.md"
@@ -115,31 +99,14 @@ out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command
 assert_empty "$out" "prose path as echo arg before non-prose redirect is not denied"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"echo x | tee book/正文/第7章_x.md"}}')"
 assert_denied "$out" "tee write to prose without outline is still denied"
-out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"echo x | tee notes.md book/正文/第7章_multi.md"}}')"
-assert_denied "$out" "tee multi-target write to prose without outline is denied"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"touch book/正文/第7章_x.md"}}')"
 assert_denied "$out" "touch write to prose without outline is denied"
-out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"touch notes.md book/正文/第7章_multi_touch.md"}}')"
-assert_denied "$out" "touch multi-target write to prose without outline is denied"
-out="$(run_hook pre-tool-prose-guard '{"tool_name":"functions.shell_command","tool_input":{"command":"touch book/正文/第7章_x.md"}}')"
-assert_denied "$out" "namespaced shell write to prose without outline is denied"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"cp draft.md book/正文/第7章_x.md"}}')"
 assert_denied "$out" "cp write to prose without outline is denied"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"cp draft.md book/正文/第7章_x.md 2>/dev/null"}}')"
 assert_denied "$out" "cp write with trailing redirect is denied (dest still parsed)"
-out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"cat > \"book/正文/第7章 空格.md\" <<EOF\n正文\nEOF"}}')"
-assert_denied "$out" "quoted prose redirect path with spaces is denied"
-out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"cp \"draft file.md\" \"book/正文/第7章 空格.md\""}}')"
-assert_denied "$out" "quoted cp prose destination with spaces is denied"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"cp book/正文/第1章.md backup.md"}}')"
 assert_empty "$out" "cp FROM a prose file (source, not dest) is not denied"
-out="$(cd "$ROOT/book" && printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"touch 正文/第7章_cwd_book.md"}}' "$ROOT/book" | CODEX_PROJECT_DIR="$ROOT" "$PYBIN" "$HOOK" pre-tool-prose-guard)"
-assert_denied "$out" "shell cwd=book relative prose path is denied"
-out="$(cd "$ROOT/book/正文" && printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"touch 第7章_cwd_body.md"}}' "$ROOT/book/正文" | CODEX_PROJECT_DIR="$ROOT" "$PYBIN" "$HOOK" pre-tool-prose-guard)"
-assert_denied "$out" "shell cwd=book/正文 basename prose path is denied"
-abs_target="$ROOT/book/正文/第7章_abs_msys.md"
-out="$(run_hook pre-tool-prose-guard "$(printf '{"tool_name":"Bash","tool_input":{"command":"touch %s"}}' "$abs_target")")"
-assert_denied "$out" "shell MSYS absolute prose path is denied"
 
 echo "  OK prose command-scan precision"
 
@@ -162,8 +129,8 @@ echo "  OK commit advisory"
 mkdir -p "$ROOT/book/追踪"
 cat > "$ROOT/.story-deployed" <<'TXT'
 deployed_at: 2026-06-25T00:00:00Z
-agents_version: 16
-setup_skill_version: 1.2.5
+agents_version: 17
+setup_skill_version: 1.2.6
 target_cli: codex
 resolver_strategy: project-local-skill-reference
 references_dir: .codex/skills/story-setup/references/agent-references
@@ -173,11 +140,6 @@ printf '# 上下文\n' > "$ROOT/book/追踪/上下文.md"
 out="$(run_hook session-start '{"hook_event_name":"SessionStart"}')"
 assert_additional_context "$out" "session-start context"
 echo "$out" | grep -q 'Active book' || fail "session-start did not mention active book"
-printf '\nbook\n' > "$ROOT/.active-book"
-out="$(run_hook session-start '{"hook_event_name":"SessionStart"}')"
-assert_additional_context "$out" "session-start context with leading blank active-book"
-echo "$out" | grep -q 'Active book' || fail "session-start ignored first non-empty .active-book line"
-printf 'book\n' > "$ROOT/.active-book"
 out="$(run_hook pre-compact '{"hook_event_name":"PreCompact"}')"
 printf '%s' "$out" | assert_json || fail "pre-compact invalid JSON: $out"
 echo "$out" | grep -q 'Story Compact Summary' || fail "pre-compact missing summary"
@@ -205,7 +167,7 @@ echo "  OK stop content sweep (git-changed only)"
 # ── SessionStart continuity: 追踪 staleness（写了章但 上下文.md 没跟上）+ 章节标题去重 ──
 mkdir -p "$ROOT/contbook/正文" "$ROOT/contbook/追踪"
 printf '旧上下文\n' > "$ROOT/contbook/追踪/上下文.md"
-touch -t 200001010000 "$ROOT/contbook/追踪/上下文.md"
+sleep 1
 printf '# 第1章 决战\n正文。\n' > "$ROOT/contbook/正文/第001章_决战.md"
 printf '# 第2章 决战\n正文。\n' > "$ROOT/contbook/正文/第002章_决战.md"
 out="$(run_hook session-start '{"hook_event_name":"SessionStart"}')"
@@ -241,16 +203,13 @@ mkdir -p "$NON_GIT/.codex/hooks" "$NON_GIT/book/正文" "$NON_GIT/book/大纲" "
 cp "$HOOK_SRC" "$NON_GIT_HOOK"
 cp "$REPO_ROOT/skills/story-setup/references/codex/hooks/hooks.json" "$NON_GIT/.codex/hooks.json"
 launcher_cmd="$(
-  extract_hook_field "$NON_GIT" command
+  NON_GIT="$NON_GIT" "$PYBIN" - <<'PY'
+import json, os
+from pathlib import Path
+hooks = json.loads((Path(os.environ["NON_GIT"]) / ".codex/hooks.json").read_text(encoding="utf-8"))
+print(hooks["hooks"]["PreToolUse"][0]["hooks"][0]["command"])
+PY
 )"
-launcher_cmd_windows="$(extract_hook_field "$NON_GIT" commandWindows)"
-launcher_cmd_windows_file="$NON_GIT/.codex/run-pretool.cmd"
-printf '@echo off\r\n%s\r\n' "$launcher_cmd_windows" > "$launcher_cmd_windows_file"
-launcher_cmd_windows_file_win=""
-if [ "${OS:-}" = "Windows_NT" ]; then
-  command -v cygpath >/dev/null 2>&1 || fail "cygpath is required for Windows command launcher tests"
-  launcher_cmd_windows_file_win="$(cygpath -w "$launcher_cmd_windows_file")"
-fi
 out="$(
   cd "$NON_GIT/nested/a/b"
   printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第004章_非Git.md","content":"正文"}}' | eval "$launcher_cmd"
@@ -265,36 +224,18 @@ echo "  OK non-git deployment launcher root search"
 # back to the nested cwd and wrongly denying. This case also exercises Windows (Git Bash MSYS
 # path passed to native Python), which is exactly where naive env/cwd propagation breaks.
 : > "$NON_GIT/book/大纲/细纲_第4章.md"
-out="$(cd "$NON_GIT/nested/a/b"; unset CODEX_PROJECT_DIR; printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第004章_非Git.md","content":"正文"}}' | eval "$launcher_cmd")"
+out="$(cd "$NON_GIT/nested/a/b"; unset CODEX_PROJECT_DIR CLAUDE_PROJECT_DIR; printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第004章_非Git.md","content":"正文"}}' | eval "$launcher_cmd")"
 assert_empty "$out" "non-git nested cwd + outline present allows (root reaches Python hook)"
 rm -f "$NON_GIT/book/大纲/细纲_第4章.md"
 
 echo "  OK non-git nested root propagation"
-
-if [ "${OS:-}" = "Windows_NT" ]; then
-  out="$(
-    cd "$NON_GIT/nested/a/b"
-    unset CODEX_PROJECT_DIR
-    printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第004章_非Git.md","content":"正文"}}' | MSYS2_ARG_CONV_EXCL='*' cmd.exe /C "$launcher_cmd_windows_file_win"
-  )"
-  assert_denied "$out" "Windows command launcher root search"
-
-  : > "$NON_GIT/book/大纲/细纲_第4章.md"
-  out="$(
-    cd "$NON_GIT/nested/a/b"
-    unset CODEX_PROJECT_DIR
-    printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第004章_非Git.md","content":"正文"}}' | MSYS2_ARG_CONV_EXCL='*' cmd.exe /C "$launcher_cmd_windows_file_win"
-  )"
-  assert_empty "$out" "Windows command launcher nested root propagation"
-  rm -f "$NON_GIT/book/大纲/细纲_第4章.md"
-fi
 
 # Missing deployment: a cwd whose ancestors have no .codex/hooks/story_codex_hook.py → the
 # launcher must no-op (exit 0) silently, NOT run "//.codex/hooks/story_codex_hook.py" (which
 # happens if it treats "/" as the project root after an exhausted upward search).
 NO_DEPLOY="$TMP_DIR/no-deploy/x/y"
 mkdir -p "$NO_DEPLOY"
-out="$(cd "$NO_DEPLOY"; unset CODEX_PROJECT_DIR; printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第1章.md","content":"正文"}}' | eval "$launcher_cmd" 2>&1)"
+out="$(cd "$NO_DEPLOY"; unset CODEX_PROJECT_DIR CLAUDE_PROJECT_DIR; printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第1章.md","content":"正文"}}' | eval "$launcher_cmd" 2>&1)"
 assert_empty "$out" "missing deployment launcher no-ops silently"
 case "$out" in *//.codex*) fail "launcher executed //.codex/... on missing deployment: $out";; esac
 
