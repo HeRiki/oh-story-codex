@@ -2,16 +2,97 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### 同步
+
+- **同步上游 v0.7.5 tag 后 main 至 `1eae178`**：吸收项目发现、正文目标解析、拆文格式事前约束、超长作品分批聚合、跨批审查、采集字段与热路径文档预算等通用改动；版本仍保持 `0.7.5`，未引入 Claude/OpenCode/ZCode/Reasonix/OpenClaw runtime，也未虚构更高发布版本。
+
+### 修复
+
+- **Codex Hook 工具输入兼容**：正文前置守卫同时读取 `command` / `patch`，识别 `functions.apply_patch` 的 `Move to:` 目标，避免命名空间工具绕过细纲与追踪检查。
+- **根级 lifecycle Hook 对齐 schema 4**：只从 `_tracking-state.json` 读取追踪权威，不再把旧扁平 `伏笔.md` / `时间线.md` 当状态源；提交提醒改为要求走 `tracking_commit.py` 事务。
+- **多书 Hook 隔离**：根级 lifecycle Hook 尊重项目根 `.active-book`，并校验真实路径不能逃逸项目根；上下文、缺口扫描和可选 session log 不再串到另一本文稿。
+- **派生视图可执行修复**：新增 `tracking_commit.py rebuild`，可从 schema 4 权威状态重建全部派生视图和清理孤儿角色快照，不推进 revision，尚未开篇的第 0 章项目同样可用。
+- **Windows Dashboard 原子覆盖**：覆盖已有文件时通过 `.NET File.Replace` 完成原子替换；helper 失败保留原稿，不再使用可能截断正文的复制回退。
+- **Codex agent 调用字段**：agent 模板和迁移脚本统一生成 `spawn_agent(agent_type=...)`，清除 Claude 风格 Agent/Task 能力探测与错误的 `name` 调用字段。
+- **项目级 Codex Hook 审查修复**：Stop 正文兜底按官方协议返回 `decision: block` 自动续开修复回合，并防止重复续回合；`.active-book` 只接受项目根内相对真实目录，非空但非法时给出诊断且不再猜选其他书目；重部署只替换实际执行 story launcher/Python hook 的受管命令，不再误删仅提到路径的用户 Hook；launcher 明确探测 Python 3.10+，可见运行状态统一为中文。
+- **导入 Agent 版本合同统一**：`story-import` 的版本不匹配只提示 Notice，不再与“仅精确版本才可 spawn”的旧门禁互相冲突；agent 文件或运行时确实不可用时才降级串行。
+
+## v0.7.5
+
+> Codex 移植版累计同步上游 v0.7.1-v0.7.5：Story Dashboard、schema 4 单一权威追踪事务、正文与拆文规则修复、扫榜采集加固、长篇热路径精简。当前部署契约为 `agents_version: 25`、`setup_skill_version: 1.2.7`。
+
+### 新增
+
+- **Story Dashboard 本地工作台**：`$story dashboard` 启动只监听 `127.0.0.1` 的本地 Web UI，支持拆文库/写作项目懒加载目录树、跨未展开目录搜索、Markdown 安全预览、白名单编辑、mtime 冲突保护保存和确认删除；Node 单测与 Playwright 桌面/移动 E2E 随包提供。
+- **单一权威追踪事务**：`追踪/_tracking-state.json` 升级为 schema 4 唯一结构化权威；`tracking_commit.py init/commit/check` 确定性生成续写状态卡、逐章记录、伏笔视图、作者真相/读者已知时间线和角色快照。
+- **写作热路径预算守卫**：新增 `check-doc-budget.sh` 与结构化预算，分别约束长篇日更、开书和正文 agent 的真实上下文合计。
+
+### 改进
+
+- **长篇流程按需加载**：开书/补纲、单章正文和日更批次拆入 `workflow-setup.md`、`workflow-chapter.md`、`workflow-daily.md`；缩小每次触发的固定上下文。
+- **正文与去 AI 味规则**：同步自然句长、普通“说”低频可保留、细纲只规定事件不规定正文形状、章尾避免总结体、正文元信息隔离和确定性 AI 句式检测修正。
+- **拆文管道**：章节概要改为叙事化，原文引用改为精选证据；情节点格式在 spawn 前内联约束，语义分块与处理批次分离，超长作品按 10-20 章一批做有界聚合。
+- **扫榜采集**：补齐起点、番茄、晋江、七猫、黑岩等平台字段与数据质量摘要，修复频道覆盖、非法参数、缺失字段和 Windows 临时路径问题。
+- **Codex custom agents**：重新生成 7 个 `.codex/agents/*.toml`，同步 tracking、读者/作者时间线、正文工作流与拆文输出合同；只在 agent 缺失或运行时确实不可用时降级 solo/direct。
+
+### 修复
+
+- **旧追踪 fail closed 与迁移**：已有正文但缺少 `_tracking-state.json` 时停止续写，并引导 `$story-import` 只重建 `追踪/`；不解析旧 Markdown 为兼容状态，也不要求重跑全书拆解。
+- **Codex Hooks 加固**：项目发现限深并排除隐藏目录/符号链接；正文写入目标覆盖重定向、嵌套 shell、heredoc、复制/移动、安装和 `apply_patch`；补章节顺序、`state_revision`、派生视图与状态卡体积检查。
+- **Windows/Git Bash 兼容**：保留 `CODEX_PROJECT_DIR`、MSYS `/c/...` 路径归一化、非 Git 项目自定位和 `run-story-hook.sh` / `.cmd` 双 launcher。
+- **共享资产与合同门禁**：同名参考文档、检测脚本和 tracking 工具由 manifest/生成器锁定一致；Dashboard、追踪工作流和 Codex adapter 使用本仓实际目录与 `.codex-plugin/plugin.json` 验证。
+
+### 发布准备
+
+- `.codex-plugin/plugin.json` 与 `skills/story/VERSION` 更新到 `0.7.5`；`scripts/current-contract.json`、`story-setup`、`.story-deployed` 统一到 `agents_version: 25`。已部署项目需重跑 `$story-setup` 并新开 Codex 会话。历史 demo 的旧扁平 `追踪/` 只作展示，不作为 schema 4 可续写检查点。
+
+## v0.7.0
+
+> Codex 移植版同步上游 v0.7.0：长篇「剧情单元」概念统一并接入拆书产物 · 去 AI 味闸口机器化（毒句式确定性检测 + 欠账门）· 项目级 hook launcher · 契约锚点与脚本加固
+
+### 新增
+
+- **Codex 项目级 hook launcher（#239 / #243）**：`.codex/hooks.json` 改为通过 `.codex/hooks/run-story-hook.sh` 与 `.codex/hooks/run-story-hook.cmd` 启动 `story_codex_hook.py`；解释器探测、event 白名单和项目根传递集中在 launcher，Windows 与 Git Bash 嵌套目录触发更稳定。
+- **Codex hooks 合并 helper（#239）**：新增 `skills/story-setup/scripts/merge-codex-hooks.py`，重部署时识别旧直调 `story_codex_hook.py`、新版 POSIX launcher 和 Windows launcher，只替换 story-setup 管理注册，保留用户自定义 hooks 与未知顶层字段。
+- **契约锚点（#242）**：新增 `scripts/current-contract.json`，记录 `agents_version: 19`、`setup_skill_version: 1.2.7`、关键拆文主产物和细纲必填项，供 Codex-only 门禁核对。
+- **短篇题材风格包按平台语料重建（#231）**：`story-short-write` 题材风格包从 4 个扩到 10 个（新增世情打脸、民俗怪谈、悬疑、甜宠、双男主、沙雕脑洞），按七猫/知乎/黑岩/点众四平台真实语料重建开头模式、爽点密度、对话风格、情绪模式与结尾模式，并修正世情题材误路由。
+
+### 改进
+
+- **长篇「剧情单元」概念统一并接入拆书产物（#246）**：把「剧情条 / 循环卡 / 正式情节循环 / 剧情段」五个混用叫法统一为**剧情单元**（卷纲里记为**剧情单元卡**），字段 循环ID/循环节拍/… → 单元ID/单元节拍/…（「循环」只保留节奏义如爽点循环）。拆书剧情单元接入卷纲/细纲：卷纲剧情单元卡新增「对标剧情参照」，对标节奏迁移改以剧情单元为选段单位，细纲分批边界改为「一批 = 一个剧情单元」，拆文侧 `剧情/README.md` 新增「剧情单元清单」索引（存量书可机械补建）。旧版卷纲/细纲/拆文库无这些字段一律不阻塞、按字段结构回退读取，仅在补纲/改纲时升级。story-long-write 场景表新增「补纲/扩纲」入口与卷纲锁定定义。
+- **读者契约 + 终局储备推进模型（#237）**：用「读者契约 + 终局储备」双层推进模型替代原「成长预算」，放开单章爽感，治长篇推进过快导致后期无可写；Σ 字数预算契约（密/疏预算、Σ∈[章目标, ×1.1]）不变。
+- **去 AI 味闸口机器化（无状态，#246）**：写后正文网新增确定性毒句式检测（「不是 A 而是 B」全家族、声线反差、否定排比、预告收尾），落盘即自动扫描并推回命中；写下一章前新增「毒句式欠账门」——上一章有未清 blocking 命中且未标 `<!-- 去味:跳过 -->` 豁免时拦截（判据现算自文件本身，不落任何状态文件，解析失败一律放行）。豁免标记冒号全半角均认，同时使写后网跳过该章毒句式推回（其余网照常）。`check-ai-patterns.js` 同步新增 voice-contrast / negation-parade / reverse-not-is / trailer-ending（blocking，经真人语料零误报校准）与 quote-emphasis-tic（advisory）。
+
+### 重构
+
+- **Codex hook 结构收敛（#239 / #243）**：项目级 hook 保留 Python 实现，但注册层收敛为 6 个 event 调同一组 launcher；新增 merge helper 与 hook generator，避免重部署时残留旧注册。
+- **技能契约体检 + fail-fast（#242）**：本移植版引入 `current-contract.json` 作为结构化契约锚点，`agents_version` 成为运行时过期判定的唯一权威；对标主产物（`剧情/情绪模块.md` / `剧情/节奏.md`）缺失改 fail-fast，不再用旧产物静默降级。
+- **仓库脚本加固（#233）**：`generate-codex-agents.py` 改为先完整校验模板，再原子发布生成 TOML，发布失败时回滚，避免半更新。
+
+### 修复
+
+- **Codex hook 空白 `.active-book` 首行当仓库根（#235）**：`.active-book` 首行为空时不再误把仓库根当活跃书目，对齐 bash oracle。
+
+### 其他
+
+- **去掉部署检查的文档措辞门禁（#240）**：删除「UPGRADING/README 必须写某句话」类脆弱措辞门禁，保留 `agents_version` 阈值等行为锚点。
+
+### 发布准备
+
+- 版本号升级到 `0.7.0`（`.codex-plugin/plugin.json` + `skills/story/VERSION`）。`.story-deployed` 的 `agents_version` 本周期从 `17` 连续升到 `19`（#242 → 18，#246 → 19），`setup_skill_version` 为 `1.2.7`；本版含 hooks / agent 模板 / 项目规则模板的行为变更，已部署项目需重新运行 `$story-setup` 并**新开会话**获取，从 v0.6.22 升级重跑一次即到位。`UPGRADING.md` 新增 v18 / v19 条目，`README` / `README_EN` 更新 v0.7.0 Codex 移植版说明。
+
 ## v0.6.22
 
 > 长篇题材正文提示卡 + 短篇投稿层 + 全套件文档瘦身（#226 / #227 / #228）
 
 ### 新增
 
-- **题材正文提示卡（#226，合并 #222/#223/#224）**：`story-long-write` 新增 `genre-prose-cards/` 32 张番茄题材腔调卡 + 索引召回规范；写作时按 `设定/题材定位.md` 匹配召回单卡进写手，anti-leak 硬约束保证卡名/题材标签/置信度/条目/合规自评一律不进正文；narrative-writer 与 Codex custom agents 同步接入召回与按题材细化的文风指纹/Gate G 规则，chapter-extractor 模板新增 `chapter_formula` 逐章写法公式产物。
+- **题材正文提示卡（#226，合并 #222/#223/#224）**：`story-long-write` 新增 `genre-prose-cards/` 32 张番茄题材腔调卡 + 索引召回规范；写作时按 `设定/题材定位.md` 匹配召回单卡进写手，anti-leak 硬约束保证卡名/题材标签/置信度/条目/合规自评一律不进正文；narrative-writer 三端模板同步接入召回与按题材细化的文风指纹/Gate G 规则，chapter-extractor 模板新增 `chapter_formula` 逐章写法公式产物。
 - **短篇投稿层（#227）**：`story-short-write` 新增 `submission-craft.md`——知乎盐选/小程序/番茄三路平台基调矩阵（视角、矛盾演进、章末钩子、结局质感）、导语门面单独打磨（四维骨架+黄金三角，150-220 字）、付费点卡脖子断点与反推法排细纲；`story-short-analyze` 拆解时顺带记录投稿层进拆文报告。合并前盲评 A/B 四维全胜（register +0.55、structure +0.58）。
 - **deslop 任务卡点与比喻密度（#218）**：任务卡点只在改变信息/情绪/关系/代价/选择压力/伏笔/钩子承接时使用；新增 `metaphor-density-tic` advisory（像/仿佛/如同高密度堆叠检测）；朱雀定位为辅助信号，去 AI 味不越剧情边界。
-- **generic Web AI 部署（#216）**：保留上游 generic 文件模式的可迁移思路；在本仓 Codex 移植版中，`story-setup` 仍以 Codex 为主目标，继续部署 `.codex/agents/*.toml`、`.codex/hooks.json`、项目 `AGENTS.md` 与 reference bundle。
+- **generic Web AI 部署（#216）**：story-setup 新增 `target_cli=generic` 文件模式（复制 `skills/` + 通用 `AGENTS.md`，不声明平台原生 hooks/custom agents）；`story-long-write` 补通用环境 solo/direct fallback。
 
 ### 改进
 
@@ -21,7 +102,7 @@ All notable changes to this project will be documented in this file.
 
 ### 发布准备
 
-- 版本号升级到 `0.6.22`（`.codex-plugin/plugin.json` + `skills/story/VERSION`）。`.story-deployed` 的 `agents_version` 升级到 `17`、`setup_skill_version` 升级到 `1.2.6`；本版含 narrative-writer / chapter-extractor 部署模板更新（题材卡召回 + anti-leak + 大纲边界与 chapter_formula），已部署项目需重新运行 `/story-setup` 并新开会话获取。`UPGRADING.md` 新增 v17 条目，`README` / `README_EN` 更新 v0.6.22 版本说明。
+- 版本号升级到 `0.6.22`（`.claude-plugin/marketplace.json` + `skills/story/VERSION`）。`.story-deployed` 的 `agents_version` 升级到 `17`、`setup_skill_version` 升级到 `1.2.6`；本版含 narrative-writer / chapter-extractor 部署模板更新（题材卡召回 + anti-leak + 大纲边界与 chapter_formula），已部署项目需重新运行 `/story-setup` 并新开会话获取。`UPGRADING.md` 新增 v17 条目，`README` / `README_EN` 版本说明收敛为最近 3 版（更早见 CHANGELOG）。
 
 ## v0.6.21
 
@@ -32,11 +113,11 @@ All notable changes to this project will be documented in this file.
 - **短篇写作 references 清理（#206）**：`story-short-write` 删除 13 个长篇继承残留参考（角色、长篇结构、通用题材读者、开篇、状态追踪等），避免短篇写作继续被长篇规则误导。新增短篇专属基础层：`short-format.md`（硬格式/段落/标点/正文契约）、`short-craft.md`（短篇叙事姿态、情绪直给+体感焊接、三维度揉进、密度控制）、`short-deslop.md`（短篇去 AI 味，只杀真 AI 腔，不杀情绪烈度）。
 - **题材包接管短篇风格（#206）**：新增 `genre-styles/追妻火葬场.md`、`复仇打脸.md`、`总裁豪门.md`、`宅斗宫斗.md` 四个短篇题材包，把开头模式、爽点密度、对话风格、情绪模式、结尾模式收束到题材本地；冷门题材仍可降级读取 `genre-writing-formulas.md`。
 - **短篇/拆文 AI 规则边界显式化（#206）**：共享 `output-contract.md` 明确拆文报告质量门仍走 `story-short-analyze/references/anti-ai-writing.md`，短篇成稿去 AI 味走 `story-short-write/references/short-deslop.md`，避免两套规则继续靠“本地 AI 腔规则文件”这种隐式短语耦合。
-- **部署模板同步短篇例外（#206）**：`story-setup` 的 narrative-writer 模板同步短篇题材包例外：短篇需要“情绪词 + 体感/动作焊住”时不强制改成纯动作外化，只清理空泛无体感的 AI 情绪总结。
+- **部署模板同步短篇例外（#206）**：`story-setup` 的 narrative-writer Claude/OpenCode/Codex 模板同步短篇题材包例外：短篇需要“情绪词 + 体感/动作焊住”时不强制改成纯动作外化，只清理空泛无体感的 AI 情绪总结。
 
 ### 发布准备
 
-- 版本号升级到 `0.6.21`（`.codex-plugin/plugin.json` + `skills/story/VERSION`）。`.story-deployed` 保持 `agents_version: 16`，`setup_skill_version` 升级到 `1.2.5`；本版含 narrative-writer 模板、Codex custom agents、Codex project hooks 与 reference bundle 更新，已部署项目需重新运行 `/story-setup` 并新开会话获取。`README` / `README_EN` 更新 v0.6.21 版本说明。
+- 版本号升级到 `0.6.21`（`.claude-plugin/marketplace.json` + `skills/story/VERSION`）。`.story-deployed` 的 `agents_version` 升级到 `16`、`setup_skill_version` 升级到 `1.2.5`；本版含 deployed narrative-writer 模板与 reference bundle 更新，已部署项目需重新运行 `/story-setup` 并新开会话获取。`UPGRADING.md` 新增 v16 条目，`README` / `README_EN` 更新 v0.6.21 版本说明。
 
 ## v0.6.20
 
@@ -49,19 +130,20 @@ All notable changes to this project will be documented in this file.
 
 ### 发布准备
 
-- 版本号升级到 `0.6.20`（`.codex-plugin/plugin.json` + `skills/story/VERSION`）。本版同步更新 `agent-references/quality-checklist.md` 与 `outline-methods.md` 的章节定位豁免，并在 `story-architect` spawn prompt 注入「章节定位契约」；未 bump `agents_version`（本版无 agent 模板结构变更，agent-references 内容在新项目部署或下次重部署自然生效）。`README` / `README_EN` 更新 v0.6.20 版本说明。
+- 版本号升级到 `0.6.20`（`.claude-plugin/marketplace.json` + `skills/story/VERSION`）。本版同步更新 `agent-references/quality-checklist.md` 与 `outline-methods.md` 的章节定位豁免，并在 `story-architect` spawn prompt 注入「章节定位契约」——部署 agent 无需重部署即按新定位排/审大纲；未 bump `agents_version`（本版无 hooks/agents/agent 模板结构变更，agent-references 内容在新项目部署或下次重部署自然生效）。`README` / `README_EN` 更新 v0.6.20 版本说明。
 
 ## v0.6.19
 
-> Codex 项目级适配（#186）· 自定义文风 `设定/文风.md` 优先于对标（#194）· 模型退化/工程词泄漏检测（#173）· 碎句号/长段落检测 + 破折号按功能改写（#188）· 正文兜底 + 跨批连续性确定性网（#195）· 细纲按字数预算根治欠字反复回炉（#187）
+> Codex CLI 适配 + OpenClaw 兼容（#186）· 自定义文风 `设定/文风.md` 优先于对标（#194）· 模型退化/工程词泄漏检测（#173）· 碎句号/长段落检测 + 破折号按功能改写（#188）· 正文兜底 + 跨批连续性确定性网（#195）· OpenCode 子代理模型自动配置降本（#191）· 细纲按字数预算根治欠字反复回炉（#187）
 
 ### 新增
 
-- **Codex 项目级适配（#186, #189）**：`$story-setup` 部署 `.codex/agents/*.toml`（由角色提示词模板经 `generate-codex-agents.py` 生成）与 `.codex/hooks.json`；本仓作为 Codex 插件时通过 `.codex-plugin/plugin.json` 暴露 `skills/` 和根 lifecycle hook。`check-codex-adapter.sh` 加固插件 manifest、项目级 hooks、custom agents 与生成器漂移守卫。
+- **Codex CLI 适配 + OpenClaw 兼容（#186, #189）**：`$story-setup` 部署 `.codex/agents/*.toml`（由 Claude agent 模板经 `generate-codex-agents.py` 生成）与 `.codex/hooks.json`；Codex 就地用 repo 时扫 `.agents/skills`（symlink 到 `skills/`，#189 加 symlink 守卫并记 Windows `core.symlinks` 坑）。补齐 OpenClaw skills-only 兼容（单行 frontmatter + `metadata.openclaw` + `story-setup target_cli=openclaw`），并加固 OpenCode/Codex 适配漂移守卫（`check-opencode-adapter.sh` / `check-codex-adapter.sh`）。
 - **自定义文风优先于对标文风（#194）**：每章写作前先读 `设定/文风.md`，含实质内容即进入「自定义文风模式」——它作权威风格基（句长 / 软标点 / 对话潜台词 / 情绪交替），对标 / 拆文 `文风.md` 降为参考（原文锚点 + 句长兜底）；`narrative-writer` 文风指纹新增「来源」字段，用户新增/改 `设定/文风.md` 后用新来源刷新句长带快照、不再被旧对标永久压住（三端模板 + `上下文.md.tmpl`）。
 - **模型退化 + 工程词泄漏检测器（#173）**：新增 `check-degeneration.js`（4 份字节同步），确定性检测弱模型退化——逐字复读/打转、末尾截断、占位/拒绝语（`作为AI`/`我无法续写`/`（此处省略）`/乱码 �）、工程词漏进正文（`细纲`/`情节点`/`本章`/`下一章` 等）；每条 finding 带 `severity: blocking|advisory`（blocking 即重写、tier2 章节/歧义词只提示，对话行里的 tier1 工程词降级 advisory）。接入 `story-long-write`/`story-deslop`/`story-review`/`story-short-write` 收尾复扫，`story-review` 子 Agent prompt 补「继承的开放项」做跨批连续性。
 - **碎句号/长段落检测 + 破折号按功能改写（#188）**：`check-ai-patterns.js`（4 份字节同步）新增碎句号（连续短叙述句无呼吸）、长段落（>200 字按镜头断段）检测，与破折号按功能改写建议（打断→动作 beat/短句、拖长音→省略或动作、插入说明→逗号/冒号，不一律改句号）；每条 finding 带 `severity`，混合行（叙述 + 引号内物件）不再被一个引号整行豁免，`story-review` 指定 em-dash 归口 `check-ai-patterns.js` 并与 normalize 去重。
-- **正文兜底 + 跨批连续性确定性网（#195）**：新增 Codex project hook adapter，Stop 回合末按 git 改动集复扫正文硬信号——截断、拒绝语/AI 自指、工程词泄漏、逐行复读、字数欠账；跨批连续性在会话起点提醒续写断线 / 章节撞名。
+- **正文兜底 + 跨批连续性确定性网（#195）**：新增 deployed hook `check-prose-after-write.sh`（PostToolUse Write/Edit 落盘后跑硬信号兜底——截断、拒绝语/AI 自指、工程词泄漏、逐行复读、字数欠账），即使主会话漏跑确定性收尾也能兜住；三端（Claude/OpenCode/Codex）轻量网 parity 守卫，Codex 用 Stop 回合末 git 改动集扫描；跨批连续性在会话起点提醒续写断线 / 章节撞名。
+- **OpenCode 子代理模型自动配置（#191）**：`$story-setup` 含 `target_cli=opencode` 时检测 `opencode models` 并按等级为各写作 agent 写入 `model:` 字段，避免低成本 agent 继承主模型造成高额消耗；逐级 AskUserQuestion 选择，支持自定义输入/保留现有/跳过，优先按 `opencode models --verbose` 的成本分级、关键词作回退。
 
 ### 改进
 
@@ -73,7 +155,7 @@ All notable changes to this project will be documented in this file.
 
 ### 发布准备
 
-- 版本号升级到 `0.6.19`（`.codex-plugin/plugin.json` + `skills/story/VERSION`），`.story-deployed` 的 `setup_skill_version` 同步到 `1.2.4` 语义；本版含 Codex project hook / agent 模板 / Codex 适配变更，已部署项目需重新运行 `/story-setup` 并新开会话获取。
+- 版本号升级到 `0.6.19`（`.claude-plugin/marketplace.json` + `skills/story/VERSION`），`.story-deployed` 的 `agents_version` 升级到 `15`、`setup_skill_version` 升级到 `1.2.4`——本版含 deployed hook / agent 模板 / Codex 适配变更，已部署项目需重新运行 `/story-setup` 并新开会话获取。`UPGRADING.md` 新增 v15 条目，`README` / `README_EN` 更新 v0.6.19 题词。
 
 ## v0.6.18
 

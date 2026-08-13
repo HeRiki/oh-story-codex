@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""Behavior regression for v17 -> current Codex hook registration upgrades."""
+
+from __future__ import annotations
+
+import copy
+import importlib.util
+import json
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MERGER_PATH = ROOT / "skills/story-setup/scripts/merge-codex-hooks.py"
+TEMPLATE_PATH = ROOT / "skills/story-setup/references/codex/hooks/hooks.json"
+
+
+def load_merger():
+    spec = importlib.util.spec_from_file_location("story_codex_hook_merge", MERGER_PATH)
+    if spec is None or spec.loader is None:
+        raise AssertionError(f"unable to load {MERGER_PATH}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def all_commands(document: dict[str, object]):
+    hooks = document.get("hooks", {})
+    assert isinstance(hooks, dict)
+    for blocks in hooks.values():
+        assert isinstance(blocks, list)
+        for block in blocks:
+            assert isinstance(block, dict)
+            commands = block.get("hooks", [])
+            assert isinstance(commands, list)
+            yield from commands
+
+
+def legacy_document(template: dict[str, object]) -> dict[str, object]:
+    legacy = copy.deepcopy(template)
+    handlers = [
+        "session-start",
+        "pre-tool-prose-guard",
+        "pre-tool-commit-advisory",
+        "pre-compact",
+        "post-compact",
+        "stop",
+    ]
+    for index, hook in enumerate(all_commands(legacy)):
+        assert isinstance(hook, dict)
+        handler = handlers[index]
+        hook["command"] = (
+            'PROJECT_ROOT="$PWD"; HOOK="$PROJECT_ROOT/.codex/hooks/story_codex_hook.py"; '
+            f'python3 "$HOOK" {handler}'
+        )
+        hook["commandWindows"] = (
+            "if exist .codex\\hooks\\story_codex_hook.py "
+            f"python .codex\\hooks\\story_codex_hook.py {handler}"
+        )
+    legacy["approval_policy"] = "on-request"
+    first_block = legacy["hooks"]["PreToolUse"][0]
+    first_block["hooks"].append(
+        {"type": "command", "command": "./user-check.sh", "timeout": 3}
+    )
+    first_block["hooks"].append(
+        {
+            "type": "command",
+            "command": "echo documentation: .codex/hooks/run-story-hook.sh",
+            "timeout": 3,
+        }
+    )
+    legacy["hooks"]["UserEvent"] = [
+        {"matcher": "custom", "hooks": [{"type": "command", "command": "./custom.sh"}]}
+    ]
+    return legacy
+
+
+def main() -> None:
+    merger = load_merger()
+    template = json.loads(TEMPLATE_PATH.read_text(encoding="utf-8"))
+    legacy = legacy_document(template)
+
+    merged = merger.merge_documents(legacy, template)
+    commands = list(all_commands(merged))
+    rendered = json.dumps(merged, ensure_ascii=False)
+    assert "story_codex_hook.py" not in rendered
+    assert sum(merger.is_story_setup_hook(command) for command in commands) == 6
+    assert sum(command.get("command") == "./user-check.sh" for command in commands) == 1
+    assert sum(
+        command.get("command") == "echo documentation: .codex/hooks/run-story-hook.sh"
+        for command in commands
+    ) == 1
+    assert sum(command.get("command") == "./custom.sh" for command in commands) == 1
+    assert merged["approval_policy"] == "on-request"
+    assert merger.merge_documents(merged, template) == merged, "merge must be idempotent"
+
+    for managed_command in (
+        'command sh "$ROOT/.codex/hooks/run-story-hook.sh" stop',
+        '/bin/sh "$ROOT/.codex/hooks/run-story-hook.sh" stop',
+        'sh -- "$ROOT/.codex/hooks/run-story-hook.sh" stop',
+        'sh "$ROOT/.codex/hooks/run-story-hook.sh" stop 2>/dev/null',
+        'call ".codex\\hooks\\run-story-hook.cmd" stop 2>nul',
+    ):
+        assert merger.is_story_setup_hook({"command": managed_command}), managed_command
+    for user_command in (
+        'echo documentation: .codex/hooks/run-story-hook.sh',
+        'grep -q .codex/hooks/run-story-hook.sh README.md',
+        'printf "%s" "sh .codex/hooks/run-story-hook.sh stop"',
+    ):
+        assert not merger.is_story_setup_hook({"command": user_command}), user_command
+
+    with tempfile.TemporaryDirectory(prefix="codex-hook-merge-") as tmp:
+        root = Path(tmp)
+        existing_path = root / "hooks.json"
+        output_path = root / "result.json"
+        existing_path.write_text(json.dumps(legacy), encoding="utf-8")
+        merger.atomic_write_json(output_path, merged)
+        assert json.loads(output_path.read_text(encoding="utf-8")) == merged
+
+    try:
+        merger.merge_documents({}, {"hooks": []})
+    except merger.MergeError:
+        pass
+    else:
+        raise AssertionError("malformed template hooks must fail")
+
+    # 用户手改出的非数组事件值（撞上模板事件名）必须走 MergeError/exit 2 诊断，
+    # 而不是 .extend() 的 AttributeError traceback。
+    for bad in ({"matcher": "Bash", "hooks": []}, "nope", 5, None, True):
+        try:
+            merger.merge_documents({"hooks": {"PreToolUse": bad}}, template)
+        except merger.MergeError as exc:
+            assert "existing.hooks.PreToolUse must be an array" in str(exc), exc
+        else:
+            raise AssertionError(f"malformed existing event value must fail: {bad!r}")
+
+    # 未与模板撞名的非数组事件值仍原样保留（保留用户已有配置的契约不能被上面的校验收紧）。
+    preserved = merger.merge_documents({"hooks": {"UserEvent": {"a": 1}}}, template)
+    assert preserved["hooks"]["UserEvent"] == {"a": 1}, preserved
+
+    print("OK: Codex hook merge replaces v17 registrations and preserves user hooks")
+
+
+if __name__ == "__main__":
+    main()

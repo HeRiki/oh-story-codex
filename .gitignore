@@ -11,3 +11,6 @@ skills-lock.json
 docs/plans/
 __pycache__/
 *.pyc
+node_modules/
+playwright-report/
+test-results/

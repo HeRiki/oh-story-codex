@@ -25,12 +25,12 @@ fi
 #   header (consumed as a reference standard for source-story evaluation, not a writer
 #   playbook). Writer skills don't get the header. Wholesale-ignored here because their
 #   non-analyst copies have not all been confirmed byte-identical.
-# - AGENTS.md.tmpl: CLI-specific project instruction templates differ deliberately
-#   across shared Codex surfaces and are validated by the adapter checks.
+# - AGENTS.md.tmpl / hooks.json: CLI-specific project templates differ deliberately
+#   and are validated by each CLI adapter check.
 IGNORE_NAMES="output-templates.md material-decomposition.md quality-checklist.md \
 genre-catalog.md genre-core-mechanics.md genre-readers.md \
 genre-writing-formulas.md genre-writing-techniques.md \
-AGENTS.md.tmpl"
+AGENTS.md.tmpl hooks.json"
 
 # Analyst-divergent (basename): the story-short-analyze copy intentionally prepends the
 # "## 用作拆文标尺时" analyst-lens header, so it is dropped from the comparison set; all
@@ -44,6 +44,13 @@ ANALYST_DIVERGENT_NAMES="character-basics.md character-design-methods.md charact
 # deployment mirror). Drop the genre-styles copy from the comparison; the prose-card copies
 # must still stay byte-identical. Stricter than a wholesale ignore.
 GENRE_STYLE_DIVERGENT_NAMES="双男主.md"
+
+# Longform-divergent (basename): story-long-write's copy carries a long-form-only
+# section (长篇单元情绪引擎) that references reader-contract-and-progression.md, which
+# exists only under story-long-write; syncing it to the short-write / agent-references
+# copies would create a dangling reference. Drop the story-long-write copy from the
+# comparison; the short-write and agent-references copies must still stay byte-identical.
+LONGFORM_DIVERGENT_NAMES="emotional-methods.md"
 
 mismatches=0
 checked=0
@@ -66,23 +73,27 @@ list_asset_files() {
 }
 
 REFERENCE_FILES="$(list_asset_files references)"
-SCRIPT_FILES="$(list_asset_files scripts)"
+PYTHON_BIN=""
+for candidate in python3 python py; do
+  if "$candidate" -c "" >/dev/null 2>&1; then
+    PYTHON_BIN="$candidate"
+    break
+  fi
+done
+if [ -z "$PYTHON_BIN" ]; then
+  echo "FAIL: Python 3 is required (tried python3, python, and py)" >&2
+  exit 1
+fi
+"$PYTHON_BIN" "$REPO_ROOT/scripts/sync-shared-assets.py" check
 
 list_reference_basenames() {
   local path
   while IFS= read -r path; do
     case "$path" in
-      */.gitkeep|*/opencode/*) ;;
+      */.gitkeep) ;;
       *) printf '%s\n' "${path##*/}" ;;
     esac
   done <<< "$REFERENCE_FILES"
-}
-
-list_script_basenames() {
-  local path
-  while IFS= read -r path; do
-    [ "${path##*/}" = .gitkeep ] || printf '%s\n' "${path##*/}"
-  done <<< "$SCRIPT_FILES"
 }
 
 # Find all reference basenames that appear in 2+ skills
@@ -138,41 +149,20 @@ for base in $dup_names; do
       ;;
   esac
 
-  if [ ${#paths[@]} -lt 2 ]; then
-    continue
-  fi
-
-  checked=$((checked + 1))
-  ref_path="${paths[0]}"
-  ref_skill="$(echo "$ref_path" | sed "s|$SKILLS_DIR/||" | cut -d'/' -f1)"
-  all_match=true
-
-  for ((i = 1; i < ${#paths[@]}; i++)); do
-    if ! diff -q "$ref_path" "${paths[$i]}" >/dev/null 2>&1; then
-      skill_name="$(echo "${paths[$i]}" | sed "s|$SKILLS_DIR/||" | cut -d'/' -f1)"
-      if [ "$all_match" = true ]; then
-        echo ""
-        echo "MISMATCH: $base"
-        echo "  Reference: $ref_skill"
-      fi
-      echo "  Differs in: $skill_name"
-      all_match=false
-      mismatches=$((mismatches + 1))
-    fi
-  done
-done
-
-# Script copies are also skill-local assets. If two skills carry the same script
-# basename, treat them as managed copies and require byte identity. This avoids
-# cross-skill file references while still catching drift between duplicated tools.
-script_dup_names="$(list_script_basenames | sort | uniq -d)"
-
-for base in $script_dup_names; do
-  paths=()
-  while IFS= read -r fpath; do
-    [ -z "$fpath" ] && continue
-    [ "${fpath##*/}" = "$base" ] && paths+=("$fpath")
-  done <<< "$SCRIPT_FILES"
+  # Longform-divergent basenames: drop the story-long-write copy (intentional
+  # long-form-only fork); the remaining copies must still be byte-identical.
+  case " $LONGFORM_DIVERGENT_NAMES " in
+    *" $base "*)
+      filtered=()
+      for p in ${paths[@]+"${paths[@]}"}; do
+        case "$p" in
+          */story-long-write/*) ;;
+          *) filtered+=("$p") ;;
+        esac
+      done
+      paths=(${filtered[@]+"${filtered[@]}"})
+      ;;
+  esac
 
   if [ ${#paths[@]} -lt 2 ]; then
     continue
@@ -200,7 +190,7 @@ done
 
 echo ""
 echo "=============================="
-echo "Files checked (shared): $checked | Mismatches: $mismatches"
+echo "Reference groups checked: $checked | Mismatches: $mismatches"
 
 if [ "$mismatches" -gt 0 ]; then
   echo ""

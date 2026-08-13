@@ -87,8 +87,8 @@ CDP 能打开真实页面拿到完整正文；联网搜索 只返回摘要节选
 ### 第二步：检查 CDP 可用性
 
 ```bash
-# 跨平台检查 CDP：请求 http://127.0.0.1:{cdp_port}/json/version
-# 成功返回 JSON 视为可用；失败时降级，不依赖平台特定端口扫描命令。
+# 检查 CDP 端口是否在监听
+lsof -i :9222 -sTCP:LISTEN 2>/dev/null | grep -q LISTEN && echo "CDP_AVAILABLE" || echo "CDP_UNAVAILABLE"
 ```
 
 - `CDP_AVAILABLE` → 使用 CDP 主链路
@@ -114,8 +114,7 @@ CDP 能打开真实页面拿到完整正文；联网搜索 只返回摘要节选
 
 ```bash
 # Google 搜索（默认）
-# 先校验 cdp_port 为 1-65535 的数字；搜索词必须通过 JSON 编码传入，禁止直接拼接到 JS 字符串。
-agent-browser --cdp {cdp_port} eval 'const q = JSON.parse(process.env.STORY_SEARCH_QUERY_JSON); window.location.replace("https://www.google.com/search?"+new URLSearchParams({q}).toString())'
+agent-browser --cdp {cdp_port} eval "window.location.replace('https://www.google.com/search?'+new URLSearchParams({q:'{搜索词}'}).toString())"
 agent-browser --cdp {cdp_port} wait 5000
 ```
 
@@ -147,11 +146,7 @@ agent-browser --cdp {cdp_port} eval 'JSON.stringify(Array.from(document.querySel
 
 ```bash
 # 用提取到的真实 URL 导航（不要构造 URL；从搜索结果 DOM 中提取）
-# 仅允许从搜索结果提取且通过宿主侧安全校验的 http/https URL；URL 必须 JSON 编码后传入浏览器上下文。
-# 先在宿主侧规范化 URL、解析 DNS，并拒绝 loopback/link-local/private/unspecified/reserved 地址
-# （含 IPv6、0.0.0.0、169.254.*、整数/八进制/十六进制 IPv4 和 DNS 解析结果）。
-# 只有宿主侧校验通过后，才把校验后的规范 URL 写入 STORY_TARGET_URL_JSON；如果无法完成上述校验，不得导航到目标页面。
-agent-browser --cdp {cdp_port} eval 'const target = JSON.parse(process.env.STORY_TARGET_URL_JSON); const u = new URL(target); if (!["http:", "https:"].includes(u.protocol)) throw new Error("unsupported URL scheme"); window.location.replace(u.href)'
+agent-browser --cdp {cdp_port} eval "window.location.replace('{提取到的URL}')"
 agent-browser --cdp {cdp_port} wait 5000
 
 # 验证页面加载
@@ -219,11 +214,6 @@ CDP 不可用时使用：
 
 写入 `{project_dir}/参考资料/{topic}.md`：
 
-写入前必须做路径安全检查：
-- 将 `project_dir` 解析为绝对规范路径，并确认输出目录位于该项目目录内
-- 将 `{topic}` 清洗为安全文件名（移除 `/`、`\\`、`..`、控制字符、Windows 保留字符和保留设备名）
-- 只创建新文件；如果目标文件已存在，追加唯一后缀或返回 `partial/failed`，不得覆盖已有文件
-
 ```markdown
 # {研究主题}
 
@@ -282,7 +272,7 @@ CDP 不可用时使用：
 
 ## 被调用协议
 
-skill 通过 `Codex custom agent request (agent_type="story-researcher")` 调用你。
+skill 通过 `spawn_agent(agent_type="story-researcher")` 调用你。
 
 你收到的 prompt 会包含：
 - `query`：研究主题（如"明代锦衣卫组织架构"）
@@ -309,10 +299,10 @@ skill 通过 `Codex custom agent request (agent_type="story-researcher")` 调用
 
 ---
 
-Codex adaptation notes:
-- Codex callers should request this custom agent with `agent_type: "story-researcher"` when the current runtime exposes project-local custom agents.
-- If Codex reports `unknown agent_type` or the custom-agent registry is unavailable, the parent workflow must fall back to solo/direct execution and report the fallback instead of failing.
-- Stay within this agent's role boundary; escalate adjacent work back to the parent agent.
-- Use project-local story references first: `.codex/skills/story-setup/references/agent-references/`, then `.codex/story-agent-references/`, then repository `skills/`.
-- Do not assume non-Codex tool names or frontmatter fields exist.
+Codex 适配说明：
+- 调用方在当前运行时暴露项目级 custom agents 时，使用 `agent_type: "story-researcher"` 请求这个 agent。
+- 如果 Codex 返回 `unknown agent_type`，或当前运行时没有 custom-agent registry，父流程必须降级为 solo/direct，并在结果中报告 fallback，不要直接失败。
+- 严守本 agent 的职责边界；相邻职责交还父流程处理。
+- 只使用已部署的 Codex 参考路径：`.codex/skills/story-setup/references/agent-references/`。该路径缺失时报告部署缺口，不要探测其他 CLI 目录。
+- 不要假定 Codex 存在非 Codex 工具名或 frontmatter 字段。
 """

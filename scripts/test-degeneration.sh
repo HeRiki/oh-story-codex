@@ -86,6 +86,36 @@ if [ "$neg_status" -ne 0 ]; then
   exit 1
 fi
 
+# AI 自指不带拒绝语时，也必须由专门规则识别各种常见型号后缀。
+AI_SELF="$TMP_DIR/ai-selfref.md"
+cat > "$AI_SELF" <<'EOF'
+作为一个AI语言模型，我需要提醒您。
+作为一个AI助手，这段内容涉及敏感话题。
+作为一个人工智能语言模型，我会尽力帮您续写。
+作为一个AI模型，这段情节需要调整。
+他把灯关了。
+EOF
+set +e
+node "$SCRIPT" --json "$AI_SELF" > "$OUT"
+ai_self_status=$?
+set -e
+if [ "$ai_self_status" -ne 1 ]; then
+  echo "FAIL: AI 自指 fixture 应退出 1，实际 $ai_self_status ($SCRIPT)" >&2
+  cat "$OUT" >&2 || true
+  exit 1
+fi
+node - "$OUT" <<'NODE'
+const fs = require('fs');
+const r = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const leaks = r.findings.filter((f) => f.type === 'placeholder-leak');
+if (leaks.length !== 4) {
+  throw new Error(`expected 4 AI 自指 findings, got ${leaks.length}: ${JSON.stringify(leaks.map((f) => `${f.line}:${f.excerpt}`))}`);
+}
+if (!leaks.every((f) => f.message.includes('AI 自指'))) {
+  throw new Error('必须由 AI 自指规则命中（不得靠拒绝语规则代劳）: ' + JSON.stringify(leaks.map((f) => f.message)));
+}
+NODE
+
 # --- 工程词泄漏 meta-leak（issue #173 comment 4814607240）---
 META_POS="$TMP_DIR/meta-positive.md"
 META_NEG="$TMP_DIR/meta-negative.md"
@@ -316,7 +346,7 @@ if [ "$en_ai_status" -ne 1 ]; then
   exit 1
 fi
 
-# --- severity 字段 + --fail-on 语义：仅 advisory（tier2）时默认退出 0，--fail-on=all 退出 1 ---
+# --- severity 字段 + --fail-on 语义：仅 advisory（tier2）时默认退出 1，--fail-on=blocking 退出 0 ---
 ADV="$TMP_DIR/advisory-only.md"
 cat > "$ADV" <<'EOF'
 他翻看着那段记录，想起本章之前发生的事，那个读者预期里的伏笔一直没人提起。
@@ -337,8 +367,8 @@ if (!r.findings.every((f) => f.severity === 'advisory')) {
   throw new Error('tier2-only fixture 应全为 advisory: ' + JSON.stringify(r.findings.map((f) => f.severity)));
 }
 NODE
-if [ "$adv_default_status" -ne 0 ]; then
-  echo "FAIL: advisory-only 默认 --fail-on=blocking 应退出 0，实际 $adv_default_status ($SCRIPT)" >&2
+if [ "$adv_default_status" -ne 1 ]; then
+  echo "FAIL: advisory-only 默认 --fail-on=all 应退出 1，实际 $adv_default_status ($SCRIPT)" >&2
   exit 1
 fi
 if [ "$adv_all_status" -ne 1 ]; then
@@ -402,11 +432,11 @@ EOF
 set +e
 node "$SCRIPT" --json "$COLON_TIER1" > "$OUT"
 colon_tier1_status=$?
-node "$SCRIPT" --fail-on=all "$COLON_TIER1" >/dev/null 2>&1
-colon_tier1_all=$?
+node "$SCRIPT" --fail-on=blocking "$COLON_TIER1" >/dev/null 2>&1
+colon_tier1_blocking=$?
 set -e
-if [ "$colon_tier1_status" -ne 0 ] || [ "$colon_tier1_all" -ne 1 ]; then
-  echo "FAIL: 冒号式台词里的 tier1 应 advisory，默认 0/all 1，实际 default=$colon_tier1_status all=$colon_tier1_all ($SCRIPT)" >&2
+if [ "$colon_tier1_status" -ne 1 ] || [ "$colon_tier1_blocking" -ne 0 ]; then
+  echo "FAIL: 冒号式台词里的 tier1 应 advisory，默认 1/blocking 0，实际 default=$colon_tier1_status blocking=$colon_tier1_blocking ($SCRIPT)" >&2
   cat "$OUT" >&2 || true
   exit 1
 fi
@@ -419,11 +449,12 @@ if (meta.length !== 1 || meta[0].severity !== 'advisory') {
 NODE
 done
 
-# --- wiring：携带 check-degeneration.js 副本的 skill 必须在 SKILL.md 工作流中实际调用它 ---
+# --- wiring：携带 check-degeneration.js 副本的 skill 必须在自己的工作流文本里实际调用它 ---
 while IFS= read -r -d '' skill_js; do
-  skill_md="$(dirname "$(dirname "$skill_js")")/SKILL.md"
-  if [ -f "$skill_md" ] && ! grep -q 'check-degeneration.js' "$skill_md"; then
-    echo "FAIL: $skill_md 携带 check-degeneration.js 副本却未在工作流中调用" >&2
+  skill_dir="$(dirname "$(dirname "$skill_js")")"
+  skill_md="$skill_dir/SKILL.md"
+  if [ -f "$skill_md" ] && ! grep -rq 'check-degeneration.js' "$skill_md" "$skill_dir/references" 2>/dev/null; then
+    echo "FAIL: $skill_md 携带 check-degeneration.js 副本却未在本 skill 的工作流文本中调用" >&2
     exit 1
   fi
 done < <(find "$REPO_ROOT/skills" -name check-degeneration.js -print0)

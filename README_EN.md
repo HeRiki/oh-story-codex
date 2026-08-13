@@ -32,7 +32,7 @@ The workflow follows a practical commercial-writing loop: scan trending charts, 
 
 ## Demo
 
-This Codex port keeps the synced demos to show deconstruction outputs and a continuation-ready imported writing project. Some demos include upstream-provided source backups or sample prose so the analyze/import/write workflow can be verified end to end.
+This Codex port keeps the synced demos to show deconstruction outputs, imported project files, and the Dashboard tree. Some demos include upstream-provided source backups or sample prose for analyze, import, and browsing verification.
 
 Main files:
 
@@ -60,6 +60,18 @@ demo/让你管账号，你高燃混剪炸全网/
 └── 追踪/
 ```
 
+The long-form demo's `追踪/` directory is historical display data and does not satisfy the current schema 4 transaction protocol. Do not use it directly as a continuation checkpoint. Real projects must migrate through `$story-import` or initialize `追踪/_tracking-state.json` with `tracking_commit.py init`.
+
+## Story Dashboard
+
+Run `$story dashboard`, or use the equivalent command from a writing workspace:
+
+```bash
+node "<story-skill-dir>/scripts/dashboard-server.mjs" --root "<workspace>" --open
+```
+
+The local Dashboard provides lazy project/library trees, filename search, safe Markdown preview, allowlisted text editing, mtime conflict protection, and confirmed deletion. Saves use same-directory atomic replacement; on Windows, `.NET File.Replace` preserves the original manuscript when replacement fails. It only accepts loopback bindings and has no LAN or public-network mode.
+
 ## Codex Usage
 
 This repository is a Codex plugin directory. The plugin entry is `.codex-plugin/plugin.json`, and the skill directories are under `skills/`.
@@ -84,52 +96,57 @@ Plugin lifecycle hooks are defined in `hooks/hooks.json` and loaded through the 
 
 | Hook | Purpose |
 |---|---|
-| `PreToolUse` | Before `git commit`, reminds maintainers to sync settings, outlines, tracking files, and docs |
-| `SessionStart` | Loads `追踪/上下文.md` for initialized story projects and reports missing settings, outline, prose, foreshadowing, or timeline files |
+| `PreToolUse` | Checks the matching outline before creating prose; before `git commit`, reminds maintainers to sync settings, outlines, tracking transactions, and docs |
+| `SessionStart` | Uses `.active-book` to load the current book's schema 4 authority plus `追踪/上下文.md`, then reports project gaps, abnormal foreshadowing, or migration requirements |
 | `UserPromptSubmit` | Reminds Codex to read project context before handling story-writing prompts |
 | `Stop` | Does not write logs by default; when `STORY_SESSION_LOG=1`, appends a lightweight session log to existing `追踪/session-log.txt` |
 | `PostToolUse` | After `git commit`, reminds maintainers to check README, AGENTS.md, or `追踪/上下文.md` updates |
 
-These are Codex plugin hooks. The script entry point is `hooks/story-lifecycle-hook.cjs`. `story-setup` can also deploy project-level `.codex/hooks.json` and `.codex/hooks/story_codex_hook.py` for outline-before-prose checks, compact context hints, and Stop-time prose backstop scans.
+These are Codex plugin hooks. The script entry point is `hooks/story-lifecycle-hook.cjs`. `story-setup` can also deploy project-level `.codex/hooks.json`, `.codex/hooks/story_codex_hook.py`, `.codex/hooks/run-story-hook.sh`, and `.codex/hooks/run-story-hook.cmd` for outline-before-prose checks, compact context hints, and Stop-time prose backstop scans.
 
-## Upgrading to v0.6.22
+## Upgrading to v0.7.5
 
-If you have already run `/story-setup` inside a writing project, run `/story-setup` again from the project root after updating this skill pack. This sync bumps `agents_version` to `17` and `setup_skill_version` to `1.2.6`, refreshing `.codex/story-agents/`, `.codex/agents/`, `.codex/hooks.json`, `.codex/hooks/story_codex_hook.py`, `.codex/story-rules/`, and the reference bundles.
+This repository now includes Codex-usable shared changes from upstream v0.7.1 through v0.7.5 and post-tag upstream main through `1eae178`. Non-Codex runtimes, manifests, and hooks are intentionally excluded. The package version remains `0.7.5`; syncing post-tag main does not invent a later release number.
 
-This repository has synced upstream v0.6.22 plus the current upstream `main` updates included in this port. Main changes:
+If a writing project already ran `$story-setup`, rerun it from the project root after updating this pack, then start a fresh Codex session. The current deployment contract is `agents_version: 25` and `setup_skill_version: 1.2.7`, refreshing `.codex/story-agents/`, `.codex/agents/`, project hooks, rules, and reference bundles.
 
-- **Long-form genre prose cards**: `story-long-write` adds `genre-prose-cards/`; `narrative-writer` recalls cards from `设定/题材定位.md` while preventing card names, tags, confidence, and compliance self-checks from leaking into prose.
-- **Short-form submission layer**: `story-short-write` adds `submission-craft.md` for Zhihu Yanxuan, mini-program, and Fanqie submission tone, opening copy, and paywall-break planning.
-- **Analysis formula upgrades**: `chapter-extractor` adds `chapter_formula` so long-form analysis captures emotional flow, rhythm ratio, chapter-ending hooks, and foreshadowing.
-- **AI-pattern detection upgrades**: `check-ai-patterns.js` adds task-block, action-chain, abstract-summary, cliche/metaphor/reasoning-density findings as advisory signals, not a replacement for human review.
-- **Codex CLI E2E**: adds `scripts/test-codex-cli-e2e.sh`, which uses a real Codex CLI in an isolated HOME to verify repo skills, custom agents, and hook deployment.
-- **Version checks**: `skills/story/VERSION` is now `0.6.22`; `story` reports upstream version differences but does not auto-install the upstream package over this Codex port.
+Key changes:
 
-Codex plugin lifecycle hooks are loaded by this repository's plugin mechanism. Project-level hooks are written by `/story-setup`. Reopen the session after upgrading the plugin to use the new plugin hook behavior; rerun `/story-setup` to refresh project-level hooks and custom agents.
+- **Single-authority tracking transactions**: schema 4 `追踪/_tracking-state.json` is the only authority. `tracking_commit.py` deterministically renders the context card, foreshadowing, author/reader timelines, character snapshots, and per-chapter records.
+- **Derived-view repair**: `tracking_commit.py rebuild --project <book-root>` reconstructs derived views from the authority without changing state, revision, or chapter records.
+- **Required legacy migration**: a long-form project with prose but no `_tracking-state.json` fails closed. Use `$story-import` legacy tracking migration; it rebuilds only `追踪/` and does not require reprocessing prose, settings, outlines, or the whole novel.
+- **Story Dashboard**: a loopback-only local workbench with lazy trees, unloaded-directory search, safe preview, conflict-aware saves, and confirmed deletion.
+- **Smaller long-form hot path**: setup, chapter, and daily workflows now load on demand through `workflow-setup.md`, `workflow-chapter.md`, and `workflow-daily.md`, guarded by document budgets.
+- **Stronger Codex hooks**: bounded project discovery, symlink exclusion, write-target parsing for redirection/nested shell/heredoc/copy/move/`apply_patch`, chapter-order and state-revision checks, and derived-view consistency checks. Windows/Git Bash path normalization and dual launchers remain supported.
+- **Writing and analysis updates**: prose metadata isolation, natural sentence rhythm, anti-summary endings, narrative chapter summaries, selected source evidence, bounded aggregation for very long works, and cross-batch review contracts.
+- **Scanner hardening**: richer fields, parameter validation, data-quality summaries, and Windows path fixes across the supported ranking collectors.
+- **Version contract**: `.codex-plugin/plugin.json` and `skills/story/VERSION` are `0.7.5`; `scripts/current-contract.json` records `agents_version: 25`.
+
+Plugin lifecycle hooks are loaded by this repository's plugin mechanism; `$story-setup` deploys project hooks. Reopen Codex after updating the plugin, and rerun `$story-setup` plus start a new session to refresh project hooks and custom agents.
 
 ## Project File Structure
 
-Recommended long-form structure:
+Recommended long-form structure (directory names are the actual on-disk names):
 
 ```text
-Long/{Book Title}/
-├── Settings/
-├── Outlines/
-├── Prose/
-├── Benchmark/
-│   └── {Benchmark Book}/
-│       ├── Source/
-│       ├── Characters/
-│       ├── Plotlines/
-│       ├── Settings/
-│       └── Report.md
-├── Tracking/
-│   ├── Context.md
-│   ├── Foreshadowing.md
-│   ├── Timeline.md
-│   └── Character_Status.md
-└── References/
+长篇/{Book Title}/
+├── 设定/
+├── 大纲/
+├── 正文/
+├── 对标/
+├── 追踪/
+│   ├── _tracking-state.json
+│   ├── 上下文.md
+│   ├── 伏笔.md
+│   ├── 逐章记录/
+│   ├── 角色状态/{Character}.md
+│   └── 时间线/
+│       ├── 作者真相.md
+│       └── 读者已知.md
+└── 参考资料/
 ```
+
+`_tracking-state.json` is the only structured authority. Every other file under `追踪/` is a derived view generated as a unit by `tracking_commit.py init/commit` and verified with `tracking_commit.py check`; do not edit them independently.
 
 Recommended short-form structure:
 
@@ -209,7 +226,7 @@ Chinese description:
 
 - Removed Claude/OpenClaw-specific frontmatter fields such as `version` and `metadata.openclaw`.
 - Migrated the Claude `CLAUDE.md` project template to Codex `AGENTS.md`.
-- Kept the original `.claude/agents` role files as `.codex/story-agents` reference prompts. Codex does not automatically register Claude-style custom subagents.
+- Adapted upstream role agents into `.codex/story-agents` reference prompts and generated `.codex/agents/*.toml` for native Codex custom-agent registration.
 - Adapted upstream automatic hooks into Codex plugin lifecycle hooks in `hooks/hooks.json`.
 - Kept browser CDP and platform ranking collection scripts. These still depend on Node.js, Chrome, and `agent-browser`.
 - `story-cover` originally references GPT-Image API. In Codex, it can also use the image generation capability available in the current session.
@@ -221,6 +238,7 @@ bash scripts/static-check.sh
 bash scripts/check-shared-files.sh
 bash scripts/check-story-setup-deployment.sh
 bash scripts/smoke-test-local-skills.sh
+npm test
 ```
 
 You can also run Codex's official skill validator directly:

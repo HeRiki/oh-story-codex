@@ -24,15 +24,15 @@ description: |
 
 | query_type | 用途 | 典型问题 |
 |-----------|------|---------|
-| `character_status` | 查角色当前状态 | "沈栀现在什么状态？" |
-| `character_appearances` | 查角色出场章节 | "沈栀在哪几章出场了？" |
+| `character_status` | 查角色当前状态 | "江晨现在什么状态？" |
+| `character_appearances` | 查角色出场章节 | "钟嘉嘉在哪几章出场了？" |
 | `foreshadow_status` | 查特定伏笔状态 | "伏笔 F003 什么状态？" |
 | `foreshadow_list` | 列出伏笔（可按状态筛选） | "当前待回收伏笔有哪些？" |
 | `setting_appearances` | 查设定在哪里出现过 | "力量体系在哪几章提到？" |
 | `setting_detail` | 查设定详细内容 | "修炼等级怎么设定的？" |
 | `timeline` | 查时间线节点 | "第30-50章发生了什么？" |
 | `progress` | 查写作进度 | "现在写到哪了？" |
-| `relationship` | 查角色关系 | "沈栀和林墨什么关系？" |
+| `relationship` | 查角色关系 | "江晨和钟嘉嘉现在什么关系？" |
 | `context_load` | 综合上下文加载 | "我要写第N章，给我上下文" |
 | `benchmark_style_load` | 加载对标文风资料 | "我要写第 N 章，帮我找对标文风和可参考片段" |
 
@@ -57,9 +57,14 @@ description: |
 ├── 正文/
 │   └── 第XXX章_*.md     # 正文章节
 ├── 追踪/
-│   ├── 伏笔.md          # 伏笔状态表
-│   ├── 时间线.md        # 故事时间线
-│   └── 上下文.md        # 写作进度摘要
+│   ├── _tracking-state.json     # 唯一结构化权威（默认不载入 prompt）
+│   ├── 上下文.md                # 续写状态卡（固定 7 栏，≤12KB）
+│   ├── 逐章记录/第NNN章.md       # 未来相关紧凑记录
+│   ├── 角色状态/{角色名}.md      # 派生核心角色当前快照
+│   ├── 伏笔.md                  # 派生伏笔当前视图
+│   ├── 时间线/
+│   │   ├── 作者真相.md          # 客观事实 + 读者认知 + 揭示状态
+│   │   └── 读者已知.md
 ├── 对标/
 │   └── {书名}/
 │       ├── 文风.md
@@ -84,10 +89,11 @@ description: |
 
 ### character_status 流程
 
-1. `Glob 设定/角色/{name}*.md` -> `Read` 角色设定文件
-2. `Grep 正文/ "{角色名}"` -> 找到所有出场章节
-3. `Read` 最近 1-2 章出场正文的相关段落（用行号定位）
-4. 汇总返回
+1. 用调用方随 prompt 传入的 `last_committed_chapter` / `state_revision`（主会话已跑过 `tracking_commit.py check`）；prompt 里没有这两个值时不自行读取 `_tracking-state.json`（完整 state 不进 prompt，读取量不随章数增长），只读 `追踪/上下文.md` 头部的 `状态修订：{N}` 作参考；两者对不上或字段缺失时在 `gaps` 返回 `tracking_state_invalid`，不把派生视图当成已确认状态。
+2. `Read 追踪/角色状态/{角色名}.md`，直接取得截至最后提交章的身份、位置、目标、状态、能力资源、关键关系、已知信息和未结事项。
+3. `Read 设定/角色/{角色名}.md` 取得静态人设；静态设定不得覆盖动态快照。
+4. 只有查询明确要求“为什么变成这样/哪章变化”时，才 `Grep "{角色名}" 追踪/逐章记录/` 并读取命中小文件；当前状态查询不扫描全历史。
+5. 如需正文验证，`Grep 正文/ "{角色名}"` 后只读最近 1-2 次出场的相关段落。与快照矛盾时返回冲突，不自行改写状态。
 
 ### character_appearances 流程
 
@@ -98,9 +104,9 @@ description: |
 
 ### foreshadow_status / foreshadow_list 流程
 
-1. `Read 追踪/伏笔.md` -> 解析伏笔状态表
+1. 指定 ID 或关键词时 `Grep 追踪/伏笔.md` 取唯一当前行；`foreshadow_list` 才读取整个当前表。每个 ID 最多一行，无需从重复记录推算当前状态。
 2. 按条件筛选（ID / status / 章节范围）
-3. 如需正文验证 -> `Grep 正文/` 伏笔关键词
+3. 查询变更原因时，按 ID 定点 `Grep` 相关逐章增量；如需正文验证，再 `Grep 正文/` 伏笔关键词
 4. 返回匹配条目
 
 ### setting_appearances 流程
@@ -118,16 +124,16 @@ description: |
 
 ### timeline 流程
 
-1. `Read 追踪/时间线.md` -> 解析时间节点
-2. 按章节范围筛选
-3. 如需更多细节 -> `Read` 对应正文
-4. 返回时间节点列表
+1. 读取查询参数 `perspective`：`reader` 读 `追踪/时间线/读者已知.md`，`author` 读 `追踪/时间线/作者真相.md`；未指定时默认 `reader`，防止误泄露真相。
+2. 给定章节范围或角色时先 `Grep` 对应视图，再按范围筛选；查询知识差、揭示状态或派生冲突时同时读取 `作者真相.md` 与 `读者已知.md`，不直接加载完整 state。
+3. 如需更多细节，读取对应正文或命中的逐章增量。
+4. 返回结果必须标注 `perspective` 与来源文件。`reader` 结果不得混入 `objective_fact` 中尚未揭示的内容。
 
 ### progress 流程
 
-1. `Read 追踪/上下文.md` -> 获取进度摘要
-2. 如文件不存在 -> `Glob 正文/第*.md` 扫描最大章节号
-3. 返回进度信息
+1. 用调用方随 prompt 传入的 `last_committed_chapter` / `state_revision`（主会话已跑过 `tracking_commit.py check`）；prompt 里没有这两个值时不自行读取 `_tracking-state.json`（完整 state 不进 prompt，读取量不随章数增长），只读 `追踪/上下文.md` 头部的 `状态修订：{N}` 作参考，取得最后提交章和状态修订号。
+2. `Read 追踪/上下文.md` 获取当前位置、下一章承诺和连贯性风险。
+3. 任一文件缺失或章号不一致时返回 blocking gap，不扫描正文猜测进度。
 
 ### relationship 流程
 
@@ -141,77 +147,68 @@ description: |
 
 1. **解析输入**：项目目录 + 本章情绪/基调 + （可选）本章爽点类型 + （可选）本章目标字数
 2. **主对标书选择**：
+   - 先按项目目录名、`.active-book` 与本书设定识别当前作品；`拆文库/{当前书}/` 是 story-import 的本书分析，不是对标候选。历史误建的 `对标/{当前书}/` 也必须排除，并返回 `gaps.self_benchmark_ignored: true`
    - `Read 设定/题材定位.md`，提取 `主对标书` 字段
-   - 若有 → 用该书
-   - 若字段缺失 → `Glob 对标/*/` 取字典序第一个目录，并在 `gaps.main_benchmark_unspecified: true` 提示主对标书未指定
-   - 若 `对标/` 无子目录，继续向上找工作区根下的 `拆文库/*/`；若仍无可用目录 → 返回 `gaps.no_benchmark: true`，`results` 置空，**不报错、不继续读文风**
+   - 若有且不是当前作品 → 用该书；若字段指向当前作品 → 忽略该字段并设置 `gaps.self_benchmark_ignored: true`
+   - 若字段缺失或已忽略 → `Glob 对标/*/`，排除当前作品后取字典序第一个目录，并在 `gaps.main_benchmark_unspecified: true` 提示主对标书未指定
+   - 若排除后的 `对标/` 无子目录，继续向上找工作区根下的 `拆文库/*/`，同样排除当前作品；若仍无可用目录 → 返回 `gaps.no_benchmark: true`，`results` 置空，**不报错、不继续读文风**
 3. **对标书路径查找**：优先 `{项目}/对标/{书名}/`，回退 `拆文库/{书名}/`（向上找到工作区根，再下钻拆文库）
-4. **判定对标契约版本（先于回退）**：
-   - 优先 `Read {对标书路径}/剧情/README.md`；若存在 v12 产物说明、`节奏.md`、`情绪模块.md`、关键信息推进、情绪触动点、可复现模块等任一信号 → `gaps.contract_version: "v12"`。
-   - 再 `Read {对标书路径}/拆文报告.md`；若包含「读者需求 / 情绪引擎」「关键信息与扩写技法总览」「节奏与情绪触动点」「可复现模块」任一 v12 标题，或导入/生成记录写明 Stage 3+ 已完成 → `gaps.contract_version: "v12"`。
-   - 若只有旧式 `拆文报告.md` / `文风.md` / `剧情/故事线.md`，且没有上述 v12 信号 → `gaps.contract_version: "legacy"` 与 `gaps.legacy_deconstruction: true`。
-   - 若信号不足但发现 `剧情/节奏.md` 或 `剧情/情绪模块.md` 任一权威文件存在，也按 `v12` 处理；宁可停下修复，不把半套 v12 当 legacy。
-5. **读情绪模块（权威）**：
+4. **读情绪模块（权威）**：
    - 优先 `Read {对标书路径}/剧情/情绪模块.md`
    - 存在 → 从「读者需求 / 情绪引擎」「可复现模块」或模块卡片中，按本章情绪/爽点类型选择 1 条 `selected_emotion_module`，并写入 `module_source_path`
-   - 不存在且 `gaps.contract_version == "v12"` → 返回 `gaps.missing_primary_contract: true`、`gaps.module_missing: true`、`gaps.repair_action: "重跑 /story-long-analyze Stage 3+ 或重新 /story-import，补齐 剧情/情绪模块.md"`；不要从旧摘要/文风回退补足
-   - 不存在且 `gaps.legacy_deconstruction: true` → `gaps.module_missing: true`；允许后续从 `拆文报告.md`、`文风.md` 可借鉴技巧、匹配章摘要回退抽取模块线索
-6. **读节奏索引（权威）**：
+   - 不存在 → 返回 `gaps.missing_primary_contract: true`、`gaps.module_missing: true`、`gaps.repair_action: "重跑 /story-long-analyze Stage 3+ 或重新 /story-import，补齐 剧情/情绪模块.md"`；不要从摘要或文风伪造权威模块
+5. **读节奏索引（权威）**：
    - 优先 `Read {对标书路径}/剧情/节奏.md`
    - 存在 → 从关键信息推进表、情绪触动点、爆发节奏/冷却段中选择 1 条 `rhythm_reference`，并写入 `rhythm_source_path`
-   - 不存在且 `gaps.contract_version == "v12"` → 返回 `gaps.missing_primary_contract: true`、`gaps.rhythm_missing: true`、`gaps.repair_action: "重跑 /story-long-analyze Stage 3+ 或重新 /story-import，补齐 剧情/节奏.md"`；不要从旧摘要/故事线回退补足
-   - 不存在且 `gaps.legacy_deconstruction: true` → `gaps.rhythm_missing: true`；允许后续从 `拆文报告.md` 节奏摘要、匹配章摘要、`剧情/故事线.md` 回退抽取节奏线索
-   - 若任一 v12 权威文件缺失（`gaps.missing_primary_contract: true`），保留已读到的来源信息后直接返回结构化 JSON；调用方必须停止本章准备，不进入文风/章节匹配/正文写作。
+   - 不存在 → 返回 `gaps.missing_primary_contract: true`、`gaps.rhythm_missing: true`、`gaps.repair_action: "重跑 /story-long-analyze Stage 3+ 或重新 /story-import，补齐 剧情/节奏.md"`；不要从摘要或故事线伪造权威节奏
+   - 若任一权威文件缺失（`gaps.missing_primary_contract: true`），保留已读到的来源信息后直接返回结构化 JSON；调用方必须停止本章准备，不进入文风/章节匹配/正文写作。
    - 若两个权威文件都存在但对同一章节/模块的读者情绪或爆发点描述互相矛盾，保留两条原文摘要，并返回 `gaps.module_rhythm_conflict: true` 与 `gaps.conflict: "..."`；调用方按两个权威文件优先于 `拆文报告.md` / `故事线.md` 的规则处理，禁止自行改写
-7. **读文风**：
+6. **读文风**：
    - `Read {对标书路径}/文风.md`
    - 不存在 → 返回 `gaps.profile_missing: true, expected_path: "..."`，**不继续后续步骤**
    - 检查「生成记录」里的 `文风可用：否` → 返回 `gaps.profile_degenerate: true`，后续不把文风作为强约束
-8. **可用性检查（只读可执行）**：
+7. **可用性检查（只读可执行）**：
    - 本 agent 只有 `Read/Glob/Grep`，不能调用 Bash/stat。
    - 只读取文风文件「生成记录」：若写有 `文风可用：否`、`需重生`、`原文缺失` 等标记 → `gaps.profile_stale: true` 或 `gaps.profile_degenerate: true`，并在 `stale_reason` 写明原因。
    - 不做文件时间比较；默认 `profile_stale: false`。
-   - 兼容旧文件：若旧文风出现旧版内部降级标记（字面量 `degenerate: true`），也返回 `gaps.profile_degenerate: true`。
-9. **章节基调候选集**：
+8. **章节基调候选集**：
    - `Glob {对标书路径}/章节/*_摘要.md`
    - 对每个文件 `Grep -hE '基调：(紧张|轻松|悲伤|热血|爽|甜|温馨|恐怖|压抑|其他)'`（**全角冒号**，不锚定行首）拿到该章所有情节点基调
    - 章基调聚合：众数；并列时按 grep 输出顺序取最早
    - 候选集 = 章基调 == 本章情绪/基调的章节列表
-10. **相近基调兜底**（完全没有同基调章节时）：
+9. **相近基调兜底**（完全没有同基调章节时）：
    - 先从本章细纲/查询参数里判断更接近“紧张、热血、爽、甜、轻松、温馨、悲伤、恐怖、压抑”哪一类；不要写死对照表。
    - 选择一个最接近的基调重新筛候选集，并在结果里说明“使用相近基调兜底”。
    - 仍空 → `gaps.tone_match_failed: true`，跳过匹配章节读取，但仍返回整书文风、`selected_emotion_module` 和 `rhythm_reference`。
-11. **多候选章节选择规则**（候选集多章时）：
+10. **多候选章节选择规则**（候选集多章时）：
    - L1 爽点类型最强匹配（调用方提供爽点字段时，对每个候选章读 `_摘要.md` 的「关键事件」判断）
    - L2 摘要情节点数 / 可读到的原文章节估算长度最接近本章目标字数（如提供）；本 agent 不用 Bash 统计，拿不到原文长度时跳过 L2，不得把摘要文件字数当原文字数
    - L3 章节号最小
-12. **读匹配章节资料**：
+11. **读匹配章节资料**：
    - 先 `Read {对标书路径}/章节/第K章_摘要.md`，提取本章基调序列、关键事件、爽点/情绪节点
    - 优先提取摘要内「关键信息与扩写技法」表，作为 `matched_chapter_techniques` 的一部分；这只是证据/补足，不覆盖 `剧情/节奏.md`
    - 若 `{对标书路径}/章节/第K章_深度拆解.md` 存在，再读取并提取「可借鉴要素」+ 反应层 + 章尾钩子类型
    - 若同章深度拆解不存在（常见：只有黄金三章有深度拆解），不要失败；回退读取 `第1章_深度拆解.md`、`第2章_深度拆解.md`、`第3章_深度拆解.md` 中基调最接近的一章，或仅使用文风「可借鉴技巧」
    - 在 `gaps.matched_deep_dive_missing: true` 标记该回退
-13. **模块/节奏缺失回退补足**：
-    - 如果 `gaps.missing_primary_contract: true`，不要回退补足；直接保留 null 与 `repair_action`，调用方必须停止修复。
-    - 如果 legacy 的 `gaps.module_missing: true`，从 `拆文报告.md` 的「读者需求 / 情绪引擎」「可复现模块」、文风可借鉴技巧或匹配章摘要中生成低置信度 `selected_emotion_module`，并把 `module_source_path` 指向实际来源；仍无则为 null
-    - 如果 legacy 的 `gaps.rhythm_missing: true`，从 `拆文报告.md` 的「节奏与情绪触动点」、匹配章摘要或 `剧情/故事线.md` 中生成低置信度 `rhythm_reference`，并把 `rhythm_source_path` 指向实际来源；仍无则为 null
-14. **抽取原文锚点片段**（从文风文件里）：
+12. **抽取原文锚点片段**（从文风文件里）：
     - 从文风文件 `## 原文锚点片段` 段读出所有按基调标注的片段
     - 按本章情绪/基调选 1-2 段（精确匹配优先，无则取相近基调）
-    - 默认只返回原文锚点的文件位置、行号、基调和技法摘要；仅当用户显式确认该文本为自有/已授权且需要引用时，才返回必要的短引文片段
-15. **返回结构化 JSON**
+    - 完整传递 300-500 字原文（不要截断/概括）
+13. **返回结构化 JSON**
 
 ### context_load 流程（综合查询）
 
-1. `Read 追踪/上下文.md` -> 进度摘要。如不存在，`Glob 正文/第*.md` 扫描最大章节号推断下一章编号
-2. `Read 追踪/伏笔.md` -> 筛选待回收伏笔
-3. `Read 追踪/时间线.md` -> 最近时间节点
-4. `Read 大纲/细纲_第{N}章.md` -> 本章写作计划
-5. 从细纲提取角色名 -> `Read 设定/角色/{name}.md`
-6. `Read 正文/第{N-1}章_*.md` -> 最新一章（衔接用）
-7. 汇总为"写作上下文包"
+1. 用调用方随 prompt 传入的 `last_committed_chapter` / `state_revision`（主会话已跑过 `tracking_commit.py check`）；prompt 里没有这两个值时不自行读取 `_tracking-state.json`（完整 state 不进 prompt，读取量不随章数增长），只读 `追踪/上下文.md` 头部的 `状态修订：{N}` 作参考；对不上时返回 `tracking_state_invalid` 与 blocking gap，不继续组装写作包。
+2. `Read 追踪/上下文.md`；它必须恰好包含 `当前位置 / 长期约束 / 核心角色状态 / 活跃伏笔 / 近三章速记 / 下一章承诺 / 连贯性风险` 7 个栏目。
+3. 下一章 N = `last_committed_chapter + 1`；`Read 大纲/细纲_第{N}章.md`。
+4. 从细纲和续写状态卡提取角色名，读取 `设定/角色/{name}.md`；久别核心角色再读取 `追踪/角色状态/{name}.md`。
+5. `Read 正文/第{N-1}章_*.md` 获取场景衔接。
+6. 只有调用方明确给出伏笔 ID、事件 ID 或历史原因时，才定点查 `伏笔.md`、对应时间线视图或命中的逐章增量；默认不通读长期文件。
+7. 汇总为“写作上下文包”，并返回实际读取的来源。
 
-> 任何文件缺失时，在 `gaps` 中包含该事实并继续处理，返回仍能组装的部分上下文，不要完全失败；但 `benchmark_style_load` 已判定 `gaps.contract_version == "v12"` 且缺 `剧情/情绪模块.md` 或 `剧情/节奏.md` 时例外：必须返回 `missing_primary_contract: true` 与 `repair_action`，不得继续回退。
+> `context_load` 的固定读取量不随章数增长。角色当前值来自独立小快照，旧变化原因来自按 ID/角色定点命中的紧凑增量，时间线按作者/读者视角分开读取。
+
+> 普通查询遇文件缺失时在 `gaps` 中返回事实；`context_load` 缺 state、续写状态卡或 `check` 失败时必须停止组装。`benchmark_style_load` 缺 `剧情/情绪模块.md` 或 `剧情/节奏.md` 时必须返回 `missing_primary_contract: true` 与 `repair_action`，不得继续进入写作准备。
 
 ---
 
@@ -225,7 +222,7 @@ description: |
   "query": "{原始查询}",
   "results": { ... },
   "source_files": ["读取了哪些文件"],
-  "gaps": { "items": ["哪些信息查不到或不确定"] }
+  "gaps": ["哪些信息查不到或不确定"]
 }
 ```
 
@@ -294,15 +291,15 @@ description: |
   "results": {
     "style_profile_path": "对标/{书名}/文风.md",
     "style_profile_summary": "<≤200字 提取核心：标点习惯 + 对话技法 + 情绪交替模式>",
-    "selected_emotion_module": "<从 剧情/情绪模块.md 选出的读者需求/触发器/戏剧单元/可复现骨架；缺失时为回退摘要或 null>",
-    "rhythm_reference": "<从 剧情/节奏.md 选出的关键信息推进/情绪触动点/爆发节奏/冷却参考；缺失时为回退摘要或 null>",
+    "selected_emotion_module": "<从 剧情/情绪模块.md 选出的读者需求/触发器/戏剧单元/可复现骨架；缺失时为 null>",
+    "rhythm_reference": "<从 剧情/节奏.md 选出的关键信息推进/情绪触动点/爆发节奏/冷却参考；缺失时为 null>",
     "module_source_path": "对标/{书名}/剧情/情绪模块.md",
     "rhythm_source_path": "对标/{书名}/剧情/节奏.md",
     "matched_chapter_K": 14,
     "matched_chapter_techniques": "<匹配章摘要 + 深度拆解/黄金三章回退中的可借鉴要素，≤300字>",
     "anchor_excerpts": [
-      {"tone": "悲伤", "source": "第14章 第7段（行 823-901）", "demo_point": "对话潜台词手法", "text": "<短引文或空>"},
-      {"tone": "热血", "source": "第8章 第3段（行 401-465）", "demo_point": "爽点铺放比", "text": "<短引文或空>"}
+      {"tone": "悲伤", "source": "第14章 第7段（行 823-901）", "demo_point": "对话潜台词手法", "text": "<300-500字原文>"},
+      {"tone": "热血", "source": "第8章 第3段（行 401-465）", "demo_point": "爽点铺放比", "text": "<300-500字原文>"}
     ]
   },
   "source_files": ["设定/题材定位.md", "对标/{书名}/剧情/情绪模块.md", "对标/{书名}/剧情/节奏.md", "对标/{书名}/文风.md", "对标/{书名}/拆文报告.md", "对标/{书名}/章节/第14章_深度拆解.md"],
@@ -312,8 +309,6 @@ description: |
     "rhythm_missing": false,
     "module_rhythm_conflict": false,
     "conflict": null,
-    "contract_version": "v12|legacy",
-    "legacy_deconstruction": false,
     "missing_primary_contract": false,
     "repair_action": null,
     "profile_missing": false,
@@ -321,6 +316,7 @@ description: |
     "profile_degenerate": false,
     "stale_reason": null,
     "main_benchmark_unspecified": false,
+    "self_benchmark_ignored": false,
     "raw_text_unavailable": false,
     "tone_match_failed": false,
     "matched_deep_dive_missing": false
@@ -351,11 +347,10 @@ description: |
 
 ## 被调用协议
 
-调用方通过当前运行时支持的 custom-agent 入口，以 `agent_type: "story-explorer"` 调用你（如 story-long-write、story-review、story 路由等）；如果运行时返回 `unknown agent_type` 或 custom-agent registry 不可用，父 workflow 必须 fallback 到 solo/direct execution 并报告 fallback。
+调用方通过 `spawn_agent(agent_type="story-explorer")` 调用你（如 story-long-write、story-review、story 路由等）。
 
 你收到的 prompt 会包含：
-- `项目目录`：书籍项目目录路径。使用前必须解析为绝对规范路径，并确认它位于当前项目根目录内；若路径不存在、越过项目根、指向隐藏/系统目录或无法确认归属，返回 `gaps.invalid_project_dir: true`，不要读取任何文件。
-- 所有读取范围仅限该 `项目目录` 内；`benchmark_style_load` 的 `拆文库/{书名}` 回退仅允许位于同一项目根目录下的 `拆文库/`，禁止读取任意绝对路径或父级目录。
+- `项目目录`：书籍项目目录路径
 - `查询类型`：查询类型（见上表）
 - `查询参数`：具体查询内容
 - 可选的额外参数（如章节号、角色名、关键词）

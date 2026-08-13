@@ -6,7 +6,7 @@ const { spawnSync } = require("child_process");
 
 const MAX_WALK_DEPTH = 6;
 const MAX_SEARCH_DEPTH = 5;
-const KNOWN_FORESHADOW_STATES = ["未埋", "已埋", "已回收", "已过期"];
+const KNOWN_FORESHADOW_STATES = ["已埋", "已回收", "已过期", "放弃"];
 const PROBLEM_FORESHADOW_STATES = ["已过期"];
 
 function readInput() {
@@ -98,17 +98,61 @@ function walkFor(root, predicate, maxDepth = MAX_SEARCH_DEPTH) {
   return null;
 }
 
-function findTrackingDir(root) {
-  const direct = path.join(root, "追踪");
+function insideRoot(root, target) {
+  const relative = path.relative(root, target);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function readActiveBook(root) {
+  const activeFile = path.join(root, ".active-book");
+  if (!isFile(activeFile)) return undefined;
+  let declared = "";
+  try {
+    declared = fs.readFileSync(activeFile, "utf8").split(/\r?\n/, 1)[0].trim();
+  } catch {
+    return null;
+  }
+  if (!declared) return undefined;
+  if (path.isAbsolute(normalizeInputPath(declared))) return null;
+  try {
+    const realRoot = fs.realpathSync(root);
+    const candidate = path.resolve(realRoot, normalizeInputPath(declared));
+    if (!insideRoot(realRoot, candidate) || !isDirectory(candidate)) return null;
+    const realCandidate = fs.realpathSync(candidate);
+    return insideRoot(realRoot, realCandidate) ? realCandidate : null;
+  } catch {
+    return null;
+  }
+}
+
+function discoverActiveBook(root) {
+  if (isDirectory(path.join(root, "追踪")) || isDirectory(path.join(root, "正文")) || isFile(path.join(root, "正文.md"))) {
+    return root;
+  }
+  for (const marker of ["追踪", "正文"] ) {
+    const found = walkFor(root, (fullPath, entry) => entry.isDirectory() && entry.name === marker);
+    if (found) return path.dirname(found);
+  }
+  const shortBody = walkFor(root, (fullPath, entry) => entry.isFile() && entry.name === "正文.md");
+  return shortBody ? path.dirname(shortBody) : root;
+}
+
+function activeBookRoot(root) {
+  const selected = readActiveBook(root);
+  return selected === undefined ? discoverActiveBook(root) : selected;
+}
+
+function findTrackingDir(bookRoot) {
+  const direct = path.join(bookRoot, "追踪");
   if (isDirectory(direct)) return direct;
-  const nested = walkFor(root, (fullPath, entry) => entry.isDirectory() && entry.name === "追踪");
+  const nested = walkFor(bookRoot, (fullPath, entry) => entry.isDirectory() && entry.name === "追踪");
   return nested || direct;
 }
 
-function findContextFile(root) {
-  const direct = path.join(root, "追踪", "上下文.md");
+function findContextFile(bookRoot) {
+  const direct = path.join(bookRoot, "追踪", "上下文.md");
   if (isFile(direct)) return direct;
-  return walkFor(root, (fullPath, entry) => entry.isFile() && entry.name === "上下文.md");
+  return walkFor(bookRoot, (fullPath, entry) => entry.isFile() && entry.name === "上下文.md");
 }
 
 function rel(root, target) {
@@ -143,13 +187,52 @@ function readHead(filePath, maxLines = 40) {
   }
 }
 
-function collectGapHints(root) {
+function readTrackingState(trackingDir) {
+  const statePath = path.join(trackingDir, "_tracking-state.json");
+  if (!isFile(statePath)) {
+    return { statePath, error: "未发现 `追踪/_tracking-state.json`；已有正文项目请走 `/story-import` 的旧追踪迁移，新项目先运行 `tracking_commit.py init`" };
+  }
+  let state;
+  try {
+    state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+  } catch {
+    return { statePath, error: "`追踪/_tracking-state.json` 无法解析；请运行 `tracking_commit.py check`，不要用旧 Markdown 追踪文件兜底" };
+  }
+  if (
+    !state ||
+    typeof state !== "object" ||
+    Array.isArray(state) ||
+    state.schema_version !== 4 ||
+    !Number.isInteger(state.last_committed_chapter) ||
+    !Number.isInteger(state.state_revision) ||
+    !state.foreshadow ||
+    typeof state.foreshadow !== "object" ||
+    Array.isArray(state.foreshadow) ||
+    !state.timeline ||
+    typeof state.timeline !== "object" ||
+    Array.isArray(state.timeline)
+  ) {
+    return { statePath, error: "`追踪/_tracking-state.json` 不是有效的 schema 4 状态；请运行 `tracking_commit.py check` 修复或确认迁移" };
+  }
+  return { statePath, state };
+}
+
+function countProblemForeshadowing(state) {
+  let count = 0;
+  for (const item of Object.values(state.foreshadow)) {
+    const status = item && typeof item === "object" ? item.status : "";
+    if (!KNOWN_FORESHADOW_STATES.includes(status) || PROBLEM_FORESHADOW_STATES.includes(status)) count += 1;
+  }
+  return count;
+}
+
+function collectGapHints(bookRoot, displayRoot = bookRoot) {
   const hints = [];
-  const settingDir = walkFor(root, (fullPath, entry) => entry.isDirectory() && entry.name === "设定", 3);
-  const outlineDir = walkFor(root, (fullPath, entry) => entry.isDirectory() && entry.name === "大纲", 3);
-  const proseDir = walkFor(root, (fullPath, entry) => entry.isDirectory() && entry.name === "正文", 3);
-  const trackingDir = findTrackingDir(root);
-  const contextFile = findContextFile(root);
+  const settingDir = walkFor(bookRoot, (fullPath, entry) => entry.isDirectory() && entry.name === "设定", 3);
+  const outlineDir = walkFor(bookRoot, (fullPath, entry) => entry.isDirectory() && entry.name === "大纲", 3);
+  const proseDir = walkFor(bookRoot, (fullPath, entry) => entry.isDirectory() && entry.name === "正文", 3);
+  const trackingDir = findTrackingDir(bookRoot);
+  const contextFile = findContextFile(bookRoot);
 
   if (!settingDir) hints.push("未发现 `设定/` 目录");
   if (!outlineDir) hints.push("未发现 `大纲/` 目录");
@@ -157,52 +240,18 @@ function collectGapHints(root) {
   if (!isDirectory(trackingDir)) hints.push("未发现 `追踪/` 目录");
   if (!contextFile) hints.push("未发现 `追踪/上下文.md`");
 
-  const foreshadowing = walkFor(root, (fullPath, entry) => entry.isFile() && entry.name === "伏笔.md");
-  const timeline = walkFor(root, (fullPath, entry) => entry.isFile() && entry.name === "时间线.md");
-  if (!foreshadowing) hints.push("未发现 `追踪/伏笔.md`");
-  else {
-    const problemCount = countProblemForeshadowing(foreshadowing);
-    if (problemCount > 0) hints.push(`发现 ${problemCount} 条过期或异常伏笔，请检查 \`${rel(root, foreshadowing)}\``);
-  }
-  if (!timeline) hints.push("未发现 `追踪/时间线.md`");
-
-  return hints;
-}
-
-function countProblemForeshadowing(filePath) {
-  const text = readHead(filePath, 2000);
-  if (!text) return 0;
-  let statusIndex = -1;
-  let count = 0;
-
-  for (const line of text.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) continue;
-    const cells = trimmed
-      .split("|")
-      .slice(1, -1)
-      .map((cell) => cell.trim());
-    if (!cells.length || cells.every((cell) => /^:?-{3,}:?$/.test(cell))) continue;
-
-    if (statusIndex < 0) {
-      const headerIndex = cells.findIndex((cell) => cell.includes("状态"));
-      if (headerIndex >= 0) {
-        statusIndex = headerIndex;
-        continue;
+  if (isDirectory(trackingDir)) {
+    const tracking = readTrackingState(trackingDir);
+    if (tracking.error) hints.push(tracking.error);
+    else {
+      const problemCount = countProblemForeshadowing(tracking.state);
+      if (problemCount > 0) {
+        hints.push(`发现 ${problemCount} 条过期或异常伏笔；以 \`${rel(displayRoot, tracking.statePath)}\` 为权威，请通过 tracking_commit.py 事务处理`);
       }
     }
-
-    if (statusIndex < 0 || statusIndex >= cells.length) continue;
-    const statusCell = cells[statusIndex];
-    const known = KNOWN_FORESHADOW_STATES.find((state) => statusCell.includes(state));
-    if (known) {
-      if (PROBLEM_FORESHADOW_STATES.includes(known)) count += 1;
-      continue;
-    }
-    if (statusCell) count += 1;
   }
 
-  return count;
+  return hints;
 }
 
 function outputAdditionalContext(hookEventName, message) {
@@ -220,15 +269,19 @@ function outputAdditionalContext(hookEventName, message) {
 function sessionContext(root, hookEventName) {
   const branch = runGit(root, ["rev-parse", "--abbrev-ref", "HEAD"]) || "unknown";
   const status = runGit(root, ["status", "--short"]);
-  const contextFile = findContextFile(root);
+  const bookRoot = activeBookRoot(root);
+  const contextFile = bookRoot ? findContextFile(bookRoot) : null;
   const contextPreview = readHead(contextFile, 36);
-  const gaps = collectGapHints(root);
+  const gaps = bookRoot
+    ? collectGapHints(bookRoot, root)
+    : ["`.active-book` 无效：必须填写项目根内的相对真实目录；修正前不会自动切换到其他书目"];
 
   const lines = [
     "## Oh Story Codex 项目上下文",
     `- 项目目录：${root}`,
     `- Git 分支：${branch}`,
     `- 工作区状态：${status ? "有未提交变更" : "干净或非 Git 仓库"}`,
+    `- 活跃书目：${bookRoot ? rel(root, bookRoot) : "无效（未选择书目）"}`,
   ];
 
   if (contextFile) {
@@ -274,21 +327,31 @@ function handleSessionStart(input) {
 function handleUserPromptSubmit(input) {
   const root = findStoryRoot(inputCwd(input));
   if (!root) return;
+  const bookRoot = activeBookRoot(root);
   const prompt = getPrompt(input);
   const looksStoryRelated = /写|小说|网文|章节|大纲|人设|设定|续写|审查|去AI|拆文|扫榜|封面/.test(prompt);
   if (!looksStoryRelated) return;
+  if (!bookRoot) {
+    outputAdditionalContext(
+      "UserPromptSubmit",
+      "## Oh Story Codex 提示\n`.active-book` 无效。请先改为项目根内的相对真实目录；修正前不要读取或写入其他书目的文件。",
+    );
+    return;
+  }
   outputAdditionalContext(
     "UserPromptSubmit",
     [
       "## Oh Story Codex 提示",
-      "当前位于已初始化的网文项目中。处理本次写作请求前，先读取 `追踪/上下文.md` 和相关 `设定/`、`大纲/`、`追踪/` 文件；涉及续写时不要只依赖对话记忆。",
+      `当前位于已初始化的网文项目中。处理本次写作请求前，先读取 \`${rel(root, path.join(bookRoot, "追踪", "上下文.md"))}\` 和该活跃书目的相关 \`设定/\`、\`大纲/\`、\`追踪/\` 文件；涉及续写时不要只依赖对话记忆。`,
     ].join("\n"),
   );
 }
 
 function appendSessionLog(root) {
   if (!envFlag("STORY_SESSION_LOG")) return;
-  const trackingDir = findTrackingDir(root);
+  const bookRoot = activeBookRoot(root);
+  if (!bookRoot) return;
+  const trackingDir = findTrackingDir(bookRoot);
   if (!isDirectory(trackingDir)) return;
   const logPath = path.join(trackingDir, "session-log.txt");
   const branch = runGit(root, ["rev-parse", "--abbrev-ref", "HEAD"]) || "unknown";
@@ -361,11 +424,6 @@ function findTargetPaths(value, depth = 0) {
     nestedPaths.push(...findTargetPaths(value[key], depth + 1));
   }
   return nestedPaths;
-}
-
-function insideRoot(root, target) {
-  const relative = path.relative(root, target);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
 function parseChapterNumber(fileName) {
@@ -460,7 +518,7 @@ function handlePostToolUse(input) {
     "PostToolUse",
     [
       "## Oh Story Codex 提交后提示",
-      "刚刚执行了 `git commit`。如果本次提交涉及写作项目结构、角色设定、大纲、追踪文件或 hooks 行为，请确认 README、AGENTS.md 或 `追踪/上下文.md` 是否也需要同步更新。",
+      "刚刚执行了 `git commit`。如果本次提交涉及写作项目结构、角色设定、大纲、追踪事务或 hooks 行为，请确认 README、AGENTS.md 是否需要同步；追踪派生视图只能由 `tracking_commit.py` 更新。",
     ].join("\n"),
   );
 }
@@ -475,7 +533,7 @@ function handlePreToolUse(input) {
     "PreToolUse",
     [
       "## Oh Story Codex 提交前提醒",
-      "本次即将执行 `git commit`。提交前请确认写作项目的设定、角色、大纲、追踪文件和文档是否已同步；如果只改正文，也要确认 `追踪/上下文.md` 是否需要更新当前位置和最近决策。",
+      "本次即将执行 `git commit`。提交前请确认写作项目的设定、角色、大纲、追踪事务和文档是否已同步；如果改了正文连续性，先通过 `tracking_commit.py commit` 提交对应事务并运行 `check`，不要手改派生视图。",
     ].join("\n"),
   );
 }

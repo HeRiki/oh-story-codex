@@ -41,11 +41,10 @@ description: |
 | `references/templates/agents/*.md` | `.codex/story-agents/*.md` | story-setup managed | replace | 7 个角色提示词完整，frontmatter 只保留 Codex 可读字段 |
 | `references/codex/agents/*.toml` | `.codex/agents/*.toml` | story-setup managed | replace | 7 个 TOML custom agents 可解析，包含 `name`、`description`、`developer_instructions` |
 | `references/codex/hooks/hooks.json` | `.codex/hooks.json` | user+managed | merge by hook command | JSON 有效，hook command 去重合并 |
-| `references/codex/hooks/story_codex_hook.py` | `.codex/hooks/story_codex_hook.py` | story-setup managed | replace | Python 语法有效，UTF-8 stdin/stdout |
+| `references/codex/hooks/{story_codex_hook.py,run-story-hook.sh,run-story-hook.cmd}` | `.codex/hooks/` 同名文件 | story-setup managed | replace | Python/POSIX/Windows launcher 文件齐全，UTF-8 stdin/stdout |
 | `references/agent-references/*.md` | `.codex/story-agent-references/*.md` | story-setup managed | replace | legacy 参考提示词可读 |
 | `references/agent-references/*.md` | `.codex/skills/story-setup/references/agent-references/*.md` | story-setup managed | replace | Codex custom agents 的项目内主参考路径完整 |
-| `references/templates/上下文.md.tmpl` | `{书名}/追踪/上下文.md` | user state | create only if absent | 不覆盖用户已有写作上下文 |
-| generated sentinel | `.story-deployed` | story-setup managed | replace | 包含 `runtime: codex`、`agents_version: 17`、`setup_skill_version: 1.2.6` |
+| generated sentinel | `.story-deployed` | story-setup managed | replace | 包含 `runtime: codex`、`agents_version: 25`、`setup_skill_version: 1.2.7` |
 
 ### 2.1 部署 AGENTS.md
 
@@ -79,8 +78,8 @@ description: |
 
 - 读取 `references/codex/hooks/hooks.json`。
 - 读取用户现有 `.codex/hooks.json`（如存在），保留未知字段。
-- 对每个 hook event 按 `command` 去重追加；每个 hook 同时携带 `command`（POSIX sh）与 `commandWindows`（Windows cmd）两个字段，整体保留不要拆开。
-- 复制 `references/codex/hooks/story_codex_hook.py` 到 `.codex/hooks/story_codex_hook.py`。
+- 调用 `scripts/merge-codex-hooks.py` 合并 hooks：只移除实际执行旧版 `story_codex_hook.py` 或新版 `run-story-hook.sh` / `run-story-hook.cmd` 的 story-setup 管理注册，再追加当前模板；仅在参数或说明文字中提到这些路径的用户自定义 hooks 与未知顶层字段保留。
+- 复制 `references/codex/hooks/story_codex_hook.py`、`run-story-hook.sh`、`run-story-hook.cmd` 到 `.codex/hooks/`。
 - 写入后提示用户：项目 `.codex/` 层需要被 Codex trust，非 managed command hooks 还需要在 `/hooks` 中 review/trust 后才会运行。
 
 ### 2.6 部署 agent reference bundle
@@ -90,12 +89,11 @@ description: |
 - 校验：凡 `.codex/story-agents/*.md`、`.codex/agents/*.toml` 或 reference 中出现 `story-setup/references/agent-references/<file>.md`，源包与目标包都必须存在 `<file>.md`。
 - `output-templates.md` 不复制；`chapter-extractor` 已内置输出格式，遵循本文件「输出格式」章节即可。
 
-### 2.7 部署上下文模板
+### 2.7 追踪状态边界
 
-- 读取 `references/templates/上下文.md.tmpl`。
-- 如有书名目录且 `{书名}/追踪/` 已存在，复制到 `{书名}/追踪/上下文.md`。
-- 如果目标文件已存在，不覆盖，只提示已有。
-- 短篇项目不得因此创建 `追踪/` 目录。
+- story-setup 不创建或改写任何书目下的 `追踪/` 文件。
+- 长篇追踪以 `追踪/_tracking-state.json` 为唯一权威；`追踪/上下文.md`、伏笔、时间线和角色状态均由 `story-long-write/scripts/tracking_commit.py` 的 `init` / `commit` 确定性生成。
+- 已有正文但缺少当前追踪状态时，按 story-import 的旧项目迁移流程归档旧追踪并重建；不要用模板或手写 Markdown 伪造当前状态。
 
 ### 2.8 创建部署标记
 
@@ -104,13 +102,13 @@ description: |
 ```text
 deployed_at: <date -u +"%Y-%m-%dT%H:%M:%SZ">
 runtime: codex
-agents_version: 17
-setup_skill_version: 1.2.6
+agents_version: 25
+setup_skill_version: 1.2.7
 resolver_strategy: codex-project-reference
 references_dir: .codex/skills/story-setup/references/agent-references
 ```
 
-如果 `.story-deployed` 已存在但无 `agents_version` 或版本小于 17，提示用户重新运行 `/story-setup` 以更新 story agents、Codex custom agents、hooks、rules 和 reference bundle（具体变更见 `UPGRADING.md`）。
+如果 `.story-deployed` 已存在但无 `agents_version` 或版本小于 25，提示用户重新运行 `$story-setup` 以更新 story agents、Codex custom agents、hooks、rules 和 reference bundle（具体变更见 `UPGRADING.md`）。如果 `agents_version` 大于 25，停止部署并提示先更新本仓，避免降级覆盖用户项目。
 
 ## Phase 3：验证安装
 
@@ -120,7 +118,7 @@ references_dir: .codex/skills/story-setup/references/agent-references
 4. 检查 `.codex/agents/` 是否存在并包含 7 个 TOML custom agents，且 TOML 可解析。
 5. 检查 `.codex/hooks.json` 和 `.codex/hooks/story_codex_hook.py` 是否存在，JSON/Python 语法有效。
 6. 检查 `.codex/story-agent-references/` 和 `.codex/skills/story-setup/references/agent-references/` 是否存在，且包含所有 agent 模板引用的参考文件。
-7. 检查 `.story-deployed` 是否存在且 `runtime: codex`、`agents_version: 17`、`setup_skill_version: 1.2.6`。
+7. 检查 `.story-deployed` 是否存在且 `runtime: codex`、`agents_version: 25`、`setup_skill_version: 1.2.7`。
 8. 输出安装报告，列出已部署文件、已保留的用户原有配置、需要 trust 的 `.codex/` 配置，以及“新开 Codex 会话后 custom agents 才稳定可用”的提示。
 
 ## 模板占位符
@@ -148,8 +146,9 @@ references_dir: .codex/skills/story-setup/references/agent-references
 ## 重新部署
 
 - `.story-deployed` 不存在：全新安装，Phase 2 全部执行。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 17`：提示已部署，确认后重跑。
-- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 17：提示需要重新部署以更新 Codex custom agents、hooks、rules 和 reference bundle。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version: 25`：提示已部署，确认后重跑。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 小于 25：提示需要重新部署以更新 Codex custom agents、hooks、rules 和 reference bundle。
+- `.story-deployed` 存在且 `runtime: codex`、`agents_version` 大于 25：停止部署，提示先更新本仓，避免用旧 story-setup 降级覆盖新项目。
 - `.story-deployed` 存在但 runtime 不是 `codex`：按迁移处理，部署 Codex 目录，不删除用户原有目录。
 
 ## Codex lifecycle hook
@@ -164,10 +163,11 @@ references_dir: .codex/skills/story-setup/references/agent-references
 | `references/codex/agents/` | Codex custom agent TOML 模板 |
 | `references/codex/hooks/hooks.json` | Codex hooks 注册模板 |
 | `references/codex/hooks/story_codex_hook.py` | Codex hook adapter |
+| `references/codex/hooks/run-story-hook.sh` | POSIX launcher |
+| `references/codex/hooks/run-story-hook.cmd` | Windows launcher |
 | `references/templates/rules/` | 写作规则参考 |
 | `references/templates/agents/` | 7 个角色提示词参考 |
 | `references/agent-references/` | agent 模板自带的参考资料副本，避免跨 skill references |
-| `references/templates/上下文.md.tmpl` | 写作上下文模板 |
 | `UPGRADING.md` | 已部署项目重新运行 `/story-setup` 时的升级策略和版本说明 |
 
 ## 流程衔接

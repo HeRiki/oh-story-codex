@@ -33,6 +33,8 @@ ROOT_HOOK_SCRIPT="hooks/story-lifecycle-hook.cjs"
 CODEX_DIR="skills/story-setup/references/codex"
 CODEX_HOOK_JSON="$CODEX_DIR/hooks/hooks.json"
 CODEX_HOOK_PY="$CODEX_DIR/hooks/story_codex_hook.py"
+CODEX_HOOK_SH="$CODEX_DIR/hooks/run-story-hook.sh"
+CODEX_HOOK_CMD="$CODEX_DIR/hooks/run-story-hook.cmd"
 
 assert_file "$PLUGIN_JSON"
 assert_file "$ROOT_HOOKS"
@@ -40,8 +42,13 @@ assert_file "$ROOT_HOOK_SCRIPT"
 assert_file "$CODEX_DIR/AGENTS.md.tmpl"
 assert_file "$CODEX_HOOK_JSON"
 assert_file "$CODEX_HOOK_PY"
+assert_file "$CODEX_HOOK_SH"
+assert_file "$CODEX_HOOK_CMD"
 assert_dir "$CODEX_DIR/agents"
 assert_file "scripts/generate-codex-agents.py"
+assert_file "scripts/generate-codex-hooks.py"
+assert_file "scripts/test-codex-hook-merge.py"
+assert_file "skills/story-setup/scripts/merge-codex-hooks.py"
 
 node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$PLUGIN_JSON" >/dev/null
 node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$ROOT_HOOKS" >/dev/null
@@ -51,10 +58,14 @@ node --check "$ROOT_HOOK_SCRIPT" >/dev/null
 from pathlib import Path
 for name in (
     'scripts/generate-codex-agents.py',
+    'scripts/generate-codex-hooks.py',
+    'skills/story-setup/scripts/merge-codex-hooks.py',
     'skills/story-setup/references/codex/hooks/story_codex_hook.py',
 ):
     compile(Path(name).read_text(encoding='utf-8'), name, 'exec')
 PY
+"$PYBIN" scripts/generate-codex-hooks.py --check >/dev/null
+"$PYBIN" scripts/test-codex-hook-merge.py
 echo "  OK JSON/JS/Python syntax"
 
 assert_grep '"skills"[[:space:]]*:[[:space:]]*"./skills/"' "$PLUGIN_JSON" "plugin manifest must expose ./skills"
@@ -75,13 +86,20 @@ assert_grep 'def find_changed_prose_files' "$CODEX_HOOK_PY" "project hook must s
 assert_grep 'def continuity_findings' "$CODEX_HOOK_PY" "project hook must carry the continuity backstop"
 echo "  OK project hook safety"
 
-assert_grep 'for PYBIN in python3 python py' "$CODEX_HOOK_JSON" "project hook launcher must probe Python interpreter"
-assert_grep 'sys\.version_info.*3, 10' "$CODEX_HOOK_JSON" "project hook launcher must reject Python versions older than 3.10"
-assert_grep 'CODEX_PROJECT_DIR.*SEARCH_DIR' "$CODEX_HOOK_JSON" "project hook launcher must resolve project root without requiring git"
+assert_grep 'run-story-hook\.sh' "$CODEX_HOOK_JSON" "project hook JSON must dispatch through POSIX launcher"
+assert_grep 'run-story-hook\.cmd' "$CODEX_HOOK_JSON" "project hook JSON must dispatch through Windows launcher"
 if grep -q 'git rev-parse' "$CODEX_HOOK_JSON"; then
   fail "project hook launcher must not require git before starting story_codex_hook.py"
 fi
-assert_grep '\.codex/hooks/story_codex_hook\.py' "$CODEX_HOOK_JSON" "project hook launcher must point at .codex/hooks"
+if grep -q 'story_codex_hook\.py' "$CODEX_HOOK_JSON"; then
+  fail "project hook JSON must not directly invoke story_codex_hook.py"
+fi
+assert_grep 'for candidate in python3 python py' "$CODEX_HOOK_SH" "POSIX launcher must probe Python interpreter"
+assert_grep 'sys\.version_info < \(3, 10\)' "$CODEX_HOOK_SH" "POSIX launcher must require Python 3.10+"
+assert_grep 'CODEX_PROJECT_DIR="\$PROJECT_ROOT"' "$CODEX_HOOK_SH" "POSIX launcher must propagate project root"
+assert_grep 'for %%P in \(python3 python py\)' "$CODEX_HOOK_CMD" "Windows launcher must probe Python interpreter"
+assert_grep 'sys\.version_info < \(3, 10\)' "$CODEX_HOOK_CMD" "Windows launcher must require Python 3.10+"
+assert_grep 'set "CODEX_PROJECT_DIR=' "$CODEX_HOOK_CMD" "Windows launcher must propagate project root"
 
 "$PYBIN" - "$CODEX_HOOK_JSON" "$CODEX_HOOK_PY" <<'PY'
 import json, sys
@@ -89,21 +107,30 @@ from pathlib import Path
 hooks = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["hooks"]
 all_hooks = [h for arr in hooks.values() for blk in arr for h in blk["hooks"]]
 assert all_hooks, "no launcher commands found"
+expected_statuses = {
+    "正在加载网文项目上下文",
+    "正在检查正文写作前置条件",
+    "正在检查网文提交提醒",
+    "正在汇总网文项目上下文",
+    "正在恢复网文项目上下文",
+}
+assert {h["statusMessage"] for h in all_hooks if "statusMessage" in h} == expected_statuses, \
+    "project hook status messages must use the generated Chinese contract"
 for h in all_hooks:
     c = h["command"]
-    assert '[ -f "$HOOK" ] || exit 0' in c, f"launcher missing no-op guard: {c[:80]}"
-    assert 'CODEX_PROJECT_DIR="$PROJECT_ROOT" "$PYBIN" "$HOOK"' in c, f"launcher must propagate root: {c[:80]}"
+    assert "run-story-hook.sh" in c, f"POSIX command must use launcher: {c[:80]}"
+    assert "CLAUDE_PROJECT_DIR" not in c, f"POSIX command leaked non-Codex env fallback: {c[:80]}"
     w = h.get("commandWindows")
     assert w, f"hook missing commandWindows: {c[:60]}"
-    assert "story_codex_hook.py" in w, f"commandWindows must invoke the hook: {w}"
-    assert "CODEX_PROJECT_DIR" in w and "Path.cwd" in w, f"commandWindows must resolve/pass project root: {w}"
-    for py_name in ("python3 -c", "python -c", "py -c"):
-        assert py_name in w, f"commandWindows must probe {py_name}: {w}"
+    assert "run-story-hook.cmd" in w, f"Windows command must use launcher: {w}"
+    assert "CLAUDE_PROJECT_DIR" not in w, f"Windows command leaked non-Codex env fallback: {w}"
     for posixism in ("${", "$(", "[ -f", "for PYBIN", "for %", "; do ", "&& break"):
         assert posixism not in w, f"commandWindows must be cmd.exe-safe: {w}"
 hook_py = Path(sys.argv[2]).read_text(encoding="utf-8")
 assert "Path(__file__)" in hook_py and "_deployed_root_from_file" in hook_py, \
     "story_codex_hook.py must self-locate the project root from __file__"
+assert "resolve_hook_cwd" in hook_py and "PurePosixPath" in hook_py, \
+    "story_codex_hook.py must keep Windows/Git-Bash cwd normalization"
 PY
 echo "  OK project hook launchers"
 
@@ -172,7 +199,6 @@ for path in sorted(Path('skills/story-setup/references/codex/agents').glob('*.to
     instructions = data['developer_instructions']
     assert path.name == f'{name}.toml', f'{path}: filename/name mismatch'
     assert '.codex/skills/story-setup/references/agent-references/' in instructions
-    assert '.codex/story-agent-references/' in instructions
     assert 'agent_type' in instructions, f'{path}: missing Codex agent_type guidance'
     assert legacy not in instructions, f'{path}: leaked legacy agent field wording'
     assert 'unknown agent_type' in instructions, f'{path}: missing runtime fallback guidance'
@@ -182,6 +208,28 @@ for path in sorted(Path('skills/story-setup/references/codex/agents').glob('*.to
 assert found == expected, found
 PY
 echo "  OK Codex custom-agent TOML"
+
+"$PYBIN" - <<'PY'
+import importlib.util
+from pathlib import Path
+
+path = Path('scripts/convert_claude_to_codex.py')
+spec = importlib.util.spec_from_file_location('convert_claude_to_codex', path)
+assert spec and spec.loader
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+samples = {
+    'spawn_agent(name="story-explorer")': 'spawn_agent(agent_type="story-explorer")',
+    'spawn_agent(name: "story-researcher")': 'spawn_agent(agent_type="story-researcher")',
+    'spawn_agent(role="narrative-writer")': 'spawn_agent(agent_type="narrative-writer")',
+}
+for source, expected in samples.items():
+    converted = source
+    for old, new in module.REPLACEMENTS.items():
+        converted = converted.replace(old, new)
+    assert converted == expected, (source, converted)
+PY
+echo "  OK Claude-to-Codex agent call conversion"
 
 assert_grep '\$story-setup|\$story-long-write|/skills' "$CODEX_DIR/AGENTS.md.tmpl" "Codex AGENTS template must mention skill invocation"
 assert_grep '\.codex/agents/\*\.toml' "$CODEX_DIR/AGENTS.md.tmpl" "Codex AGENTS template must mention custom agent location"

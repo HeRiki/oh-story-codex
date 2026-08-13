@@ -18,11 +18,14 @@ for candidate in python3 python py; do
 done
 [ -n "$PYBIN" ] || fail "Python 3.10+ is required for Codex hook tests"
 
-HOOK_SRC="$REPO_ROOT/skills/story-setup/references/codex/hooks/story_codex_hook.py"
+HOOKS_SRC="$REPO_ROOT/skills/story-setup/references/codex/hooks"
+HOOK_SRC="$HOOKS_SRC/story_codex_hook.py"
+TRACKING_TOOL="$REPO_ROOT/skills/story-long-write/scripts/tracking_commit.py"
 ROOT="$TMP_DIR/story-project"
 HOOK="$ROOT/.codex/hooks/story_codex_hook.py"
 mkdir -p "$ROOT/.codex/hooks"
 cp "$HOOK_SRC" "$HOOK"
+cp "$HOOKS_SRC/run-story-hook.sh" "$HOOKS_SRC/run-story-hook.cmd" "$ROOT/.codex/hooks/"
 chmod +x "$HOOK"
 
 git -C "$ROOT" init -q
@@ -66,6 +69,30 @@ mkdir -p "$ROOT/book/正文" "$ROOT/book/大纲" "$ROOT/book/设定"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"cat > book/正文/第001章_开端.md <<EOF\n正文\nEOF"}}')"
 assert_denied "$out" "long prose without outline"
 : > "$ROOT/book/大纲/细纲_第1章.md"
+cat > "$TMP_DIR/tracking-init.json" <<'JSON'
+{
+  "schema_version": 1,
+  "book_title": "book",
+  "last_chapter": 0,
+  "context": {
+    "position": {
+      "volume": "第一卷",
+      "volume_start_chapter": 1,
+      "story_time": "开篇",
+      "scene": "起点"
+    },
+    "long_term_constraints": [],
+    "active_character_names": [],
+    "continuity_risks": [],
+    "recent_chapters": [],
+    "next_chapter_commitments": []
+  },
+  "character_snapshots": {},
+  "foreshadow": [],
+  "timeline_events": []
+}
+JSON
+"$PYBIN" "$TRACKING_TOOL" init --project "$ROOT/book" --input "$TMP_DIR/tracking-init.json" >/dev/null
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"cat > book/正文/第001章_开端.md <<EOF\n正文\nEOF"}}')"
 assert_empty "$out" "long prose with outline"
 
@@ -119,7 +146,7 @@ TXT
 git -C "$ROOT" add book/正文/第1章.md short/正文.md
 out="$(run_hook pre-tool-commit-advisory '{"tool_name":"Bash","tool_input":{"command":"git commit -m test"}}')"
 assert_additional_context "$out" "commit advisory"
-echo "$out" | grep -q 'Hardcoded character attributes' || fail "commit advisory did not inspect staged markdown"
+echo "$out" | grep -q '正文硬编码角色属性' || fail "commit advisory did not inspect staged markdown"
 echo "$out" | grep -q 'short/正文.md' || fail "commit advisory missed short prose"
 out="$(run_hook pre-tool-commit-advisory '{"tool_name":"Bash","tool_input":{"command":"echo git commit docs"}}')"
 assert_empty "$out" "non-commit bash command"
@@ -129,17 +156,21 @@ echo "  OK commit advisory"
 mkdir -p "$ROOT/book/追踪"
 cat > "$ROOT/.story-deployed" <<'TXT'
 deployed_at: 2026-06-25T00:00:00Z
-agents_version: 17
-setup_skill_version: 1.2.6
+agents_version: 19
+setup_skill_version: 1.2.7
 target_cli: codex
 resolver_strategy: project-local-skill-reference
 references_dir: .codex/skills/story-setup/references/agent-references
 TXT
 printf 'book\n' > "$ROOT/.active-book"
-printf '# 上下文\n' > "$ROOT/book/追踪/上下文.md"
 out="$(run_hook session-start '{"hook_event_name":"SessionStart"}')"
 assert_additional_context "$out" "session-start context"
 echo "$out" | grep -q 'Active book' || fail "session-start did not mention active book"
+mkdir -p "$ROOT/absolute-target"
+printf '%s\n' "$ROOT/absolute-target" > "$ROOT/.active-book"
+out="$(run_hook session-start '{"hook_event_name":"SessionStart"}')"
+printf '%s' "$out" | "$PYBIN" -c 'import json,sys; o=json.loads(sys.stdin.buffer.read().decode("utf-8")); text=o.get("hookSpecificOutput",{}).get("additionalContext",""); assert "Active book" not in text and "absolute-target" not in text and ".active-book 无效" in text' || fail "session-start did not reject and diagnose absolute .active-book: $out"
+printf 'book\n' > "$ROOT/.active-book"
 out="$(run_hook pre-compact '{"hook_event_name":"PreCompact"}')"
 printf '%s' "$out" | assert_json || fail "pre-compact invalid JSON: $out"
 echo "$out" | grep -q 'Story Compact Summary' || fail "pre-compact missing summary"
@@ -158,21 +189,24 @@ out="$(run_hook stop '{"hook_event_name":"Stop"}')"
 printf '%s' "$out" | assert_json || fail "stop content-sweep invalid JSON: $out"
 echo "$out" | grep -q '截断' || fail "stop did not flag truncated git-changed prose: $out"
 echo "$out" | grep -q '第006章_截断.md' || fail "stop did not name the changed prose file: $out"
+printf '%s' "$out" | "$PYBIN" -c 'import json,sys; o=json.loads(sys.stdin.buffer.read().decode("utf-8")); assert o.get("decision")=="block" and o.get("reason")' || fail "stop did not request a continuation: $out"
+out="$(run_hook stop '{"hook_event_name":"Stop","stop_hook_active":true}')"
+printf '%s' "$out" | "$PYBIN" -c 'import json,sys; o=json.loads(sys.stdin.buffer.read().decode("utf-8")); assert o.get("decision") != "block" and "截断" in o.get("systemMessage","")' || fail "active stop hook did not warn without another continuation: $out"
 # 已提交（无 git 改动）的章节不应被复扫——只兜本回合改动集。
 git -C "$ROOT" add -A && git -C "$ROOT" commit -qm wip >/dev/null 2>&1
 out="$(run_hook stop '{"hook_event_name":"Stop"}')"
-printf '%s' "$out" | "$PYBIN" -c 'import json,sys; o=json.loads(sys.stdin.buffer.read().decode("utf-8")); assert "截断" not in o.get("systemMessage","")' || fail "stop re-flagged already-committed prose: $out"
+printf '%s' "$out" | "$PYBIN" -c 'import json,sys; o=json.loads(sys.stdin.buffer.read().decode("utf-8")); assert o.get("decision") != "block" and "截断" not in o.get("reason","")' || fail "stop re-flagged already-committed prose: $out"
 echo "  OK stop content sweep (git-changed only)"
 
 # ── SessionStart continuity: 追踪 staleness（写了章但 上下文.md 没跟上）+ 章节标题去重 ──
 mkdir -p "$ROOT/contbook/正文" "$ROOT/contbook/追踪"
-printf '旧上下文\n' > "$ROOT/contbook/追踪/上下文.md"
+"$PYBIN" "$TRACKING_TOOL" init --project "$ROOT/contbook" --input "$TMP_DIR/tracking-init.json" >/dev/null
 sleep 1
 printf '# 第1章 决战\n正文。\n' > "$ROOT/contbook/正文/第001章_决战.md"
 printf '# 第2章 决战\n正文。\n' > "$ROOT/contbook/正文/第002章_决战.md"
 out="$(run_hook session-start '{"hook_event_name":"SessionStart"}')"
 assert_additional_context "$out" "session-start continuity"
-echo "$out" | grep -q '续写会断线' || fail "session-start missed 追踪 staleness: $out"
+echo "$out" | grep -q '正文已更新到' || fail "session-start missed 追踪 staleness: $out"
 echo "$out" | grep -q '标题重复' || fail "session-start missed dup-title: $out"
 echo "  OK session-start continuity (追踪 staleness + dup-title)"
 
@@ -188,6 +222,7 @@ echo "  OK cwd-based root resolution"
 # .codex/hooks/ location. Discriminating: 细纲 exists at the true root, so a wrong root → deny;
 # only __file__-derived root → allow. (The valid-env tests above let env win and never hit this.)
 : > "$ROOT/book/大纲/细纲_第8章.md"
+: > "$ROOT/book/正文/第8章_x.md"
 out="$(cd "$TMP_DIR" && CODEX_PROJECT_DIR="$TMP_DIR/does-not-exist" "$PYBIN" "$HOOK" pre-tool-prose-guard <<'JSON'
 {"tool_name":"Write","tool_input":{"file_path":"book/正文/第8章_x.md","content":"x"}}
 JSON
@@ -201,6 +236,7 @@ NON_GIT="$TMP_DIR/non-git-story-project"
 NON_GIT_HOOK="$NON_GIT/.codex/hooks/story_codex_hook.py"
 mkdir -p "$NON_GIT/.codex/hooks" "$NON_GIT/book/正文" "$NON_GIT/book/大纲" "$NON_GIT/nested/a/b"
 cp "$HOOK_SRC" "$NON_GIT_HOOK"
+cp "$HOOKS_SRC/run-story-hook.sh" "$HOOKS_SRC/run-story-hook.cmd" "$NON_GIT/.codex/hooks/"
 cp "$REPO_ROOT/skills/story-setup/references/codex/hooks/hooks.json" "$NON_GIT/.codex/hooks.json"
 launcher_cmd="$(
   NON_GIT="$NON_GIT" "$PYBIN" - <<'PY'
@@ -224,7 +260,9 @@ echo "  OK non-git deployment launcher root search"
 # back to the nested cwd and wrongly denying. This case also exercises Windows (Git Bash MSYS
 # path passed to native Python), which is exactly where naive env/cwd propagation breaks.
 : > "$NON_GIT/book/大纲/细纲_第4章.md"
-out="$(cd "$NON_GIT/nested/a/b"; unset CODEX_PROJECT_DIR CLAUDE_PROJECT_DIR; printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第004章_非Git.md","content":"正文"}}' | eval "$launcher_cmd")"
+"$PYBIN" "$TRACKING_TOOL" init --project "$NON_GIT/book" --input "$TMP_DIR/tracking-init.json" >/dev/null
+: > "$NON_GIT/book/正文/第004章_非Git.md"
+out="$(cd "$NON_GIT/nested/a/b"; unset CODEX_PROJECT_DIR; printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第004章_非Git.md","content":"正文"}}' | eval "$launcher_cmd")"
 assert_empty "$out" "non-git nested cwd + outline present allows (root reaches Python hook)"
 rm -f "$NON_GIT/book/大纲/细纲_第4章.md"
 
@@ -235,10 +273,29 @@ echo "  OK non-git nested root propagation"
 # happens if it treats "/" as the project root after an exhausted upward search).
 NO_DEPLOY="$TMP_DIR/no-deploy/x/y"
 mkdir -p "$NO_DEPLOY"
-out="$(cd "$NO_DEPLOY"; unset CODEX_PROJECT_DIR CLAUDE_PROJECT_DIR; printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第1章.md","content":"正文"}}' | eval "$launcher_cmd" 2>&1)"
+out="$(cd "$NO_DEPLOY"; unset CODEX_PROJECT_DIR; printf '{"tool_name":"Write","tool_input":{"file_path":"book/正文/第1章.md","content":"正文"}}' | eval "$launcher_cmd" 2>&1)"
 assert_empty "$out" "missing deployment launcher no-ops silently"
 case "$out" in *//.codex*) fail "launcher executed //.codex/... on missing deployment: $out";; esac
 
 echo "  OK missing-deployment launcher no-op"
+
+# Launcher must skip an executable Python older than 3.10 instead of selecting the first
+# command that merely starts. The proxy keeps this deterministic on all Git Bash platforms.
+STUB_BIN="$TMP_DIR/python-stubs"
+mkdir -p "$STUB_BIN"
+cat > "$STUB_BIN/python3" <<'SH'
+#!/bin/sh
+[ "${1:-}" = "-c" ] && exit 1
+exit 97
+SH
+cat > "$STUB_BIN/python" <<'SH'
+#!/bin/sh
+exec "$HOOK_TEST_REAL_PYBIN" "$@"
+SH
+chmod +x "$STUB_BIN/python3" "$STUB_BIN/python"
+REAL_PYBIN="$(command -v "$PYBIN")"
+out="$(cd "$ROOT" && printf '%s' '{"hook_event_name":"SessionStart"}' | PATH="$STUB_BIN:$PATH" HOOK_TEST_REAL_PYBIN="$REAL_PYBIN" sh "$ROOT/.codex/hooks/run-story-hook.sh" session-start)"
+printf '%s' "$out" | assert_json || fail "launcher did not skip incompatible python3: $out"
+echo "  OK launcher requires Python 3.10+"
 echo ""
 echo "OK: Codex hook synthetic tests passed"

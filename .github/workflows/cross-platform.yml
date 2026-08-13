@@ -1,27 +1,45 @@
 name: Cross-platform smoke test
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   static-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - name: Install Dashboard test dependencies
+        run: npm ci
       - name: Run skill static check
         run: bash scripts/static-check.sh
+      - name: Check hot-path doc budget
+        run: bash scripts/check-doc-budget.sh
       - name: Check hook-regex sync
         run: bash scripts/check-hook-regex-sync.sh
       - name: Check shared-file consistency
         run: bash scripts/check-shared-files.sh
+      - name: Shared-asset manifest regression
+        run: python3 scripts/test-shared-assets.py
+      - name: Punctuation normalizer regression
+        run: node scripts/test-normalize-punctuation.js
+      - name: Scan runtime regression
+        run: node scripts/test-scan-runtime.js
       - name: AI-pattern detector regression
         run: bash scripts/test-ai-patterns.sh
       - name: Degeneration detector regression
         run: bash scripts/test-degeneration.sh
+      - name: Tracking workflow contract regression
+        run: python3 scripts/test-tracking-workflow-contracts.py
+      - name: Tracking transaction behavior regression
+        run: python3 scripts/test-tracking-commit.py
       - name: Check story-setup deployment
         run: bash scripts/check-story-setup-deployment.sh
       - name: Check Codex adapter
@@ -34,6 +52,12 @@ jobs:
         run: bash scripts/test-charcount-portable.sh
       - name: Portable char-count (simulated Windows Store stub)
         run: bash scripts/test-charcount-portable.sh --stub
+      - name: Dashboard API regression
+        run: npm run test:dashboard
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Dashboard browser regression
+        run: npm run test:dashboard:e2e
       - name: Syntax-check collection scripts
         run: |
           for f in $(find skills -name '*-scraper.js' -o -name 'cdp-utils.js' -o -name 'setup-cdp-chrome.js'); do
@@ -43,6 +67,7 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -57,6 +82,19 @@ jobs:
       - name: Degeneration detector regression
         shell: bash
         run: bash scripts/test-degeneration.sh
+      - name: Tracking workflow contract regression
+        run: python scripts/test-tracking-workflow-contracts.py
+      - name: Tracking transaction behavior regression
+        run: python scripts/test-tracking-commit.py
+      - name: Check shared-file consistency
+        shell: bash
+        run: bash scripts/check-shared-files.sh
+      - name: Punctuation normalizer regression
+        run: node scripts/test-normalize-punctuation.js
+      - name: Scan runtime regression
+        run: node scripts/test-scan-runtime.js
+      - name: Dashboard API regression
+        run: npm run test:dashboard
       - name: Check Codex adapter
         shell: bash
         run: bash scripts/check-codex-adapter.sh
@@ -83,6 +121,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -95,6 +134,16 @@ jobs:
         run: bash scripts/test-ai-patterns.sh
       - name: Degeneration detector regression
         run: bash scripts/test-degeneration.sh
+      - name: Tracking workflow contract regression
+        run: python3 scripts/test-tracking-workflow-contracts.py
+      - name: Tracking transaction behavior regression
+        run: python3 scripts/test-tracking-commit.py
+      - name: Check shared-file consistency
+        run: bash scripts/check-shared-files.sh
+      - name: Punctuation normalizer regression
+        run: node scripts/test-normalize-punctuation.js
+      - name: Scan runtime regression
+        run: node scripts/test-scan-runtime.js
       - name: Check Codex adapter
         run: bash scripts/check-codex-adapter.sh
       - name: Test Codex hook adapter

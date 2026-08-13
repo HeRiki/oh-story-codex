@@ -12,7 +12,7 @@
 | `static-check.sh` | Skill 结构、frontmatter、引用路径、死文件、references 交叉引用（结构总闸） | CI |
 | `check-shared-files.sh` | 跨 skill 同名 reference/脚本副本字节一致 | CI |
 | `check-story-setup-deployment.sh` | story-setup 部署/运行时回归（慢，>2min） | CI |
-| `check-hook-regex-sync.sh` | `detect-story-gaps.sh` 伏笔状态检测行为 | CI（也被 test-prose-net-parity 调） |
+| `check-hook-regex-sync.sh` | Codex 生命周期 Hook 的 schema 4 追踪提示、活跃书目隔离与正文前置守卫 | CI |
 | `check-python-invocation.sh` | 技能文档禁止裸调 `python3`（须 python3→python→py 探测） | CI（也被 test-charcount-portable 调） |
 | `check-codex-adapter.sh` | Codex 插件适配层：plugin manifest、根 hook、Codex agent TOML、项目 hooks 锚点 | CI（调 generate-codex-agents.py 验生成确定性） |
 

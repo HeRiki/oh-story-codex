@@ -206,7 +206,9 @@ check_skill() {
         [[ "$xref" == http* ]] && continue
         [[ "$xref" == \#* ]] && continue
         [[ "$xref" == *"{"* ]] && continue
-        local xref_full="$(dirname "$ref_file")/$xref"
+        local xref_path="${xref%%#*}"
+        [ -z "$xref_path" ] && continue
+        local xref_full="$(dirname "$ref_file")/$xref_path"
         if [ ! -e "$xref_full" ]; then
           broken_xrefs+=("$(basename "$ref_file") -> $xref")
         fi
@@ -266,9 +268,11 @@ check_skill() {
     local src_rel="${src_file#$skill_dir/}"
     while IFS= read -r ref_name; do
       [ -z "$ref_name" ] && continue
-      # Skip template placeholders and non-ASCII paths (artifact templates)
+      # Skip template placeholders; non-ASCII artifact paths are skipped by
+      # the ASCII lowercase filename check below.
       [[ "$ref_name" == *"{"* ]] && continue
-      [[ "$ref_name" =~ [^[:ascii:]] ]] && continue
+      # Known runtime artifact created by story-review only for multi-batch runs.
+      [[ "$ref_name" == ".story-review/state.md" ]] && continue
       # Only check filenames that look like reference docs (lowercase ASCII + hyphens + underscores)
       local base_name="$(basename "$ref_name")"
       [[ "$base_name" =~ ^[a-z0-9_-]+\.md$ ]] || continue
@@ -464,7 +468,7 @@ check_skill() {
 
   # Check 9: Runtime contamination from non-Codex skill formats
   local contamination=()
-  local forbidden_regex='Agent\(subagent_type|subagent_type|\.claude/(agents|hooks|rules|settings)|CLAUDE\.md|Claude Code|OpenClaw|OpenCode|\.opencode|WebSearch|webReader|model: (opus|sonnet|haiku)|tools: \[Read|disallowedTools:|maxTurns:|memory: project|用户用中文就用中文回复|所有输出使用中文'
+  local forbidden_regex='(^|[^[:alnum:]_])Agent\(|subagent_type|\.claude/(agents|hooks|rules|settings)|CLAUDE\.md|Claude Code|OpenClaw|OpenCode|\.opencode|WebSearch|webReader|model: (opus|sonnet|haiku)|tools: \[Read|disallowedTools:|maxTurns:|memory: project|用户用中文就用中文回复|所有输出使用中文'
   while IFS= read -r hit; do
     [ -z "$hit" ] && continue
     contamination+=("$hit")
@@ -506,6 +510,17 @@ check_plugin_hooks
 for skill_dir in "$SKILLS_DIR"/*/; do
   check_skill "$skill_dir"
 done
+
+if [ -x "$REPO_ROOT/scripts/check-doc-budget.sh" ]; then
+  TOTAL=$((TOTAL + 1))
+  echo ""
+  echo "--- document budget ---"
+  if "$REPO_ROOT/scripts/check-doc-budget.sh"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1))
+  fi
+fi
 
 echo ""
 echo "=================="

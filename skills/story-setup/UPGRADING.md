@@ -30,9 +30,9 @@
 
 ### 不碰
 
-这些文件完全由用户管理：
-- `{书名}/追踪/上下文.md` — 用户写作上下文
-- `{书名}/追踪/伏笔.md` — 用户伏笔追踪
+这些文件不由 story-setup 修改：
+- `{书名}/追踪/_tracking-state.json` — `tracking_commit.py` 的唯一权威状态
+- `{书名}/追踪/上下文.md`、伏笔、时间线、角色状态 — 由事务工具确定性派生
 - `.active-book` — 用户活跃书目
 - 短篇项目的 `追踪/` — setup/hooks 不应为短篇自动创建
 
@@ -58,7 +58,10 @@
 - `agents_version: 14` → 旧版，需重新部署以获取拆文到写作模块链、推理型一致性检查、自然分段和主语节奏规则
 - `agents_version: 15` → 旧版，需重新部署以获取 AI 句式检测、对话声线/文风自检、新名词锚点、封面裁剪兜底、Codex custom agents 和项目级 hooks
 - `agents_version: 16` → 旧版，需重新部署以获取题材正文提示卡召回、chapter_formula 逐章写法公式和新版部署模板
-- `agents_version: 17` → 当前版本
+- `agents_version: 17` → 旧版，需重新部署以获取 Codex hook launcher、契约体检锚点和剧情单元/主产物 fail-fast 规则
+- `agents_version: 18` → 旧版，需重新部署以获取毒句式欠账门、正文网增强和新版项目级 hook
+- `agents_version: 19` 至 `24` → 旧版，需重新部署
+- `agents_version: 25` → 当前版本
 
 ## 版本变更
 
@@ -168,7 +171,7 @@
 
 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/agents/`、`.codex/story-rules/` 并部署 `.codex/story-agent-references/`、`.codex/skills/story-setup/references/agent-references/` 和项目级 hooks。
 
-### v17 (当前)
+### v17
 
 - `setup_skill_version` 升级到 `1.2.6`，`.story-deployed` 的 `agents_version` 升级到 `17`。
 - 同步上游 v0.6.22：长篇新增题材正文提示卡召回，短篇新增投稿层，去 AI 味检测补充任务卡点、动作链和比喻密度提示。
@@ -176,3 +179,30 @@
 - `skills/story/VERSION` 更新到 `0.6.22`；检查更新只提示，不自动覆盖本仓 Codex 移植版。
 
 已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/agents/`、`.codex/story-rules/`、`.codex/story-agent-references/`、`.codex/skills/story-setup/references/agent-references/` 和项目级 hooks；部署后新开 Codex 会话让 custom agents 重新注册。
+
+### v18
+
+- `setup_skill_version` 升级到 `1.2.7`，`.story-deployed` 的 `agents_version` 升级到 `18`。
+- 同步上游 v0.7.0 的契约体检思路：`agents_version` 成为运行时过期判定的唯一权威，`setup_skill_version` 落后只作为部署记录，不单独触发降级或重部署。
+- 长篇写作统一采用「剧情单元」口径，并把拆文主产物 `剧情/情绪模块.md` 与 `剧情/节奏.md` 接入卷纲/细纲；缺少主产物时明确 fail-fast，不静默用旧产物降级。
+- 新增 `scripts/current-contract.json` 记录当前部署契约，供本仓 Codex-only 门禁核对版本、主产物和大纲必填项。
+
+### v19
+
+- `.story-deployed` 的 `agents_version` 升级到 `19`（`setup_skill_version` 保持 `1.2.7`）。
+- 项目级 Codex hooks 改为通过 `.codex/hooks/run-story-hook.sh` 与 `.codex/hooks/run-story-hook.cmd` 启动 `story_codex_hook.py`，解释器探测集中在 launcher，`.codex/hooks.json` 只负责定位项目根和派发事件。
+- `merge-codex-hooks.py` 能识别旧直调 `story_codex_hook.py`、新版 POSIX launcher 和 Windows launcher，重部署时只替换 story-setup 管理注册，保留用户自定义 hooks。
+- 去 AI 味正文网新增确定性毒句式检测与「上一章毒句式欠账门」；命中 blocking 毒句式未清理且未写 `<!-- 去味:跳过 -->` 时，写下一章会先被项目级 hook 拦截。
+- `skills/story/VERSION` 更新到 `0.7.0`；检查更新只提示，不自动覆盖本仓 Codex 移植版。
+
+已部署项目需重新运行 `/story-setup`，以覆盖 `.codex/story-agents/`、`.codex/agents/`、`.codex/story-rules/`、`.codex/story-agent-references/`、`.codex/skills/story-setup/references/agent-references/`、`.codex/hooks/story_codex_hook.py`、`.codex/hooks/run-story-hook.sh`、`.codex/hooks/run-story-hook.cmd` 并合并新版 `.codex/hooks.json`；部署后新开 Codex 会话让 custom agents 重新注册。
+
+### v25 (当前)
+
+- `.story-deployed` 的 `agents_version` 升级到 `25`（`setup_skill_version` 保持 `1.2.7`）。
+- 同步上游 v0.7.1-v0.7.5 及 tag 后 main：正文文风修复、剧情单元与拆文格式、追踪事务 schema 4、目录发现、采集字段、跨批审查和热路径精简。
+- 长篇追踪改为 `_tracking-state.json` 单一权威；`上下文.md`、伏笔、作者真相/读者已知时间线和角色状态均由 `tracking_commit.py` 确定性派生，story-setup 不再下发手写上下文模板。
+- 项目级 Codex hook 增加受限目录发现、复杂 Bash 写入目标解析、章节提交顺序、状态修订一致性和正文退化检查，同时保留 Windows/Git Bash 路径归一化与双 launcher。
+- `skills/story/VERSION` 更新到 `0.7.5`；上游 tag 后 main 的通用修复已同步，但未虚构更高发布版本。
+
+已部署项目需重新运行 `$story-setup`，然后新开 Codex 会话，让 `agents_version: 25` 的 custom agents、项目 hooks、rules 和 reference bundle 生效。旧追踪数据不由 setup 自动改写；已有正文项目按 `$story-import` 的旧项目迁移流程重建当前事务状态。

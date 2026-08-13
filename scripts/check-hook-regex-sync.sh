@@ -1,8 +1,8 @@
 #!/bin/bash
-# check-hook-regex-sync.sh — 行为级校验 Codex 生命周期 hook 的伏笔提示。
+# check-hook-regex-sync.sh — 行为级校验 Codex 生命周期 hook 的 schema 4 追踪提示。
 #
-# SessionStart 只提示已过期或异常伏笔，不能把未埋/已埋这类正常开放
-# 状态当成缺口，否则会诱发日更流程全量伏笔审计和上下文膨胀。
+# SessionStart 只从 _tracking-state.json 单一权威读取状态；旧扁平 Markdown
+# 即使缺失或冲突也不能影响判断，更不能阻断 tracking_commit.py 的合法事务。
 
 set -euo pipefail
 
@@ -10,16 +10,16 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 HOOK_FILE="$REPO_ROOT/hooks/story-lifecycle-hook.cjs"
-PROTOCOL_FILE="$REPO_ROOT/skills/story-long-write/references/artifact-protocols.md"
+TRACKING_TOOL="$REPO_ROOT/skills/story-long-write/scripts/tracking_commit.py"
 
-for file in "$HOOK_FILE" "$PROTOCOL_FILE"; do
+for file in "$HOOK_FILE" "$TRACKING_TOOL"; do
   if [ ! -f "$file" ]; then
     echo "FAIL: required file not found: $file"
     exit 1
   fi
 done
 
-STATUS_ENUM=$(grep -oE '状态\{[^}]+\}' "$PROTOCOL_FILE" 2>/dev/null | head -1 | sed 's/状态{//;s/}//' || true)
+STATUS_ENUM=$(grep -E '^FORESHADOW_STATUSES = ' "$TRACKING_TOOL" | head -1 | grep -oE '"[^"]+"' | tr -d '"' | paste -sd/ - || true)
 if [ -z "$STATUS_ENUM" ]; then
   echo "FAIL: No foreshadow status enum found in protocol file"
   exit 1
@@ -36,7 +36,7 @@ trap cleanup EXIT
 
 setup_fixture() {
   local name="$1"
-  local foreshadow_body="$2"
+  local status="${2:-}"
   local root="$TMP_DIR/$name"
   mkdir -p "$root/book/追踪" "$root/book/正文" "$root/book/设定" "$root/book/大纲"
   touch "$root/.story-deployed"
@@ -45,16 +45,12 @@ setup_fixture() {
 ## 当前位置
 - 章: 第1章
 CTX
-  touch "$root/book/追踪/时间线.md"
-  cat > "$root/book/追踪/伏笔.md" <<EOF_FORESHADOW
-# 伏笔追踪
-
-## 伏笔状态表
-
-| ID | 伏笔内容 | 埋设章节 | 预计回收章节 | 状态{未埋/已埋/已回收/已过期} | 重要度{高/中/低} |
-|----|---------|---------|-------------|-----------------------------|----------------|
-$foreshadow_body
-EOF_FORESHADOW
+  if [ -n "$status" ]; then
+    foreshadow="\"F001\":{\"status\":\"$status\"}"
+  else
+    foreshadow=""
+  fi
+  printf '{"schema_version":4,"book_title":"测试","last_committed_chapter":1,"imported_through_chapter":1,"state_revision":0,"context":{},"characters":{},"foreshadow":{%s},"timeline":{}}\n' "$foreshadow" > "$root/book/追踪/_tracking-state.json"
   printf '%s' "$root"
 }
 
@@ -97,38 +93,69 @@ assert_foreshadow_warn() {
   echo "  OK warn: $case_name"
 }
 
-assert_no_foreshadow_warn "header-only" ""
+assert_no_foreshadow_warn "empty-state" ""
+assert_no_foreshadow_warn "normal-open-planted" "已埋"
+assert_no_foreshadow_warn "closed-recovered" "已回收"
+assert_no_foreshadow_warn "abandoned" "放弃"
+assert_foreshadow_warn "overdue" "已过期"
+assert_foreshadow_warn "invalid-unplanted" "未埋"
+assert_foreshadow_warn "unknown-status" "状态损坏"
 
-plain_header_root="$TMP_DIR/plain-header"
-mkdir -p "$plain_header_root/book/追踪" "$plain_header_root/book/正文" "$plain_header_root/book/设定" "$plain_header_root/book/大纲"
-touch "$plain_header_root/.story-deployed"
-cat > "$plain_header_root/book/追踪/上下文.md" <<'CTX'
-# 写作进度
-## 当前位置
-- 章: 第1章
-CTX
-touch "$plain_header_root/book/追踪/时间线.md"
-cat > "$plain_header_root/book/追踪/伏笔.md" <<'EOF_PLAIN_HEADER'
-# 伏笔追踪
-
-| ID | 名称 | 埋下 | 回收 | 状态 | 备注 |
-|----|------|------|------|------|------|
-| F001 | 玉佩 | 第1章 | 第20章 | 未埋 | ok |
-EOF_PLAIN_HEADER
-plain_header_output=$(run_hook "$plain_header_root" || true)
-if echo "$plain_header_output" | grep -q '过期或异常伏笔\|未关闭伏笔'; then
-  echo "FAIL: plain-header should not emit foreshadow warning"
-  echo "Output:"
-  echo "$plain_header_output"
+authority_root=$(setup_fixture "state-authority" "已埋")
+printf '| F999 | 旧文件冲突 | 已过期 |\n' > "$authority_root/book/追踪/伏笔.md"
+printf '# 旧扁平时间线\n' > "$authority_root/book/追踪/时间线.md"
+authority_output=$(run_hook "$authority_root" || true)
+if echo "$authority_output" | grep -q '过期或异常伏笔\|未发现 `追踪/时间线.md`'; then
+  echo "FAIL: legacy flat Markdown must not override schema 4 state"
+  echo "$authority_output"
   exit 1
 fi
-echo "  OK no warn: plain-header"
+echo "  OK authority: schema 4 state overrides legacy flat Markdown"
 
-assert_no_foreshadow_warn "planned-unplanted" "| F001 | 计划后续埋设 | 第5章 | 第10章 | 未埋 | 中 |"
-assert_no_foreshadow_warn "normal-open-planted" "| F002 | 正常开放伏笔 | 第1章 | 第20章 | 已埋 | 高 |"
-assert_no_foreshadow_warn "closed-recovered" "| F003 | 已回收伏笔 | 第1章 | 第3章 | 已回收 | 低 |"
-assert_foreshadow_warn "overdue" "| F004 | 过期伏笔 | 第1章 | 第2章 | 已过期 | 高 |"
-assert_foreshadow_warn "unknown-status" "| F005 | 异常状态 | 第1章 | 第2章 | 状态损坏 | 高 |"
+missing_state_root="$TMP_DIR/missing-state"
+mkdir -p "$missing_state_root/book/追踪" "$missing_state_root/book/正文" "$missing_state_root/book/设定" "$missing_state_root/book/大纲"
+touch "$missing_state_root/.story-deployed" "$missing_state_root/book/追踪/上下文.md"
+missing_output=$(run_hook "$missing_state_root")
+echo "$missing_output" | grep -q '_tracking-state.json' || { echo "FAIL: missing state must emit migration guidance"; exit 1; }
+echo "  OK hint: missing state reports migration without blocking"
+
+active_root="$TMP_DIR/active-book"
+for book in A旧书 B活跃书; do
+  mkdir -p "$active_root/$book/追踪" "$active_root/$book/正文" "$active_root/$book/设定" "$active_root/$book/大纲"
+done
+touch "$active_root/.story-deployed"
+printf 'B活跃书\n' > "$active_root/.active-book"
+printf '# A旧书上下文，不应出现\n' > "$active_root/A旧书/追踪/上下文.md"
+printf '# B活跃书上下文，应当出现\n' > "$active_root/B活跃书/追踪/上下文.md"
+printf '{"schema_version":4,"book_title":"A旧书","last_committed_chapter":1,"imported_through_chapter":1,"state_revision":0,"context":{},"characters":{},"foreshadow":{"F001":{"status":"已过期"}},"timeline":{}}\n' > "$active_root/A旧书/追踪/_tracking-state.json"
+printf '{"schema_version":4,"book_title":"B活跃书","last_committed_chapter":1,"imported_through_chapter":1,"state_revision":0,"context":{},"characters":{},"foreshadow":{},"timeline":{}}\n' > "$active_root/B活跃书/追踪/_tracking-state.json"
+active_output=$(run_hook "$active_root")
+echo "$active_output" | grep -q '活跃书目：B活跃书' || { echo "FAIL: SessionStart did not select .active-book"; echo "$active_output"; exit 1; }
+echo "$active_output" | grep -q 'B活跃书上下文，应当出现' || { echo "FAIL: SessionStart did not read active-book context"; echo "$active_output"; exit 1; }
+if echo "$active_output" | grep -q 'A旧书上下文\|过期或异常伏笔'; then
+  echo "FAIL: inactive book leaked into SessionStart context"
+  echo "$active_output"
+  exit 1
+fi
+node_active_root="$active_root"
+if command -v cygpath >/dev/null 2>&1; then
+  node_active_root="$(cygpath -m "$active_root")"
+fi
+printf '{"cwd":"%s","hook_event_name":"Stop"}' "$node_active_root" \
+  | STORY_SESSION_LOG=1 node "$HOOK_FILE" stop
+test -f "$active_root/B活跃书/追踪/session-log.txt" || { echo "FAIL: session log was not written to active book"; exit 1; }
+test ! -e "$active_root/A旧书/追踪/session-log.txt" || { echo "FAIL: session log leaked into inactive book"; exit 1; }
+echo "  OK active-book: context, gap scan, and session log stay within B活跃书"
+
+printf '../outside\n' > "$active_root/.active-book"
+escape_output=$(run_hook "$active_root")
+if echo "$escape_output" | grep -q '活跃书目：A旧书\|活跃书目：B活跃书\|A旧书上下文\|B活跃书上下文'; then
+  echo "FAIL: invalid .active-book must not silently select another book"
+  echo "$escape_output"
+  exit 1
+fi
+echo "$escape_output" | grep -q 'active-book.*无效' || { echo "FAIL: invalid .active-book must report a diagnostic"; echo "$escape_output"; exit 1; }
+echo "  OK containment: invalid .active-book is diagnosed without switching books"
 
 if grep -q '未关闭伏笔' "$HOOK_FILE"; then
   echo "FAIL: old open-foreshadow warning wording is still present in Codex hook"
@@ -136,7 +163,7 @@ if grep -q '未关闭伏笔' "$HOOK_FILE"; then
 fi
 
 for state in $(echo "$STATUS_ENUM" | tr '/' ' '); do
-  if ! grep -qF "$state" "$HOOK_FILE" && ! grep -qF "$state" "$PROTOCOL_FILE"; then
+  if ! grep -qF "$state" "$HOOK_FILE"; then
     echo "FAIL: status not documented in hook/protocol semantics: $state"
     exit 1
   fi

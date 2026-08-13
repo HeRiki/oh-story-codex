@@ -39,19 +39,24 @@ assert_file "$UPGRADING_FILE"
 assert_file "$CODEX_DIR/AGENTS.md.tmpl"
 assert_file "$CODEX_DIR/hooks/hooks.json"
 assert_file "$CODEX_DIR/hooks/story_codex_hook.py"
+assert_file "$CODEX_DIR/hooks/run-story-hook.sh"
+assert_file "$CODEX_DIR/hooks/run-story-hook.cmd"
 assert_dir "$CODEX_DIR/agents"
+assert_file "$SKILL_DIR/scripts/merge-codex-hooks.py"
 assert_dir "$AGENT_TEMPLATES"
 assert_dir "$RULES_DIR"
 assert_dir "$AGENT_REFS_DIR"
 
 for required in \
   'runtime: codex' \
-  'agents_version: 17' \
-  'setup_skill_version: 1.2.6' \
+  'agents_version: 25' \
+  'setup_skill_version: 1.2.7' \
   'references/codex/AGENTS.md.tmpl' \
   'references/codex/agents/' \
   'references/codex/hooks/hooks.json' \
   'references/codex/hooks/story_codex_hook.py' \
+  'references/codex/hooks/run-story-hook.sh' \
+  'references/codex/hooks/run-story-hook.cmd' \
   '.codex/agents/' \
   '.codex/hooks.json' \
   '.codex/skills/story-setup/references/agent-references/' \
@@ -75,9 +80,12 @@ from pathlib import Path
 for name in (
     'skills/story-setup/references/codex/hooks/story_codex_hook.py',
     'scripts/generate-codex-agents.py',
+    'scripts/generate-codex-hooks.py',
+    'skills/story-setup/scripts/merge-codex-hooks.py',
 ):
     compile(Path(name).read_text(encoding='utf-8'), name, 'exec')
 PY
+"$PYBIN" "$REPO_ROOT/scripts/generate-codex-hooks.py" --check >/dev/null
 echo "  OK Codex hook JSON/Python syntax"
 
 "$PYBIN" "$REPO_ROOT/scripts/generate-codex-agents.py" \
@@ -163,7 +171,7 @@ done < <(
 [ "$missing_refs" -eq 0 ] || fail "$missing_refs referenced agent reference files are missing"
 echo "  OK agent reference bundle integrity"
 
-if grep -RInE '(OpenCode|OpenClaw|AskUserQuestion|WebSearch|webReader|\.opencode|opencode|\.claude|CLAUDE\.md|settings-hooks\.json|target_cli: claude-code|npx skills add|\b(haiku|sonnet|opus)\b)' \
+if grep -RInE '(OpenCode|OpenClaw|ZCode|Reasonix|AskUserQuestion|WebSearch|webReader|\.opencode|opencode|\.zcode|zcode|reasonix|\.claude|CLAUDE\.md|settings-hooks\.json|target_cli: claude-code|npx skills add|\b(haiku|sonnet|opus)\b)' \
   "$SKILL_FILE" "$UPGRADING_FILE" "$AGENT_TEMPLATES" "$CODEX_DIR" >/tmp/story-setup-contamination.$$ 2>/dev/null; then
   cat /tmp/story-setup-contamination.$$ >&2
   rm -f /tmp/story-setup-contamination.$$

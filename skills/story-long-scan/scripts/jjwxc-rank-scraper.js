@@ -24,7 +24,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { ab, sleep, getArg } = require("./cdp-utils");
+const { ab, sleep, evalJSONBase64, getArg, localDateStamp, runCli } = require("./cdp-utils");
 
 const BASE_URL = "https://www.jjwxc.net/topten.php";
 
@@ -40,28 +40,9 @@ const RANK_TYPES = [
 // 详情请求批大小（async fetch 并发，整批控制在 ab() 20s 超时内）
 const DETAIL_CHUNK = 6;
 
-// ---------------------------------------------------------------------------
-// eval 封装：统一走 base64，规避复杂 JS 的 shell 转义问题（与 fanqie 一致）
-// ---------------------------------------------------------------------------
-
-function evalJSON(port, js) {
-  const b64 = Buffer.from(String(js), "utf-8").toString("base64");
-  const raw = ab(port, "eval", "-b", b64);
-  if (!raw || raw === "ERR") return null;
-  try {
-    let parsed = JSON.parse(raw);
-    if (typeof parsed === "string") {
-      try { parsed = JSON.parse(parsed); } catch {}
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
 /** 连通性 + 页面就绪自检 */
 function probePage(port) {
-  return evalJSON(
+  return evalJSONBase64(
     port,
     "JSON.stringify({host:location.host,len:(document.body&&document.body.innerText||'').length})"
   );
@@ -122,7 +103,7 @@ function extractRankData(port) {
     "}" +
     "return result" +
     "})())";
-  return evalJSON(port, js);
+  return evalJSONBase64(port, js);
 }
 
 // ---------------------------------------------------------------------------
@@ -146,16 +127,31 @@ function buildDetailJS(ids) {
   })).then(function(arr){var map={};arr.forEach(function(o){map[o.id]=o});return JSON.stringify(map);})`;
 }
 
-/** 分批解码详情，合并结果 */
+/**
+ * 分批解码详情，合并结果。
+ * 每批单独 try/catch：整批的并发 fetch 贴着 ab() 的 20s 超时线，一次瞬时超时（或
+ * 返回非 JSON）只该丢这 6 本，不能连坐后面几十本，更不能把已解析好的列表带走。
+ */
 function fetchDetails(port, ids) {
   const map = {};
+  let failedChunks = 0;
   for (let i = 0; i < ids.length; i += DETAIL_CHUNK) {
     const chunk = ids.slice(i, i + DETAIL_CHUNK);
-    const part = evalJSON(port, buildDetailJS(chunk)) || {};
-    Object.assign(map, part);
+    try {
+      const part = evalJSONBase64(port, buildDetailJS(chunk)) || {};
+      Object.assign(map, part);
+    } catch (chunkErr) {
+      failedChunks++;
+      console.error(
+        `  ⚠ 详情批次 ${Math.floor(i / DETAIL_CHUNK) + 1}（${chunk.length} 本）获取失败，跳过: ${chunkErr.message}`
+      );
+    }
     sleep(400);
   }
-  return map;
+  if (failedChunks > 0) {
+    console.error(`  ⚠ 共 ${failedChunks} 个详情批次失败，这部分书只有列表数据。`);
+  }
+  return { map, failedChunks };
 }
 
 // ---------------------------------------------------------------------------
@@ -237,6 +233,7 @@ function scrapeRank(port, rankTypeId, channelId) {
   let detailMap = {};
   let detailPlanned = 0;
   let detailOk = 0;
+  let detailFailedChunks = 0;
   if (!LIST_ONLY) {
     const picked = [];
     for (const ch of data.channels) {
@@ -251,7 +248,17 @@ function scrapeRank(port, rankTypeId, channelId) {
     detailPlanned = picked.length;
     if (picked.length) {
       console.log(`  → 补采详情 ${picked.length} 本（每频道前 ${TOP}，上限 ${DETAIL_LIMIT}）...`);
-      detailMap = fetchDetails(port, picked);
+      // 详情是列表的增补，不是前提：整段失败也要保住已解析好的列表落盘
+      // （下面的质量门会把 detailOk===0 标成 [详情解析异常/登录态缺失]）
+      try {
+        const detailResult = fetchDetails(port, picked);
+        detailMap = detailResult.map;
+        detailFailedChunks = detailResult.failedChunks;
+      } catch (detailErr) {
+        detailMap = {};
+        detailFailedChunks = Math.max(1, Math.ceil(picked.length / DETAIL_CHUNK));
+        console.error(`  ⚠ 详情补采整体失败，仅保留列表数据: ${detailErr.message}`);
+      }
       detailOk = Object.values(detailMap).filter((d) => d && d.collect).length;
       console.log(`  ✓ 详情命中收藏数 ${detailOk}/${picked.length}`);
     }
@@ -259,9 +266,16 @@ function scrapeRank(port, rankTypeId, channelId) {
 
   // 质量状态：详情开启时，收藏数命中率是核心信号
   let quality = "[OK]";
+  const detailPartial =
+    !LIST_ONLY &&
+    detailPlanned > 0 &&
+    (detailFailedChunks > 0 || detailOk < detailPlanned);
   if (!LIST_ONLY && detailPlanned > 0 && detailOk === 0) {
     quality = "[详情解析异常/登录态缺失]";
     console.error(`  ⚠ 详情全部无收藏数：可能页面结构变动或需登录，已在文件头标注。`);
+  } else if (detailPartial) {
+    quality = "[部分详情缺失]";
+    console.error(`  ⚠ 详情仅命中 ${detailOk}/${detailPlanned}，已按部分结果标注。`);
   } else if (LIST_ONLY) {
     quality = "[仅列表-无核心指标]";
   }
@@ -312,37 +326,78 @@ function scrapeRank(port, rankTypeId, channelId) {
     }
   }
 
-  return lines.join("\n");
+  return {
+    content: lines.join("\n"),
+    partial: detailPartial,
+    partialReason: detailPartial
+      ? `${rt.label}: detail ${detailOk}/${detailPlanned}, failed chunks ${detailFailedChunks}`
+      : "",
+  };
 }
 
 function main() {
+  if (RANKTYPE !== "all" && !RANK_TYPES.some((rank) => rank.id === RANKTYPE)) {
+    throw new Error(`未知 --type: ${RANKTYPE}`);
+  }
+  // 当前脚本只实现全站榜（t=0）；不能把任意数字静默标成“频道 N”。
+  // 若后续支持分频道，先从页面提取并维护明确 ID 白名单再开放。
+  if (CHANNEL !== "0") {
+    throw new Error(`未知 --channel: ${CHANNEL}（当前仅支持 0=全站）`);
+  }
   const rankTypes = RANKTYPE === "all" ? RANK_TYPES.map((r) => r.id) : [RANKTYPE];
   const channels = [CHANNEL]; // 晋江频道 ID 需从页面获取，默认全站
+  let written = 0;
+  let failed = 0;
+  let partial = false;
+  const partialReasons = [];
 
   for (const rt of rankTypes) {
     for (const ch of channels) {
-      const content = scrapeRank(PORT, rt, ch);
-      if (!content) continue;
+      // per-榜单隔离：一个榜单出错不该掐掉 --type all 后面的榜单（与番茄/刺猬猫一致）
+      try {
+        const result = scrapeRank(PORT, rt, ch);
+        if (!result) {
+          failed++;
+          const rtInfo = RANK_TYPES.find((r) => r.id === rt);
+          partialReasons.push(`${rtInfo ? rtInfo.label : rt}: no usable data`);
+          continue;
+        }
+        if (result.partial) {
+          partial = true;
+          if (result.partialReason) partialReasons.push(result.partialReason);
+        }
 
-      const rtInfo = RANK_TYPES.find((r) => r.id === rt);
-      const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-      const chLabel = ch === "0" ? "全站" : `频道${ch}`;
-      const filename = `晋江${rtInfo.label}_${chLabel}_${date}.md`;
-      fs.mkdirSync(OUTDIR, { recursive: true });
-      const filepath = path.join(OUTDIR, filename);
-      fs.writeFileSync(filepath, content, "utf-8");
-      console.log(`  ✓ 已保存: ${filepath}`);
+        const rtInfo = RANK_TYPES.find((r) => r.id === rt);
+        const date = localDateStamp();
+        const chLabel = ch === "0" ? "全站" : `频道${ch}`;
+        const filename = `晋江${rtInfo.label}_${chLabel}_${date}.md`;
+        fs.mkdirSync(OUTDIR, { recursive: true });
+        const filepath = path.join(OUTDIR, filename);
+        fs.writeFileSync(filepath, result.content, "utf-8");
+        written++;
+        console.log(`  ✓ 已保存: ${filepath}`);
+      } catch (rankErr) {
+        failed++;
+        const rtInfo = RANK_TYPES.find((r) => r.id === rt);
+        const message = rankErr && rankErr.message ? rankErr.message : String(rankErr);
+        partialReasons.push(`${rtInfo ? rtInfo.label : rt}: ${message}`);
+        console.error(
+          `[jjwxc] ${rtInfo ? rtInfo.label : rt} 采集失败，跳过: ${message}`
+        );
+      }
     }
   }
+  return {
+    planned: rankTypes.length * channels.length,
+    written,
+    failed,
+    partial: partial || failed > 0,
+    partialReasons,
+  };
 }
 
 if (require.main === module) {
-  try {
-    main();
-  } catch (e) {
-    console.error(`晋江采集失败: ${e && e.message ? e.message : e}`);
-    process.exit(1);
-  }
+  runCli(main, "晋江采集");
 }
 
 module.exports = { buildDetailJS, fmtWan };

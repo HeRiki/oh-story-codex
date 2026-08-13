@@ -19,7 +19,7 @@
  *   node qidian-rank-scraper.js --type sanjiang                 # 三江推荐（/sanjiang/，非 /rank/ 路径）
  *   node qidian-rank-scraper.js --type all                     # 全部榜单
  *   node qidian-rank-scraper.js --type hotsales --mode mobile  # 仅使用移动端 SSR
- *   node qidian-rank-scraper.js --type hotsales --mode cdp     # 仅使用旧版 CDP/PC 页面
+ *   node qidian-rank-scraper.js --type hotsales --mode cdp     # 仅使用备用 CDP/PC 页面
  *
  * 前置：
  *   默认 mobile/auto 模式不需要 Chrome。
@@ -29,7 +29,7 @@
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
-const { ab, sleep, evalJSON, scrollLoad, getArg } = require("./cdp-utils");
+const { ab, sleep, evalJSON, scrollLoad, getArg, localDateStamp, runCli } = require("./cdp-utils");
 
 const PC_BASE_URL = "https://www.qidian.com/rank";
 const MOBILE_BASE_URL = "https://m.qidian.com";
@@ -104,6 +104,14 @@ function extractBookList(port) {
   const js =
     "JSON.stringify((()=>{" +
     "var items=[];" +
+    "function metrics(text){" +
+    "  var flat=String(text||'').replace(/\\s+/g,' ').trim();" +
+    "  var words=flat.match(/([\\d.]+\\s*万?字)/);" +
+    "  var total=flat.match(/([\\d.,]+\\s*万?)\\s*总推荐/);" +
+    "  var signing=flat.match(/(?:^|\\s|·)(已签约|未签约|签约)(?=\\s|·|$)/);" +
+    "  var pricing=flat.match(/(?:^|\\s|·)(VIP|免费)(?=\\s|·|$)/i);" +
+    "  return {words:words?words[1].replace(/\\s+/g,''):'',totalRecommendations:total?total[1]:'',signing:signing?signing[1]:'',pricing:pricing?pricing[1].toUpperCase()==='VIP'?'VIP':pricing[1]:''};" +
+    "}" +
     "var lis=document.querySelectorAll('.book-img-text ul li');" +
     "if(!lis.length){" +
     // 兜底：用 H2 链接定位
@@ -112,9 +120,10 @@ function extractBookList(port) {
     "    var c=a.parentElement;" +
     "    for(var j=0;j<3;j++){if(c.parentElement)c=c.parentElement}" +
     "    var text=c.innerText||'';" +
+    "    var metric=metrics(text);" +
     "    var href=a.getAttribute('href')||a.href||'';" +
     "    var url=href?(href.indexOf('http')===0?href:'https:'+href):'';" +
-    "    items.push({rank:idx+1,title:a.textContent.trim(),url:url,author:'',genre:'',status:'',descText:'',updateText:text.replace(/\\s+/g,' ').trim().substring(0,300)})" +
+    "    items.push({rank:idx+1,title:a.textContent.trim(),url:url,author:'',genre:'',status:'',words:metric.words,rankValue:'',totalRecommendations:metric.totalRecommendations,signing:metric.signing,pricing:metric.pricing,descText:'',updateText:text.replace(/\\s+/g,' ').trim().substring(0,300)})" +
     "  });" +
     "  return items" +
     "}" +
@@ -143,8 +152,9 @@ function extractBookList(port) {
     // 更新：p.update
     "  var updateEl=li.querySelector('p.update');" +
     "  var updateText=updateEl?updateEl.textContent.replace(/\\s+/g,' ').trim():'';" +
+    "  var metric=metrics(li.innerText||'');" +
     "  if(title){" +
-    "    items.push({rank:idx+1,title:title,url:url,author:author,genre:genre+(subGenre?'·'+subGenre:''),status:status,descText:descText,updateText:updateText})" +
+    "    items.push({rank:idx+1,title:title,url:url,author:author,genre:genre+(subGenre?'·'+subGenre:''),status:status,words:metric.words,rankValue:'',totalRecommendations:metric.totalRecommendations,signing:metric.signing,pricing:metric.pricing,descText:descText,updateText:updateText})" +
     "  }" +
     "});" +
     "return items" +
@@ -161,7 +171,13 @@ function extractDetail(port) {
     "var introText=intro?intro.textContent.trim():'';" +
     "var update=document.querySelector('[class*=\"update\"],[class*=\"latest\"]');" +
     "var updateText=update?update.textContent.trim():'';" +
-    "return {tags:tags,intro:introText,update:updateText}" +
+    "var info=document.querySelector('.book-info,[class*=\"book-info\"],[class*=\"bookInfo\"]');" +
+    "var infoText=info?(info.innerText||info.textContent||''):(document.body?document.body.innerText||'':'');" +
+    "var words=infoText.match(/([\\d.]+\\s*万?字)/);" +
+    "var total=infoText.match(/([\\d.,]+\\s*万?)\\s*总推荐/);" +
+    "var signing=infoText.match(/(?:^|\\s|·)(已签约|未签约|签约)(?=\\s|·|$)/);" +
+    "var pricing=infoText.match(/(?:^|\\s|·)(VIP|免费)(?=\\s|·|$)/i);" +
+    "return {tags:tags,intro:introText,update:updateText,words:words?words[1].replace(/\\s+/g,''):'',totalRecommendations:total?total[1]:'',signing:signing?signing[1]:'',pricing:pricing?pricing[1].toUpperCase()==='VIP'?'VIP':pricing[1]:''}" +
     "})())";
   return evalJSON(port, js);
 }
@@ -301,9 +317,13 @@ function normalizeMobileBook(record, idx) {
   const title = record.bName || record.bookName || "";
   const bid = record.bid || record.bookId || "";
   const genre = [record.cat, record.subCat].filter(Boolean).join("·");
-  const stats = [];
-  if (record.cnt) stats.push(record.cnt);
-  if (record.rankCnt) stats.push(`榜单值 ${record.rankCnt}`);
+  const first = (...keys) => {
+    for (const key of keys) {
+      const value = record[key];
+      if (value !== undefined && value !== null && value !== "") return String(value);
+    }
+    return "";
+  };
 
   return {
     rank: record.rankNum || idx + 1,
@@ -311,10 +331,29 @@ function normalizeMobileBook(record, idx) {
     url: bid ? `${MOBILE_BASE_URL}/book/${bid}/` : "",
     author: record.bAuth || record.author || "",
     genre,
-    status: stats.join(" · "),
+    status: first("status", "bookStatus", "serializationStatus"),
+    words: first("cnt", "wordCount", "words", "wordCnt"),
+    rankValue: first("rankCnt", "rankValue"),
+    totalRecommendations: first(
+      "totalRecommend",
+      "totalRecommendations",
+      "recommendCount",
+      "totalRec"
+    ),
+    signing: first("signStatus", "signing", "contractStatus"),
+    pricing: first("vipStatus", "pricing", "chargeStatus"),
     descText: record.desc || "",
     updateText: "",
   };
+}
+
+/** 清洗简介：折叠空白，超过 100 字时优先在句末截断。 */
+function cleanDesc(raw) {
+  const desc = String(raw || "").replace(/\s+/g, " ").trim();
+  if (desc.length <= 100) return desc;
+  const cut = desc.slice(0, 100);
+  const sentence = cut.match(/^[\s\S]*[。！？]/);
+  return (sentence ? sentence[0] : cut) + "...";
 }
 
 function renderMarkdown(rt, books, url, sourceMode, extraLines = []) {
@@ -337,14 +376,22 @@ function renderMarkdown(rt, books, url, sourceMode, extraLines = []) {
     lines.push(`## #${b.rank || i + 1} ${b.title}`);
     const meta = [b.author, b.genre, b.status].filter(Boolean).join(" · ");
     if (meta) lines.push(`*${meta}*`);
+    const required = (value) =>
+      value === undefined || value === null || value === "" ? "[待补]" : String(value);
+    lines.push(`**字数：${required(b.words)}**`);
+    if (b.rankValue) lines.push(`**榜单值：${b.rankValue}**`);
+    lines.push(`**总推荐：${required(b.totalRecommendations)}**`);
+    lines.push(`**签约：${required(b.signing)}**`);
+    lines.push(`**收费模式：${required(b.pricing)}**`);
     if (b.updateText) lines.push(`**最新更新：** ${b.updateText}`);
     if (b.tags?.length) lines.push(`**标签：** ${b.tags.join("、")}`);
     if (b.url) lines.push(`[作品页](${b.url})`);
-    if (b.descText) {
+    const desc = cleanDesc(b.descText);
+    if (desc) {
       lines.push("");
       lines.push("**简介**");
       lines.push("");
-      lines.push(b.descText);
+      lines.push(desc);
     }
     lines.push("", "---", "");
   }
@@ -442,6 +489,9 @@ function scrapeRankCDP(port, rankTypeId) {
         if (detail.tags?.length) b.tags = detail.tags;
         if (detail.intro) b.descText = detail.intro;
         if (detail.update) b.updateText = detail.update;
+        for (const field of ["words", "totalRecommendations", "signing", "pricing"]) {
+          if (detail[field]) b[field] = detail[field];
+        }
       }
       console.log(`    [${i + 1}/${books.length}] ${b.title}`);
     }
@@ -477,23 +527,67 @@ async function scrapeRank(rankTypeId) {
 }
 
 async function main() {
+  // 参数错误是配置问题，不是单个榜单的瞬时失败：先于 per-榜单隔离快速失败
+  if (RANKTYPE !== "all" && !RANK_TYPES.some((rank) => rank.id === RANKTYPE)) {
+    throw new Error(`未知 --type: ${RANKTYPE}`);
+  }
+  if (!["auto", "mobile", "cdp"].includes(SCRAPE_MODE)) {
+    throw new Error(`未知 --mode: ${SCRAPE_MODE}（可选 auto/mobile/cdp）`);
+  }
+
   const rankTypes = RANKTYPE === "all" ? RANK_TYPES.map((r) => r.id) : [RANKTYPE];
+  let written = 0;
+  let failed = 0;
+  const partialReasons = [];
 
   for (const rt of rankTypes) {
-    const content = await scrapeRank(rt);
-    if (!content) continue;
+    // per-榜单隔离：移动端 SSR 失败后的 CDP 回退会直接抛（ab() 不吞错），
+    // 一个榜单的瞬时失败不该掐掉 --type all 后面的榜单（与番茄/刺猬猫一致）
+    try {
+      const content = await scrapeRank(rt);
+      if (!content) {
+        failed++;
+        const rtInfo = RANK_TYPES.find((r) => r.id === rt);
+        partialReasons.push(`${rtInfo ? rtInfo.label : rt}: no usable data`);
+        continue;
+      }
 
-    const rtInfo = RANK_TYPES.find((r) => r.id === rt);
-    const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    const filename = `起点${rtInfo.label}_${date}.md`;
-    fs.mkdirSync(OUTDIR, { recursive: true });
-    const filepath = path.join(OUTDIR, filename);
-    fs.writeFileSync(filepath, content, "utf-8");
-    console.log(`  ✓ 已保存: ${filepath}`);
+      const rtInfo = RANK_TYPES.find((r) => r.id === rt);
+      const date = localDateStamp();
+      const filename = `起点${rtInfo.label}_${date}.md`;
+      fs.mkdirSync(OUTDIR, { recursive: true });
+      const filepath = path.join(OUTDIR, filename);
+      fs.writeFileSync(filepath, content, "utf-8");
+      written++;
+      console.log(`  ✓ 已保存: ${filepath}`);
+    } catch (rankErr) {
+      failed++;
+      const rtInfo = RANK_TYPES.find((r) => r.id === rt);
+      const message = rankErr && rankErr.message ? rankErr.message : String(rankErr);
+      partialReasons.push(`${rtInfo ? rtInfo.label : rt}: ${message}`);
+      console.error(
+        `[qidian] ${rtInfo ? rtInfo.label : rt} 采集失败，跳过: ${message}`
+      );
+    }
   }
+  return {
+    planned: rankTypes.length,
+    written,
+    failed,
+    partial: failed > 0,
+    partialReasons,
+  };
 }
 
-main().catch((e) => {
-  console.error(`起点采集失败: ${e.message}`);
-  process.exit(1);
-});
+if (require.main === module) {
+  runCli(main, "起点采集");
+}
+
+module.exports = {
+  extractBookList,
+  mobileUrl,
+  extractMobilePageContext,
+  normalizeMobileBook,
+  cleanDesc,
+  renderMarkdown,
+};

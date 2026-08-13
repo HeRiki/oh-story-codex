@@ -14,7 +14,7 @@ Detect model-degeneration fingerprints that a degrading model cannot self-report
 
 Each finding carries severity: blocking (复读/截断/占位拒绝语/tier1 纯工程词，正文里永不合法，
 命中即重写) 或 advisory (tier2 章节/歧义词、对话行里的工程词，只提示、交人/LLM 判)。
-默认 --fail-on=blocking 只在出现 blocking finding 时退出 1；--fail-on=all 有任何 finding 即退出 1。
+--fail-on=blocking 只在出现 blocking finding 时退出 1；默认 --fail-on=all 有任何 finding 即退出 1。
 
 Report-only. The script never rewrites — the safe response is to regenerate the
 affected unit (chapter / 摘要) with the finding fed back as a constraint, cap retries,
@@ -32,7 +32,9 @@ const ADJACENT_MIN_LEN = 8;
 const PLACEHOLDER_PATTERNS = [
   // 「作为AI」需在自指位置（其后是断句/我/无法… 或句末），避免误报「人工智能时代的产物」这类
   // 复合名词；并对对话行豁免（系统流/AI 伴侣题材里 AI 角色台词「作为AI，我会保护你」是合法对话）。
-  { re: /作为(一个)?(AI|人工智能|大?语言模型|智能助手|聊天助手)(?=[，,。、；;：:！!？?\s）)」』"】]|我|无法|不能|没法|$)/, label: '元信息泄漏（AI 自指）', hard: false },
+  // 型号后缀（AI语言模型/AI助手/人工智能语言模型/AI模型/AI大模型）必须可选吃掉，
+  // 否则前视断言会停在「AI」后面的「语」/「助」/「模」，漏掉最典型的退化开场。
+  { re: /作为(一个)?(AI|人工智能|大?语言模型|智能助手|聊天助手)(?:语言模型|大?模型|助手|机器人)?(?=[，,。、；;：:！!？?\s）)」』"】]|我|无法|不能|没法|$)/, label: '元信息泄漏（AI 自指）', hard: false },
   { re: /�/, label: '乱码（替换字符 �）', hard: true },
   { re: /^\s*(?:[-*+]\s*)?(Sure|Certainly|Here'?s|As an AI|I (?:cannot|can't|am unable|apologize))/i, label: '元信息泄漏（英文 AI 腔）', hard: true },
   { re: /[（(](此处|以下|这里|下文|后续)?\s*(省略|略)(去|过)?[^）)]{0,10}[）)]/, label: '占位符（括号省略）', hard: true },
@@ -48,7 +50,7 @@ const PLACEHOLDER_PATTERNS = [
 const META_TIER1_RE = /细纲|情节点|卷纲|功能标签|目标情绪|字数目标|章首钩子|章尾钩子/;
 const META_TIER2_RE = /第[一二三四五六七八九十百千万两0-9]+章|本章|这一章|上一章|下一章|上章|下章|前一章|后一章|前文|后文|伏笔|读者(?:视角|预期|期待|反馈|爽点|代入感)|面向读者|给读者|任务描述/;
 
-const options = { json: false, files: [], failOn: 'blocking' };
+const options = { json: false, files: [], failOn: 'all' };
 
 for (let i = 2; i < process.argv.length; i += 1) {
   const arg = process.argv[i];
@@ -100,8 +102,7 @@ if (options.json) {
 }
 
 if (failed) process.exit(2);
-// 默认 --fail-on=blocking 只在出现 blocking finding 时退出 1（advisory 仅报告）；
-// --fail-on=all 用于严格模式，有任何 finding 即退出 1。
+// --fail-on=blocking 只在出现 blocking finding 时退出 1（advisory 仅报告）；默认 all 沿用「有任何 finding 即 1」。
 const hasBlocking = allFindings.some((f) => f.severity === 'blocking');
 if (options.failOn === 'blocking' ? hasBlocking : allFindings.length > 0) process.exit(1);
 
@@ -328,11 +329,11 @@ function findMetaLeak(content) {
       // 台词（对话行）里可能合法，降级为 advisory（仍报告，交人/LLM 判，不强制回炉）。
       findings.push({
         line: lineNo,
-        column: (m.index || 0) + 1,
+        column: m.index + 1,
         type: 'meta-leak',
         severity: inDialogueText ? 'advisory' : 'blocking',
         message: `工程词泄漏：「${m[0]}」是写作流水线术语，正文里不该出现；改成角色/场景内表达。${inDialogueText ? '例外：角色为作者/编剧、在故事内真实讨论创作时，台词里可能合法。' : ''}`,
-        excerpt: compact(trimmed.slice(Math.max(0, (m.index || 0) - 6), (m.index || 0) + 18)),
+        excerpt: compact(trimmed.slice(Math.max(0, m.index - 6), m.index + 18)),
       });
       continue; // tier1 命中即可，不再叠 tier2
     }

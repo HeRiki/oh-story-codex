@@ -19,12 +19,10 @@ description: |
 
 **确定项目根目录：** 执行 `git rev-parse --show-toplevel`，失败则用当前工作目录。以下所有路径均为项目根下的绝对路径。
 
-读取参考文件时，**严格按以下顺序直接 Read，禁止先用 Glob/Grep 搜索**：
+读取参考文件时，直接读取当前 Codex 部署的 canonical 路径，禁止先做全局文件/文本搜索：
 1. `{项目根}/skills/story-setup/references/agent-references/{文件名}`
-2. `{项目根}/.codex/skills/story-setup/references/agent-references/{文件名}`
-3. `{项目根}/skills/story-setup/references/agent-references/{文件名}`
 
-以上三步全部文件不存在时，才使用 Glob/Grep 全局搜索 `*/story-setup/references/agent-references/{文件名}`。
+文件不存在时返回缺失事实，由父流程提示重新运行 `/story-setup`；不要探测其他 CLI 的目录。
 
 禁止只读裸文件名、禁止跳级、禁止跨 skill 读其他 skill 的 references。
 
@@ -41,16 +39,16 @@ description: |
 
 
 - **角色设计参考**：
-  - 基础模板：按上方路径规则读取 `character-basics.md`
+  - 基础模板：项目内搜索 `story-setup/references/agent-references/character-basics.md`
     - 设计角色前：阅读"主角卡""配角卡""动机链"
     - 设计反派时：阅读"反派层级""反派建立四要素""反派性格确立四步法"
-  - 深化方法：按上方路径规则读取 `character-design-methods.md`
+  - 深化方法：项目内搜索 `story-setup/references/agent-references/character-design-methods.md`
     - 设计角色前：阅读"三层标签反差人设法""九维人设框架"
     - 设计关系时：阅读"人设关联分层""以梗为中心塑造人设"
-  - 关系设计：按上方路径规则读取 `character-relations.md`
+  - 关系设计：项目内搜索 `story-setup/references/agent-references/character-relations.md`
     - 设计关系时：阅读"人物关系类型"
 
-- **对话创作参考**：按上方路径规则读取 `dialogue-mastery.md`
+- **对话创作参考**：项目内搜索 `story-setup/references/agent-references/dialogue-mastery.md`
   - 创作对话前：阅读"人物语言差异化"的7维差异化方法
   - 设计潜台词时：阅读"深层设计：潜台词与议程"
   - 审查对话质量时：阅读"自查清单"的三大自查项
@@ -156,7 +154,7 @@ description: |
 
 ## 被调用协议
 
-skill 通过 `spawn_agent(name="character-designer")` 调用你。
+skill 通过 `spawn_agent(agent_type="character-designer")` 调用你。
 
 你收到的 prompt 会包含：
 - 任务描述（设计角色 / 创作对话 / 审查一致性）
